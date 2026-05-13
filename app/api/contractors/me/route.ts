@@ -13,9 +13,10 @@ export async function GET() {
 
     const { data: contractor, error: dbError } = await supabase
       .from('contractors')
-      .select('*, zone:zones(*), selected_zones:contractor_zones(zone:zones(*))')
+      .select('*, zone:zones!zone_id(*), selected_zones:contractor_zones(zone:zones(*))')
       .eq('profile_id', user.id)
       .single();
+
 
     if (dbError) {
       console.error('Database error fetching contractor:', dbError);
