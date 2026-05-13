@@ -3,16 +3,16 @@
 import { useEffect, useState } from 'react';
 import { UsersRound, Plus, Crown, User } from 'lucide-react';
 import type { ContractorTeam, Zone } from '@/types';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 
 export default function TeamsPage() {
   const [teams, setTeams] = useState<ContractorTeam[]>([]);
     const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    Promise.all([
-      fetch('/api/teams').then(r => r.json()),
-      
-    ]).then(([t, z]) => { setTeams(Array.isArray(t) ? t : []); setZones(Array.isArray(z) ? z : []); setLoading(false); });
+    fetch('/api/teams')
+      .then(r => r.json())
+      .then((t) => { setTeams(Array.isArray(t) ? t : []); setLoading(false); });
   }, []);
 
   return (
