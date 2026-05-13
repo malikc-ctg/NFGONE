@@ -13,7 +13,7 @@ export async function GET() {
 
     const { data: contractor, error: dbError } = await supabase
       .from('contractors')
-      .select('*, zone:zones(*)')
+      .select('*, zone:zones(*), selected_zones:contractor_zones(zone:zones(*))')
       .eq('profile_id', user.id)
       .single();
 
@@ -26,8 +26,13 @@ export async function GET() {
       return NextResponse.json({ error: 'Contractor profile not found (empty result)' }, { status: 404 });
     }
 
+    // Flatten selected_zones for easier frontend use
+    const formattedContractor = {
+      ...contractor,
+      selected_zone_ids: contractor.selected_zones?.map((sz: any) => sz.zone.id) || []
+    };
 
-    return NextResponse.json(contractor);
+    return NextResponse.json(formattedContractor);
   } catch (err: unknown) {
     return NextResponse.json({ error: (err as Error).message }, { status: 500 });
   }
@@ -43,25 +48,48 @@ export async function PATCH(request: Request) {
     }
 
     const body = await request.json();
-    const { full_name, phone, zone_id } = body;
+    const { full_name, phone, zone_ids } = body;
 
-    const { data, error } = await supabase
+    // 1. Update basic contractor info
+    const { data: contractor, error: contractorError } = await supabase
       .from('contractors')
       .update({
         full_name,
         phone,
-        zone_id,
         updated_at: new Date().toISOString()
       })
       .eq('profile_id', user.id)
       .select()
       .single();
 
-    if (error) throw error;
+    if (contractorError) throw contractorError;
 
-    return NextResponse.json(data);
+    // 2. Sync zones if provided
+    if (Array.isArray(zone_ids)) {
+      // Clear existing
+      await supabase
+        .from('contractor_zones')
+        .delete()
+        .eq('contractor_id', contractor.id);
+
+      // Insert new
+      if (zone_ids.length > 0) {
+        const zoneInserts = zone_ids.map(id => ({
+          contractor_id: contractor.id,
+          zone_id: id
+        }));
+        const { error: syncError } = await supabase
+          .from('contractor_zones')
+          .insert(zoneInserts);
+        
+        if (syncError) throw syncError;
+      }
+    }
+
+    return NextResponse.json(contractor);
   } catch (err: unknown) {
     return NextResponse.json({ error: (err as Error).message }, { status: 500 });
   }
 }
+
 

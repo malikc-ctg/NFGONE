@@ -6,8 +6,9 @@ import {
   LayoutDashboard, Users, Briefcase, UserCheck,
   Receipt, Settings, ClipboardList, Waves,
   DollarSign, Building2, AlertTriangle, Package,
-  UsersRound, TrendingUp,
+  UsersRound, TrendingUp, Globe,
 } from 'lucide-react';
+
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 const sidebarItems = [
@@ -21,9 +22,11 @@ const sidebarItems = [
   { href: '/admin/disputes', label: 'Disputes', icon: AlertTriangle },
   { href: '/admin/supply', label: 'Supply', icon: Package },
   { href: '/admin/partners', label: 'Partners', icon: Building2 },
+  { href: '/admin/zones', label: 'Zones', icon: Globe },
   { href: '/admin/finance', label: 'Finance', icon: TrendingUp },
   { href: '/admin/settings', label: 'Settings', icon: Settings },
 ];
+
 
 
 export default function AdminLayout({

@@ -5,13 +5,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
-import { User, MapPin, Phone, Mail } from 'lucide-react';
+import { User, MapPin, Phone, Mail, CheckCircle2 } from 'lucide-react';
 import type { Contractor, Zone } from '@/types';
 
 export default function ContractorProfilePage() {
-  const [contractor, setContractor] = useState<Contractor | null>(null);
+  const [contractor, setContractor] = useState<Contractor & { selected_zone_ids?: string[] } | null>(null);
   const [zones, setZones] = useState<Zone[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -19,7 +19,7 @@ export default function ContractorProfilePage() {
   const [formData, setFormData] = useState({
     full_name: '',
     phone: '',
-    zone_id: '',
+    zone_ids: [] as string[],
   });
 
   useEffect(() => {
@@ -36,7 +36,7 @@ export default function ContractorProfilePage() {
         setFormData({
           full_name: meData.full_name || '',
           phone: meData.phone || '',
-          zone_id: meData.zone_id || '',
+          zone_ids: meData.selected_zone_ids || [],
         });
 
         const zonesData = await zonesRes.json();
@@ -69,6 +69,15 @@ export default function ContractorProfilePage() {
     }
   }
 
+  function toggleZone(zoneId: string) {
+    setFormData(prev => ({
+      ...prev,
+      zone_ids: prev.zone_ids.includes(zoneId)
+        ? prev.zone_ids.filter(id => id !== zoneId)
+        : [...prev.zone_ids, zoneId]
+    }));
+  }
+
   if (loading) return <div className="p-4 text-muted-foreground">Loading profile...</div>;
 
   return (
@@ -78,7 +87,7 @@ export default function ContractorProfilePage() {
         <h1 className="text-xl font-bold">My Profile</h1>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-4 pb-10">
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
@@ -129,40 +138,60 @@ export default function ContractorProfilePage() {
           </CardContent>
         </Card>
 
-        <Card className="border-blue-100 bg-blue-50/30 dark:border-blue-900/30 dark:bg-blue-900/10">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wider flex items-center gap-2">
-              <MapPin className="h-4 w-4" /> Service Zone
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-xs text-muted-foreground mb-2">
-              Select the zone where you would like to receive job offers. You will only see jobs dispersed within this area.
-            </p>
-            <div className="space-y-2">
-              <Label>Primary Working Zone</Label>
-              <Select
-                value={formData.zone_id}
-                onValueChange={(val) => setFormData({ ...formData, zone_id: val })}
+        <div className="space-y-3">
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+            <MapPin className="h-4 w-4" /> Service Coverage
+          </h2>
+          <p className="text-xs text-muted-foreground">
+            Select all regions where you are available to work. You will receive job offers from any of these areas.
+          </p>
+          
+          <div className="grid gap-3">
+            {zones.map((zone) => (
+              <Card 
+                key={zone.id} 
+                className={`transition-all cursor-pointer border-l-4 ${
+                  formData.zone_ids.includes(zone.id) 
+                    ? 'border-l-blue-600 bg-blue-50/30 dark:bg-blue-900/10' 
+                    : 'border-l-transparent hover:border-l-muted'
+                }`}
+                onClick={() => toggleZone(zone.id)}
               >
-                <SelectTrigger className="bg-white dark:bg-background">
-                  <SelectValue placeholder="Select a zone" />
-                </SelectTrigger>
-                <SelectContent>
-                  {zones.map((zone) => (
-                    <SelectItem key={zone.id} value={zone.id}>
-                      {zone.name} ({zone.city})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </CardContent>
-        </Card>
+                <CardContent className="p-4 flex items-start gap-4">
+                  <Checkbox 
+                    checked={formData.zone_ids.includes(zone.id)}
+                    onCheckedChange={() => toggleZone(zone.id)}
+                    className="mt-1"
+                  />
+                  <div className="space-y-1 flex-1">
+                    <div className="flex justify-between items-center">
+                      <p className="font-bold text-sm">{zone.name}</p>
+                      {formData.zone_ids.includes(zone.id) && (
+                        <CheckCircle2 className="h-4 w-4 text-blue-600" />
+                      )}
+                    </div>
+                    <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-tighter">
+                      {zone.city}
+                    </p>
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {zone.areas?.map(area => (
+                        <span key={area} className="text-[9px] bg-muted px-1.5 py-0.5 rounded text-muted-foreground border border-border/50">
+                          {area}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
 
-        <Button type="submit" className="w-full h-12 text-base font-bold" disabled={saving}>
-          {saving ? 'Saving Changes...' : 'Update Profile'}
-        </Button>
+        <div className="sticky bottom-4 pt-4 bg-background/80 backdrop-blur-sm z-10">
+          <Button type="submit" className="w-full h-14 text-base font-bold shadow-lg shadow-blue-500/20" disabled={saving}>
+            {saving ? 'Saving Changes...' : `Save ${formData.zone_ids.length} Zones`}
+          </Button>
+        </div>
       </form>
 
       <Card>
