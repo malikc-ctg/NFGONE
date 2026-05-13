@@ -1,17 +1,5 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { StatusBadge } from '@/components/shared/StatusBadge';
-import { Clock, DollarSign, MapPin } from 'lucide-react';
-import { SERVICE_TYPE_LABELS, TIME_WINDOW_LABELS } from '@/types';
-import type { Job, JobOffer } from '@/types';
-import Link from 'next/link';
-import { format } from 'date-fns';
-import { toast } from 'sonner';
-
 import { useEffect, useState, useCallback } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -23,6 +11,7 @@ import type { Job, JobOffer, Contractor } from '@/types';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
+
 
 export default function ContractorDashboard() {
   const [todaysJobs, setTodaysJobs] = useState<Job[]>([]);
