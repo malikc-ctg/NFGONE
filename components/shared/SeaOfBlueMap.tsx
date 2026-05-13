@@ -26,8 +26,8 @@ export const SeaOfBlueMap = forwardRef<MapRef, SeaOfBlueMapProps>(
     return (
       <Map
         ref={ref}
-        mapboxAccessToken={process.env.NEXT_PUBLIC_MAPBOX_TOKEN}
-        mapStyle={process.env.NEXT_PUBLIC_MAPBOX_STYLE}
+        mapboxAccessToken={process.env.NEXT_PUBLIC_MAPBOX_TOKEN || process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN}
+        mapStyle={process.env.NEXT_PUBLIC_MAPBOX_STYLE || 'mapbox://styles/mapbox/streets-v12'}
         initialViewState={initialViewState ?? DEFAULT_VIEW}
         style={{ width: '100%', height: '100%', ...style }}
         onClick={(e) => onMapClick?.({ lng: e.lngLat.lng, lat: e.lngLat.lat })}
