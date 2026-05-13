@@ -8,7 +8,7 @@ import { StatusBadge } from '@/components/shared/StatusBadge';
 import { Separator } from '@/components/ui/separator';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
+  Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger,
 } from '@/components/ui/dialog';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -34,11 +34,17 @@ export default function JobDetailPage() {
   const [dispatching, setDispatching] = useState(false);
 
   async function fetchJob() {
-    const res = await fetch(`/api/jobs?limit=1000`);
-    const data = await res.json();
-    const found = (Array.isArray(data) ? data : []).find((j: any) => j.id === params.id);
-    setJob(found ?? null);
-    setLoading(false);
+    try {
+      const res = await fetch(`/api/jobs/${params.id}`);
+      if (!res.ok) throw new Error('Failed to fetch job');
+      const data = await res.json();
+      setJob(data);
+    } catch (err) {
+      console.error('Error loading job:', err);
+      toast.error('Failed to load job details');
+    } finally {
+      setLoading(false);
+    }
   }
 
   useEffect(() => { fetchJob(); }, [params.id]);
@@ -205,6 +211,9 @@ export default function JobDetailPage() {
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Dispatch Job {job.job_number}</DialogTitle>
+            <DialogDescription>
+              Select up to 5 contractors to send this job offer to.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="bg-muted p-3 rounded-lg text-sm space-y-1">

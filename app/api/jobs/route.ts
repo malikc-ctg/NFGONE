@@ -54,6 +54,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(data, { status: 201 });
   } catch (err: unknown) {
+    console.error('POST /api/jobs error:', err);
     return NextResponse.json({ error: (err as Error).message }, { status: 500 });
   }
 }
@@ -88,6 +89,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(data);
   } catch (err: unknown) {
+    console.error('GET /api/jobs error:', err);
     return NextResponse.json({ error: (err as Error).message }, { status: 500 });
   }
 }

@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { toast } from 'sonner';
@@ -132,7 +132,12 @@ export default function LeadDetailPage() {
               <Button><ArrowRight className="h-4 w-4 mr-2" />Convert to Job</Button>
             </DialogTrigger>
             <DialogContent>
-              <DialogHeader><DialogTitle>Convert Lead to Job</DialogTitle></DialogHeader>
+              <DialogHeader>
+                <DialogTitle>Convert Lead to Job</DialogTitle>
+                <DialogDescription className="sr-only">
+                  Fill out the details below to convert this lead into a scheduled job.
+                </DialogDescription>
+              </DialogHeader>
               <div className="space-y-4">
                 <div><Label>Zone</Label>
                   <Select value={convertForm.zone_id} onValueChange={(v) => setConvertForm({ ...convertForm, zone_id: v })}>
