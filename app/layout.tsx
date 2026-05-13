@@ -3,8 +3,6 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import { Toaster } from '@/components/ui/sonner';
 
-import { PostHogProvider, PostHogPageview } from '@/components/shared/PostHogProvider';
-import { Suspense } from 'react';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 
@@ -21,12 +19,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body className={`${inter.variable} font-sans antialiased`}>
-        <PostHogProvider>
-          <Suspense fallback={null}>
-            <PostHogPageview />
-          </Suspense>
-          {children}
-        </PostHogProvider>
+        {children}
         <Toaster position="top-right" richColors />
       </body>
     </html>
