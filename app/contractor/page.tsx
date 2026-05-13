@@ -24,8 +24,12 @@ export default function ContractorDashboard() {
     try {
       // 1. Get my profile
       const meRes = await fetch('/api/contractors/me');
-      if (!meRes.ok) throw new Error('Could not fetch profile');
+      if (!meRes.ok) {
+        const errorData = await meRes.json();
+        throw new Error(errorData.error || 'Could not fetch profile');
+      }
       const meData = await meRes.json();
+
       setContractor(meData);
 
       // 2. Get today's jobs (assigned to me)
