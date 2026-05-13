@@ -89,11 +89,13 @@ export function AdminMapDashboard() {
         event: '*',
         schema: 'public',
         table: 'jobs',
-      }, (payload: unknown) => {
+      }, (payload: Record<string, unknown>) => {
+        const newRecord = payload.new as Job | undefined;
+        const eventType = payload.eventType as string | undefined;
         setJobs(prev => {
-          const updated = prev.filter(j => j.id !== payload.new?.id);
-          if (payload.eventType !== 'DELETE' && payload.new) {
-            return [...updated, payload.new as Job];
+          const updated = prev.filter(j => j.id !== newRecord?.id);
+          if (eventType !== 'DELETE' && newRecord) {
+            return [...updated, newRecord];
           }
           return updated;
         });
