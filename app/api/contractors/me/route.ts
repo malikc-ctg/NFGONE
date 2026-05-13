@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 
 export async function GET() {
@@ -11,11 +11,14 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { data: contractor, error: dbError } = await supabase
+    // Use service client to bypass RLS recursion issues while still filtering by user.id
+    const serviceClient = await createServiceClient();
+    const { data: contractor, error: dbError } = await serviceClient
       .from('contractors')
       .select('*, zone:zones!zone_id(*), selected_zones:contractor_zones(zone:zones(*))')
       .eq('profile_id', user.id)
       .single();
+
 
 
     if (dbError) {
@@ -51,8 +54,11 @@ export async function PATCH(request: Request) {
     const body = await request.json();
     const { full_name, phone, zone_ids } = body;
 
+    // Use service client to bypass RLS recursion issues
+    const serviceClient = await createServiceClient();
+
     // 1. Update basic contractor info
-    const { data: contractor, error: contractorError } = await supabase
+    const { data: contractor, error: contractorError } = await serviceClient
       .from('contractors')
       .update({
         full_name,
@@ -68,7 +74,7 @@ export async function PATCH(request: Request) {
     // 2. Sync zones if provided
     if (Array.isArray(zone_ids)) {
       // Clear existing
-      await supabase
+      await serviceClient
         .from('contractor_zones')
         .delete()
         .eq('contractor_id', contractor.id);
@@ -79,13 +85,14 @@ export async function PATCH(request: Request) {
           contractor_id: contractor.id,
           zone_id: id
         }));
-        const { error: syncError } = await supabase
+        const { error: syncError } = await serviceClient
           .from('contractor_zones')
           .insert(zoneInserts);
         
         if (syncError) throw syncError;
       }
     }
+
 
     return NextResponse.json(contractor);
   } catch (err: unknown) {
