@@ -1,0 +1,231 @@
+'use client';
+
+import { useEffect, useState, useRef } from 'react';
+import { createClient } from '@/lib/supabase/client';
+import { 
+  Briefcase, Users, Radio, AlertCircle, 
+  Search, Filter, MapPin, Clock, 
+  ArrowRight, CheckCircle2, Waves,
+  TrendingUp, Calendar
+} from 'lucide-react';
+import { format } from 'date-fns';
+import type { Job, Contractor } from '@/types';
+
+export function AdminDashboard() {
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [contractors, setContractors] = useState<Contractor[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  
+  const supabase = createClient();
+  const supabaseRef = useRef(supabase);
+
+  useEffect(() => {
+    const loadData = async () => {
+      const today = format(new Date(), 'yyyy-MM-dd');
+
+      const [jobsRes, contractorsRes] = await Promise.all([
+        fetch(`/api/jobs?date=${today}`),
+        fetch('/api/contractors')
+      ]);
+
+      const jobsData = await jobsRes.json();
+      setJobs(Array.isArray(jobsData) ? jobsData : []);
+
+      const contractorsData = await contractorsRes.json();
+      setContractors(Array.isArray(contractorsData) ? contractorsData : []);
+
+      setLoading(false);
+    };
+
+    loadData();
+  }, []);
+
+  // Realtime updates
+  useEffect(() => {
+    const channel = supabaseRef.current
+      .channel('dashboard-updates')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'jobs' }, (payload: any) => {
+        const newRecord = payload.new as Job;
+        const eventType = payload.eventType;
+        
+        setJobs(prev => {
+          const filtered = prev.filter(j => j.id !== newRecord.id);
+          if (eventType === 'DELETE') return filtered;
+          return [newRecord, ...filtered];
+        });
+      })
+      .subscribe();
+
+    return () => { supabaseRef.current.removeChannel(channel); };
+  }, []);
+
+  const metrics = [
+    { label: 'Jobs Today', value: jobs.length, icon: Briefcase, color: 'blue' },
+    { label: 'Active Now', value: jobs.filter(j => ['on_the_way', 'in_progress'].includes(j.status)).length, icon: Radio, color: 'green' },
+    { label: 'Dispatch Queue', value: jobs.filter(j => j.status === 'confirmed' && !j.assigned_contractor_id).length, icon: AlertCircle, color: 'orange' },
+    { label: 'Revenue Today', value: `$${jobs.reduce((acc, j) => acc + (j.quoted_price || 0), 0).toFixed(0)}`, icon: TrendingUp, color: 'purple' },
+  ];
+
+  const filteredJobs = jobs.filter(j => 
+    j.customer?.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    j.address_line1?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] text-muted-foreground animate-pulse">
+        <Waves className="h-12 w-12 mb-4 text-blue-500 opacity-20" />
+        <p className="text-sm font-medium">Synchronizing operational data...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-8 space-y-8 max-w-7xl mx-auto">
+      {/* Header */}
+      <div className="flex items-end justify-between">
+        <div>
+          <div className="flex items-center gap-2 text-blue-600 mb-1">
+            <Calendar className="h-4 w-4" />
+            <span className="text-xs font-bold uppercase tracking-wider">Operational Overview</span>
+          </div>
+          <h1 className="text-3xl font-black tracking-tight text-foreground">Dashboard</h1>
+        </div>
+        <div className="text-right">
+          <p className="text-sm font-medium text-foreground">{format(new Date(), 'EEEE, MMMM do')}</p>
+          <p className="text-xs text-muted-foreground">Live updates enabled</p>
+        </div>
+      </div>
+
+      {/* Metrics Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {metrics.map((m) => (
+          <div key={m.label} className="bg-card border border-border rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
+            <div className={`w-10 h-10 rounded-xl mb-4 flex items-center justify-center
+              ${m.color === 'blue' ? 'bg-blue-500/10 text-blue-600' : ''}
+              ${m.color === 'green' ? 'bg-emerald-500/10 text-emerald-600' : ''}
+              ${m.color === 'orange' ? 'bg-orange-500/10 text-orange-600' : ''}
+              ${m.color === 'purple' ? 'bg-purple-500/10 text-purple-600' : ''}
+            `}>
+              <m.icon className="h-5 w-5" />
+            </div>
+            <div className="space-y-1">
+              <p className="text-3xl font-bold tracking-tight text-foreground">{m.value}</p>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{m.label}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Main Job List */}
+        <div className="lg:col-span-2 space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-bold flex items-center gap-2">
+              Today&apos;s Jobs
+              <span className="px-2 py-0.5 rounded-full bg-muted text-[10px] font-bold text-muted-foreground uppercase">
+                {jobs.length}
+              </span>
+            </h2>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <input 
+                type="text"
+                placeholder="Search jobs..."
+                className="pl-9 pr-4 py-2 bg-muted/50 border-none rounded-xl text-sm focus:ring-2 ring-blue-500/20 w-64"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            {filteredJobs.length > 0 ? (
+              filteredJobs.map((job) => (
+                <div key={job.id} className="group bg-card border border-border rounded-2xl p-5 hover:border-blue-500/50 transition-all cursor-pointer shadow-sm">
+                  <div className="flex items-start justify-between">
+                    <div className="flex gap-4">
+                      <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center shrink-0">
+                        <MapPin className="h-5 w-5 text-muted-foreground" />
+                      </div>
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-bold text-foreground">{job.customer?.full_name || 'New Booking'}</h3>
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-tighter
+                            ${job.status === 'in_progress' ? 'bg-emerald-100 text-emerald-700' : ''}
+                            ${job.status === 'confirmed' ? 'bg-blue-100 text-blue-700' : ''}
+                            ${job.status === 'on_the_way' ? 'bg-sky-100 text-sky-700' : ''}
+                            ${job.status === 'lead_received' ? 'bg-orange-100 text-orange-700' : ''}
+                          `}>
+                            {job.status.replace('_', ' ')}
+                          </span>
+                        </div>
+                        <p className="text-sm text-muted-foreground line-clamp-1">{job.address_line1}</p>
+                        <div className="flex items-center gap-4 mt-2">
+                          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                            <Clock className="h-3.5 w-3.5" />
+                            {job.scheduled_window || 'Morning'}
+                          </div>
+                          <div className="flex items-center gap-1.5 text-xs font-bold text-foreground">
+                            <CheckCircle2 className="h-3.5 w-3.5 text-blue-500" />
+                            {job.service_type.replace('_', ' ')}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="text-right">
+                        <p className="text-sm font-bold text-foreground">${job.quoted_price?.toFixed(0)}</p>
+                        <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">Revenue</p>
+                      </div>
+                      <div className="p-2 rounded-full hover:bg-muted text-muted-foreground group-hover:text-blue-600 transition-colors">
+                        <ArrowRight className="h-4 w-4" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="py-12 text-center bg-muted/20 rounded-3xl border border-dashed border-border">
+                <p className="text-sm text-muted-foreground">No matching jobs found for today.</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Sidebar */}
+        <div className="space-y-6">
+          <div className="bg-card border border-border rounded-3xl p-6 shadow-sm">
+            <h3 className="font-bold mb-4 flex items-center gap-2">
+              Active Contractors
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            </h3>
+            <div className="space-y-4">
+              {contractors.slice(0, 5).map((c) => (
+                <div key={c.id} className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center text-xs font-bold uppercase tracking-tighter">
+                      {c.full_name.split(' ').map(n => n[0]).join('')}
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-foreground line-clamp-1">{c.full_name}</p>
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-black">{c.tier} Tier</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-[10px] font-bold text-emerald-600 uppercase">
+                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                    Online
+                  </div>
+                </div>
+              ))}
+              <button className="w-full py-3 mt-2 rounded-xl text-xs font-bold text-muted-foreground hover:bg-muted hover:text-foreground transition-all uppercase tracking-widest">
+                View All Contractors
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

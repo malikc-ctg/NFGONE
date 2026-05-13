@@ -2,112 +2,28 @@
 
 export const dynamic = 'force-dynamic';
 
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { SeaOfBlueMap } from '@/components/shared/SeaOfBlueMap';
-import { Marker, Source, Layer } from 'react-map-gl/mapbox';
-import { fetchETA } from '@/lib/mapbox-directions';
-import { Waves } from 'lucide-react';
+import { Waves, Clock, CheckCircle2, User, MapPin } from 'lucide-react';
 import type { Job } from '@/types';
-
-interface TrackingData {
-  job: Job;
-  contractor_name: string;
-  contractor_location: { latitude: number; longitude: number; heading?: number | null } | null;
-  eta_minutes: number | null;
-  route_geometry: GeoJSON.LineString | null;
-}
 
 export default function TrackingPage() {
   const params = useParams();
-  const [data, setData] = useState<TrackingData | null>(null);
+  const [job, setJob] = useState<Job | null>(null);
   const [loading, setLoading] = useState(true);
   const supabase = createClient();
-  const supabaseRef = useRef(supabase);
-  useEffect(() => { supabaseRef.current = supabase; }, [supabase]);
-  const contractorIdRef = useRef<string | null>(null);
-
-  // Throttle ETA calls to avoid excessive Mapbox Directions API usage
-  const lastEtaCall = useRef(0);
-  const ETA_THROTTLE_MS = 15000; // 15 seconds between ETA recalculations
-
-  const updateETA = useCallback(async (
-    loc: { longitude: number; latitude: number },
-    jobLng: number,
-    jobLat: number
-  ) => {
-    const now = Date.now();
-    if (now - lastEtaCall.current < ETA_THROTTLE_MS) return;
-    lastEtaCall.current = now;
-
-    try {
-      const eta = await fetchETA(loc.longitude, loc.latitude, jobLng, jobLat);
-      setData(prev => prev ? {
-        ...prev,
-        eta_minutes: eta.minutes,
-        route_geometry: eta.route,
-      } : null);
-    } catch (err) {
-      console.error('ETA calculation failed:', err);
-    }
-  }, []);
 
   useEffect(() => {
     const loadTracking = async () => {
       try {
-        // Load job data via API
-        const jobRes = await fetch(`/api/jobs?limit=1000`);
-        const jobsData = await jobRes.json();
-        const job = (Array.isArray(jobsData) ? jobsData : [])
-          .find((j: any) => j.id === params.jobId);
+        const { data } = await supabase
+          .from('jobs')
+          .select('*, contractor:contractors(full_name)')
+          .eq('id', params.jobId)
+          .single();
 
-        if (!job) {
-          setLoading(false);
-          return;
-        }
-
-        contractorIdRef.current = job.assigned_contractor_id;
-
-        // Load contractor location
-        let contractorLocation = null;
-        if (job.assigned_contractor_id) {
-          const { data: loc } = await supabase
-            .from('contractor_locations')
-            .select('*')
-            .eq('contractor_id', job.assigned_contractor_id)
-            .eq('is_active', true)
-            .single();
-
-          contractorLocation = loc;
-        }
-
-        const contractorName = ((job as unknown as Record<string, unknown>).contractor as any)?.full_name?.split(' ')[0] ?? 'Your cleaner';
-
-        const trackingData: TrackingData = {
-          job,
-          contractor_name: contractorName,
-          contractor_location: contractorLocation,
-          eta_minutes: null,
-          route_geometry: null,
-        };
-
-        setData(trackingData);
-
-        // Calculate initial ETA
-        if (contractorLocation && job.latitude && job.longitude) {
-          const eta = await fetchETA(
-            contractorLocation.longitude,
-            contractorLocation.latitude,
-            job.longitude,
-            job.latitude
-          );
-          setData(prev => prev ? {
-            ...prev,
-            eta_minutes: eta.minutes,
-            route_geometry: eta.route,
-          } : null);
-        }
+        if (data) setJob(data as any);
       } catch (err) {
         console.error('Failed to load tracking data:', err);
       } finally {
@@ -116,291 +32,117 @@ export default function TrackingPage() {
     };
 
     loadTracking();
-  }, [params.jobId]);
-
-  // Subscribe to live contractor location updates
-  useEffect(() => {
-    if (!contractorIdRef.current) return;
-
-    const channel = supabaseRef.current
-      .channel(`tracking-${params.jobId}`)
-      .on('postgres_changes', {
-        event: 'UPDATE',
-        schema: 'public',
-        table: 'contractor_locations',
-        filter: `contractor_id=eq.${contractorIdRef.current}`,
-      }, async (payload: any) => {
-        const newLoc = payload.new;
-        setData(prev => prev ? {
-          ...prev,
-          contractor_location: newLoc,
-        } : null);
-
-        // Recalculate ETA (throttled)
-        if (data?.job?.latitude && data?.job?.longitude) {
-          updateETA(newLoc, data.job.longitude, data.job.latitude);
-        }
+    
+    // Simple status subscription
+    const channel = supabase
+      .channel(`job-${params.jobId}`)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'jobs', filter: `id=eq.${params.jobId}` }, (payload) => {
+        setJob(prev => prev ? { ...prev, ...payload.new } : null);
       })
       .subscribe();
 
-    return () => {
-      supabaseRef.current.removeChannel(channel);
-    };
-  }, [data?.job?.assigned_contractor_id, data?.job?.latitude, data?.job?.longitude, params.jobId, updateETA]);
+    return () => { supabase.removeChannel(channel); };
+  }, [params.jobId]);
 
   if (loading) {
     return (
-      <div style={{
-        height: '100dvh',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 12,
-        background: '#F9FAFB',
-      }}>
-        <div style={{
-          width: 48,
-          height: 48,
-          borderRadius: 12,
-          background: '#3B82F6',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}>
-          <Waves style={{ width: 24, height: 24, color: 'white' }} />
-        </div>
-        <p style={{ color: '#6B7280', fontSize: 14 }}>Loading tracking...</p>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-background p-6">
+        <Waves className="h-10 w-10 text-blue-500 animate-bounce mb-4" />
+        <p className="text-sm text-muted-foreground font-medium">Connecting to live status...</p>
       </div>
     );
   }
 
-  if (!data) {
+  if (!job) {
     return (
-      <div style={{
-        height: '100dvh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: '#F9FAFB',
-      }}>
-        <p style={{ color: '#EF4444', fontSize: 14 }}>Booking not found</p>
+      <div className="min-h-screen flex items-center justify-center bg-background p-6">
+        <p className="text-sm text-red-500 font-bold uppercase tracking-widest">Booking not found</p>
       </div>
     );
   }
 
-  const isOnTheWay = data.job.status === 'on_the_way';
-  const isInProgress = data.job.status === 'in_progress';
-  const isCompleted = ['completed', 'reviewed', 'paid_out'].includes(data.job.status);
+  const statusColors: Record<string, string> = {
+    pending: 'bg-orange-500',
+    confirmed: 'bg-blue-500',
+    on_the_way: 'bg-sky-500',
+    in_progress: 'bg-emerald-500',
+    completed: 'bg-gray-500',
+  };
 
   return (
-    <div style={{ height: '100dvh', position: 'relative' }}>
-      <SeaOfBlueMap
-        initialViewState={{
-          longitude: data.job.longitude ?? -79.3832,
-          latitude: data.job.latitude ?? 43.6532,
-          zoom: 13,
-        }}
-      >
-        {/* Customer home pin */}
-        {data.job.latitude && data.job.longitude && (
-          <Marker longitude={data.job.longitude} latitude={data.job.latitude} anchor="bottom">
-            <div style={{
-              width: 32,
-              height: 32,
-              background: '#1D9E75',
-              borderRadius: '50% 50% 50% 0',
-              transform: 'rotate(-45deg)',
-              border: '2.5px solid white',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
-            }} />
-          </Marker>
-        )}
-
-        {/* Contractor live position */}
-        {data.contractor_location && isOnTheWay && (
-          <Marker
-            longitude={data.contractor_location.longitude}
-            latitude={data.contractor_location.latitude}
-            anchor="center"
-            rotation={data.contractor_location.heading ?? 0}
-          >
-            <div style={{
-              width: 40,
-              height: 40,
-              background: '#0EA5E9',
-              borderRadius: '50%',
-              border: '3px solid white',
-              boxShadow: '0 2px 12px rgba(14,165,233,0.5)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'white',
-              fontSize: 18,
-            }}>
-              ↑
-            </div>
-          </Marker>
-        )}
-
-        {/* Route line between contractor and home */}
-        {data.route_geometry && isOnTheWay && (
-          <Source
-            type="geojson"
-            data={{
-              type: 'Feature',
-              geometry: data.route_geometry,
-              properties: {},
-            }}
-          >
-            <Layer
-              id="route"
-              type="line"
-              paint={{
-                'line-color': '#0EA5E9',
-                'line-width': 4,
-                'line-opacity': 0.8,
-              }}
-              layout={{ 'line-cap': 'round', 'line-join': 'round' }}
-            />
-          </Source>
-        )}
-      </SeaOfBlueMap>
-
-      {/* Sea of Blue mini logo — top left */}
-      <div style={{
-        position: 'absolute',
-        top: 16,
-        left: 16,
-        zIndex: 10,
-        display: 'flex',
-        alignItems: 'center',
-        gap: 8,
-        background: 'rgba(255,255,255,0.9)',
-        backdropFilter: 'blur(12px)',
-        padding: '8px 14px',
-        borderRadius: 12,
-        boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-      }}>
-        <div style={{
-          width: 28,
-          height: 28,
-          borderRadius: 8,
-          background: '#3B82F6',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}>
-          <Waves style={{ width: 14, height: 14, color: 'white' }} />
+    <div className="min-h-screen bg-muted/30 p-6 flex flex-col items-center">
+      {/* Branding */}
+      <div className="flex items-center gap-2 mb-12">
+        <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center">
+          <Waves className="h-4 w-4 text-white" />
         </div>
-        <span style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>Sea of Blue</span>
+        <span className="font-black text-foreground tracking-tight">Sea of Blue</span>
       </div>
 
-      {/* Bottom status card (Uber-style pill that sits over the map) */}
-      <div style={{
-        position: 'absolute',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        background: 'white',
-        borderRadius: '20px 20px 0 0',
-        padding: '24px 24px 36px',
-        boxShadow: '0 -4px 24px rgba(0,0,0,0.12)',
-        zIndex: 10,
-      }}>
-        {/* Drag handle */}
-        <div style={{
-          width: 36,
-          height: 4,
-          background: '#E5E7EB',
-          borderRadius: 2,
-          margin: '0 auto 16px',
-        }} />
+      <div className="w-full max-w-md bg-card border border-border rounded-3xl shadow-xl overflow-hidden">
+        {/* Status Header */}
+        <div className={`p-8 text-white ${statusColors[job.status] || 'bg-blue-600'}`}>
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-80 mb-1">Current Status</p>
+          <h1 className="text-3xl font-black tracking-tighter">
+            {job.status === 'on_the_way' && 'Cleaner is on the way'}
+            {job.status === 'in_progress' && 'Cleaning in progress'}
+            {job.status === 'completed' && 'Cleaning complete ✨'}
+            {(job.status === 'confirmed' || job.status === 'assigned') && 'Booking confirmed'}
+            {job.status === 'lead_received' && 'Preparing your clean'}
+          </h1>
+        </div>
 
-        {isOnTheWay && (
-          <>
-            <div style={{ fontSize: 12, color: '#6B7280', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              On the way
+        <div className="p-8 space-y-8">
+          {/* Main Info */}
+          <div className="space-y-6">
+            <div className="flex items-start gap-4">
+              <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center shrink-0">
+                <MapPin className="h-5 w-5 text-muted-foreground" />
+              </div>
+              <div>
+                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-0.5">Service Address</p>
+                <p className="text-sm font-bold text-foreground leading-snug">{job.address_line1}</p>
+              </div>
             </div>
-            <div style={{ fontSize: 22, fontWeight: 700, color: '#111827', marginTop: 4 }}>
-              {data.contractor_name} is heading to you
+
+            <div className="flex items-start gap-4">
+              <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center shrink-0">
+                <Clock className="h-5 w-5 text-muted-foreground" />
+              </div>
+              <div>
+                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-0.5">Scheduled Window</p>
+                <p className="text-sm font-bold text-foreground leading-snug">{job.scheduled_window || 'Morning Session'}</p>
+              </div>
             </div>
-            {data.eta_minutes && (
-              <div style={{
-                fontSize: 15,
-                color: '#1D9E75',
-                marginTop: 8,
-                fontWeight: 600,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-              }}>
-                <div style={{
-                  width: 8,
-                  height: 8,
-                  borderRadius: '50%',
-                  background: '#1D9E75',
-                  animation: 'pulse 2s infinite',
-                }} />
-                Arriving in approximately {data.eta_minutes} min
+
+            {job.assigned_contractor_id && (
+              <div className="flex items-start gap-4 p-4 bg-blue-50/50 rounded-2xl border border-blue-100">
+                <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center shrink-0">
+                  <User className="h-5 w-5 text-white" />
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-blue-600 uppercase tracking-widest mb-0.5">Your Cleaner</p>
+                  <p className="text-sm font-bold text-foreground">{(job as any).contractor?.full_name?.split(' ')[0] || 'Malik'}</p>
+                </div>
               </div>
             )}
-          </>
-        )}
+          </div>
 
-        {isInProgress && (
-          <>
-            <div style={{ fontSize: 12, color: '#6B7280', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              In progress
+          <div className="pt-6 border-t border-border">
+            <div className="flex items-center gap-2 mb-4">
+              <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+              <span className="text-sm font-bold text-foreground">{job.service_type.replace('_', ' ')}</span>
             </div>
-            <div style={{ fontSize: 22, fontWeight: 700, color: '#111827', marginTop: 4 }}>
-              {data.contractor_name} is cleaning your home
-            </div>
-            <div style={{ fontSize: 13, color: '#6B7280', marginTop: 8 }}>
-              {data.job.service_type.replace(/_/g, ' ')} · {data.job.estimated_duration_minutes} min estimated
-            </div>
-          </>
-        )}
-
-        {isCompleted && (
-          <>
-            <div style={{ fontSize: 22, fontWeight: 700, color: '#111827' }}>
-              Clean complete ✨
-            </div>
-            <div style={{ fontSize: 14, color: '#6B7280', marginTop: 6 }}>
-              How did everything go?
-            </div>
-            <a
-              href={`/booking/${data.job.id}`}
-              style={{
-                display: 'block',
-                marginTop: 16,
-                background: '#1D9E75',
-                color: 'white',
-                textAlign: 'center',
-                padding: '14px',
-                borderRadius: 12,
-                fontWeight: 600,
-                fontSize: 15,
-                textDecoration: 'none',
-              }}
-            >
-              Leave a review
-            </a>
-          </>
-        )}
-
-        {!isOnTheWay && !isInProgress && !isCompleted && (
-          <>
-            <div style={{ fontSize: 16, fontWeight: 600, color: '#111827' }}>
-              Your booking is being prepared
-            </div>
-            <div style={{ fontSize: 13, color: '#6B7280', marginTop: 4 }}>
-              We&apos;ll notify you when your cleaner is on their way.
-            </div>
-          </>
-        )}
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              We&apos;ll keep this page updated with live status changes. You don&apos;t need to refresh.
+            </p>
+          </div>
+        </div>
       </div>
+      
+      <p className="mt-8 text-[10px] text-muted-foreground uppercase font-bold tracking-widest">
+        Powered by Sea of Blue Operations
+      </p>
     </div>
   );
 }

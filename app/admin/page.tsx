@@ -1,7 +1,7 @@
-import { AdminMapDashboard } from '@/components/admin/map/AdminMapDashboard';
+import { AdminDashboard } from '@/components/admin/dashboard/AdminDashboard';
 
 export const dynamic = 'force-dynamic';
 
-export default function AdminDashboard() {
-  return <AdminMapDashboard />;
+export default function AdminDashboardPage() {
+  return <AdminDashboard />;
 }

@@ -504,7 +504,7 @@ export interface JobLocationHistory {
 export interface ZoneBoundary {
   id: string;
   zone_id: string;
-  geojson: GeoJSON.Feature;
+  geojson: any;
   center_lat: number | null;
   center_lng: number | null;
   created_at: string;

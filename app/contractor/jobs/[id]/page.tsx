@@ -19,7 +19,7 @@ import { toast } from 'sonner';
 import { SERVICE_TYPE_LABELS, TIME_WINDOW_LABELS } from '@/types';
 import type { Job, ChecklistData } from '@/types';
 import Link from 'next/link';
-import { JobRouteMap } from '@/components/contractor/JobRouteMap';
+
 import { LocationPermissionPrompt } from '@/components/contractor/LocationPermissionPrompt';
 import { startLocationTracking, stopLocationTracking } from '@/lib/location-service';
 
@@ -119,8 +119,7 @@ export default function ContractorJobDetailPage() {
     `${job.address_line1}, ${job.city} ${job.postal_code}`
   )}`;
 
-  const showRouteMap = ['assigned', 'on_the_way'].includes(job.status) &&
-    job.latitude && job.longitude;
+
 
   return (
     <div className="space-y-4">
@@ -131,15 +130,6 @@ export default function ContractorJobDetailPage() {
           <StatusBadge status={job.status} />
         </div>
       </div>
-
-      {/* Route map (shown when assigned or on_the_way with geocoded coordinates) */}
-      {showRouteMap && (
-        <JobRouteMap
-          jobLatitude={job.latitude!}
-          jobLongitude={job.longitude!}
-          jobAddress={`${job.address_line1}, ${job.city} ${job.postal_code}`}
-        />
-      )}
 
       {/* Job info */}
       <Card>
