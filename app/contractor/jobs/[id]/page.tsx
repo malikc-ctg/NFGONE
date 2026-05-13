@@ -12,12 +12,12 @@ import { Progress } from '@/components/ui/progress';
 
 import {
   ArrowLeft, MapPin, Navigation, Clock, DollarSign,
-  Camera, CheckCircle2,
+  CheckCircle2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { SERVICE_TYPE_LABELS, TIME_WINDOW_LABELS } from '@/types';
-import type { Job, ChecklistData } from '@/types';
+import type { Job, ChecklistData, JobOffer } from '@/types';
 import Link from 'next/link';
 
 import { LocationPermissionPrompt } from '@/components/contractor/LocationPermissionPrompt';
@@ -45,29 +45,43 @@ function buildChecklist(bedrooms: number, bathrooms: number, addOns: string[]): 
 export default function ContractorJobDetailPage() {
   const params = useParams();
   const [job, setJob] = useState<Job | null>(null);
+  const [pendingOffer, setPendingOffer] = useState<JobOffer | null>(null);
   const [loading, setLoading] = useState(true);
   const [checklist, setChecklist] = useState<ChecklistData | null>(null);
   const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  async function fetchJob() {
-    const res = await fetch(`/api/jobs?limit=1000`);
-    const data = await res.json();
-    const found = (Array.isArray(data) ? data : []).find((j: any) => j.id === params.id);
-    if (found) {
-      setJob(found);
-      if (!checklist) {
-        setChecklist(buildChecklist(
-          found.home_bedrooms ?? 2,
-          found.home_bathrooms ?? 1,
-          found.add_ons ?? [],
-        ));
+  async function fetchData() {
+    try {
+      // 1. Fetch job
+      const res = await fetch(`/api/jobs/${params.id}`);
+      const data = await res.json();
+      if (data && !data.error) {
+        setJob(data);
+        if (!checklist) {
+          setChecklist(buildChecklist(
+            data.home_bedrooms ?? 2,
+            data.home_bathrooms ?? 1,
+            data.add_ons ?? [],
+          ));
+        }
+
+        // 2. If job is offered, fetch the pending offer for this contractor
+        if (data.status === 'offered') {
+          const offersRes = await fetch('/api/offers');
+          const offersData = await offersRes.json();
+          const myOffer = (offersData || []).find((o: JobOffer) => o.job_id === params.id);
+          setPendingOffer(myOffer || null);
+        }
       }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }
 
-  useEffect(() => { fetchJob(); }, [params.id]);
+  useEffect(() => { fetchData(); }, [params.id]);
 
   async function handleStatusUpdate(newStatus: string) {
     setSubmitting(true);
@@ -88,9 +102,37 @@ export default function ContractorJobDetailPage() {
       }
 
       toast.success('Status updated');
-      fetchJob();
+      fetchData();
     } catch { toast.error('Failed to update status'); }
     finally { setSubmitting(false); }
+  }
+
+  async function handleOfferResponse(action: 'accept' | 'decline') {
+    if (!pendingOffer) return;
+    setSubmitting(true);
+    try {
+      const res = await fetch(`/api/offers/${pendingOffer.id}/respond`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action }),
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        if (res.status === 422) {
+          toast.error('This job is no longer available');
+        } else {
+          throw new Error(error.error || 'Failed to respond');
+        }
+      } else {
+        toast.success(action === 'accept' ? 'Job accepted!' : 'Offer declined');
+      }
+      fetchData();
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   // Count checked items
@@ -119,8 +161,6 @@ export default function ContractorJobDetailPage() {
     `${job.address_line1}, ${job.city} ${job.postal_code}`
   )}`;
 
-
-
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-3">
@@ -130,6 +170,27 @@ export default function ContractorJobDetailPage() {
           <StatusBadge status={job.status} />
         </div>
       </div>
+
+      {/* Offer Action Banner */}
+      {job.status === 'offered' && pendingOffer && (
+        <Card className="bg-amber-50 border-amber-200 dark:bg-amber-900/20 dark:border-amber-800">
+          <CardContent className="p-4 space-y-4">
+            <div className="text-center">
+              <p className="font-bold text-amber-800 dark:text-amber-200">New Job Offer!</p>
+              <p className="text-2xl font-black text-amber-900 dark:text-amber-100">${(job.quoted_price * 0.7).toFixed(0)}</p>
+              <p className="text-xs text-amber-700 dark:text-amber-300 uppercase font-bold tracking-tighter">Your Estimated Payout</p>
+            </div>
+            <div className="flex gap-2">
+              <Button onClick={() => handleOfferResponse('accept')} className="flex-1 h-12 bg-green-600 hover:bg-green-700" disabled={submitting}>
+                Accept Job
+              </Button>
+              <Button onClick={() => handleOfferResponse('decline')} variant="outline" className="flex-1 h-12 border-amber-300" disabled={submitting}>
+                Decline
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Job info */}
       <Card>
@@ -159,7 +220,7 @@ export default function ContractorJobDetailPage() {
       </Card>
 
       {/* Status actions */}
-      {job.status === 'assigned' && (
+      {['accepted', 'assigned'].includes(job.status) && (
         <Button onClick={() => handleStatusUpdate('on_the_way')} className="w-full h-14 text-base bg-blue-600 hover:bg-blue-700" disabled={submitting}>
           <Navigation className="h-5 w-5 mr-2" />On My Way
         </Button>
