@@ -2,13 +2,15 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { CalendarDays, Clock, DollarSign, Waves } from 'lucide-react';
+import { CalendarDays, Clock, DollarSign, Waves, User } from 'lucide-react';
 
 const navItems = [
   { href: '/contractor', label: 'Today', icon: CalendarDays },
   { href: '/contractor/availability', label: 'Availability', icon: Clock },
   { href: '/contractor/earnings', label: 'Earnings', icon: DollarSign },
+  { href: '/contractor/profile', label: 'Profile', icon: User },
 ];
+
 
 export default function ContractorLayout({
   children,

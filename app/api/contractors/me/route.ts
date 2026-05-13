@@ -32,3 +32,36 @@ export async function GET() {
     return NextResponse.json({ error: (err as Error).message }, { status: 500 });
   }
 }
+
+export async function PATCH(request: Request) {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const body = await request.json();
+    const { full_name, phone, zone_id } = body;
+
+    const { data, error } = await supabase
+      .from('contractors')
+      .update({
+        full_name,
+        phone,
+        zone_id,
+        updated_at: new Date().toISOString()
+      })
+      .eq('profile_id', user.id)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    return NextResponse.json(data);
+  } catch (err: unknown) {
+    return NextResponse.json({ error: (err as Error).message }, { status: 500 });
+  }
+}
+
