@@ -23,28 +23,41 @@ export async function POST(
 
     // Find or create customer
     let customerId: string;
-    const { data: existingCustomer } = await supabase
+    const { data: existingCustomer, error: findError } = await supabase
       .from('customers')
       .select('id')
       .eq('email', lead.customer_email)
-      .single();
+      .maybeSingle();
+
+    if (findError) {
+      console.error('Error finding customer:', findError);
+      throw findError;
+    }
 
     if (existingCustomer) {
       customerId = existingCustomer.id;
     } else {
+      // Basic validation for new customer
+      if (!lead.customer_email) {
+        throw new Error('Lead must have an email address to be converted.');
+      }
+
       const { data: newCustomer, error: custError } = await supabase
         .from('customers')
         .insert({
-          full_name: lead.customer_name ?? '',
-          email: lead.customer_email ?? '',
-          phone: lead.customer_phone ?? '',
+          full_name: lead.customer_name ?? 'Unnamed Customer',
+          email: lead.customer_email,
+          phone: lead.customer_phone ?? '—',
           city: lead.city,
           zone_id: body.zone_id,
         })
         .select()
         .single();
 
-      if (custError) throw custError;
+      if (custError) {
+        console.error('Error creating customer:', custError);
+        throw custError;
+      }
       customerId = newCustomer.id;
     }
 
@@ -58,25 +71,28 @@ export async function POST(
         service_type: lead.service_type ?? body.service_type,
         scheduled_date: body.scheduled_date ?? lead.preferred_date,
         scheduled_window: body.scheduled_window ?? lead.preferred_window ?? 'morning',
-        address_line1: body.address_line1 ?? '',
-        city: lead.city ?? body.city ?? '',
-        postal_code: body.postal_code ?? '',
+        address_line1: body.address_line1 || 'TBD',
+        city: lead.city ?? body.city ?? 'TBD',
+        postal_code: body.postal_code || 'TBD',
         quoted_price: body.quoted_price ?? lead.quoted_price ?? 0,
         home_bedrooms: lead.home_bedrooms,
         home_bathrooms: lead.home_bathrooms,
         home_size_sqft: lead.home_size_sqft,
-        has_pets: lead.has_pets,
+        has_pets: lead.has_pets ?? false,
         add_ons: lead.add_ons ?? [],
         status: 'lead_received',
-        deposit_amount: body.deposit_amount,
+        deposit_amount: body.deposit_amount ?? 0,
       })
       .select()
       .single();
 
-    if (jobError) throw jobError;
+    if (jobError) {
+      console.error('Error creating job from lead:', jobError);
+      throw jobError;
+    }
 
     // Update lead status
-    await supabase
+    const { error: updateError } = await supabase
       .from('leads')
       .update({
         status: 'converted',
@@ -85,8 +101,13 @@ export async function POST(
       })
       .eq('id', id);
 
+    if (updateError) {
+      console.error('Error updating lead status:', updateError);
+    }
+
     return NextResponse.json(job, { status: 201 });
   } catch (err: unknown) {
+    console.error('Conversion process failed:', err);
     return NextResponse.json({ error: (err as Error).message }, { status: 500 });
   }
 }
