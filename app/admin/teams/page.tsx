@@ -6,13 +6,12 @@ import type { ContractorTeam, Zone } from '@/types';
 
 export default function TeamsPage() {
   const [teams, setTeams] = useState<ContractorTeam[]>([]);
-  const [zones, setZones] = useState<Zone[]>([]);
-  const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     Promise.all([
       fetch('/api/teams').then(r => r.json()),
-      fetch('/api/zones').then(r => r.json()),
+      
     ]).then(([t, z]) => { setTeams(Array.isArray(t) ? t : []); setZones(Array.isArray(z) ? z : []); setLoading(false); });
   }, []);
 

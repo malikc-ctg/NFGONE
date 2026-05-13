@@ -2,7 +2,7 @@
 
 import { Marker, Popup } from 'react-map-gl/mapbox';
 import { useState } from 'react';
-import type { Job, JobStatus } from '@/types';
+import type { Job } from '@/types';
 
 const STATUS_COLORS: Record<string, string> = {
   confirmed:    '#F59E0B',   // amber  — needs dispatch

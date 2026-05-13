@@ -55,16 +55,16 @@ export async function updateSession(request: NextRequest) {
 
   // Redirect unauthenticated users
   if (!user) {
-    if (pathname.startsWith('/admin')) {
-      // const url = request.nextUrl.clone();
-      // url.pathname = '/contractor/login';
-      // url.searchParams.set('redirect', pathname);
-      // return NextResponse.redirect(url);
+    if (pathname.startsWith('/admin') || pathname.startsWith('/partner')) {
+      const url = request.nextUrl.clone();
+      url.pathname = '/contractor/login';
+      url.searchParams.set('redirect', pathname);
+      return NextResponse.redirect(url);
     }
-    if (pathname.startsWith('/contractor')) {
-      // const url = request.nextUrl.clone();
-      // url.pathname = '/contractor/login';
-      // return NextResponse.redirect(url);
+    if (pathname.startsWith('/contractor') && pathname !== '/contractor/login') {
+      const url = request.nextUrl.clone();
+      url.pathname = '/contractor/login';
+      return NextResponse.redirect(url);
     }
     // Booking pages use magic link - let them through for now
     // The page component will handle showing login state

@@ -61,8 +61,8 @@ export default function LeadsPage() {
       const res = await fetch(url);
       const data = await res.json();
       setLeads(Array.isArray(data) ? data : []);
-    } catch (err) {
-      console.error(err);
+    } catch { // err removed
+      console.error('Failed to load leads');
     } finally {
       setLoading(false);
     }
