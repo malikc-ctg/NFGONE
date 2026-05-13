@@ -15,7 +15,6 @@ interface InventoryRow {
 export default function SupplyPage() {
   const [inventory, setInventory] = useState<InventoryRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [_creating, setCreating] = useState(false);
   
   const loadInventory = () => {
     setLoading(true);
@@ -47,7 +46,6 @@ export default function SupplyPage() {
             <RefreshCw className="h-4 w-4 text-muted-foreground" />
           </button>
           <button
-            onClick={() => setCreating(true)}
             className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors"
           >
             <Plus className="h-4 w-4" /> Add Item

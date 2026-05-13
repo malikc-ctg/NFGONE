@@ -18,7 +18,7 @@ interface JobDetailDrawerProps {
 }
 
 export function JobDetailDrawer({ job, onClose, onDispatch }: JobDetailDrawerProps) {
-  const customer = (job as Record<string, unknown>).customer;
+  const customer = (job as any).customer;
   const contractor = (job as any).contractor;
   
   const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
