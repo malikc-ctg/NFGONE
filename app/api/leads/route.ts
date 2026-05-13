@@ -1,0 +1,58 @@
+import { createServiceClient } from '@/lib/supabase/server';
+import { NextRequest, NextResponse } from 'next/server';
+
+export async function POST(request: NextRequest) {
+  try {
+    const supabase = await createServiceClient();
+    const body = await request.json();
+
+    const { data, error } = await supabase
+      .from('leads')
+      .insert({
+        source: body.source ?? 'lsa',
+        customer_name: body.customer_name,
+        customer_phone: body.customer_phone,
+        customer_email: body.customer_email,
+        city: body.city,
+        service_type: body.service_type,
+        preferred_date: body.preferred_date,
+        preferred_window: body.preferred_window,
+        home_bedrooms: body.home_bedrooms,
+        home_bathrooms: body.home_bathrooms,
+        home_size_sqft: body.home_size_sqft,
+        condition: body.condition,
+        has_pets: body.has_pets ?? false,
+        add_ons: body.add_ons ?? [],
+        notes: body.notes,
+        quoted_price: body.quoted_price,
+        status: 'new',
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    return NextResponse.json(data, { status: 201 });
+  } catch (err: unknown) {
+    return NextResponse.json({ error: (err as Error).message }, { status: 500 });
+  }
+}
+
+export async function GET(request: NextRequest) {
+  try {
+    const supabase = await createServiceClient();
+    const { searchParams } = new URL(request.url);
+
+    let query = supabase.from('leads').select('*').order('created_at', { ascending: false });
+
+    const status = searchParams.get('status');
+    if (status) query = query.eq('status', status);
+
+    const { data, error } = await query;
+    if (error) throw error;
+
+    return NextResponse.json(data);
+  } catch (err: unknown) {
+    return NextResponse.json({ error: (err as Error).message }, { status: 500 });
+  }
+}
