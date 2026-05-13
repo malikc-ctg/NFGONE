@@ -15,6 +15,7 @@ interface InventoryRow {
 export default function SupplyPage() {
   const [inventory, setInventory] = useState<InventoryRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [creating, setCreating] = useState(false);
   
   const loadInventory = () => {
     setLoading(true);
