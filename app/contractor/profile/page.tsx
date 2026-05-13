@@ -147,44 +147,50 @@ export default function ContractorProfilePage() {
           </p>
           
           <div className="grid gap-3">
-            {zones.map((zone) => (
-              <Card 
-                key={zone.id} 
-                className={`transition-all cursor-pointer border-l-4 ${
-                  formData.zone_ids.includes(zone.id) 
-                    ? 'border-l-blue-600 bg-blue-50/30 dark:bg-blue-900/10' 
-                    : 'border-l-transparent hover:border-l-muted'
-                }`}
-                onClick={() => toggleZone(zone.id)}
-              >
-                <CardContent className="p-4 flex items-start gap-4">
-                  <Checkbox 
-                    checked={formData.zone_ids.includes(zone.id)}
-                    onCheckedChange={() => toggleZone(zone.id)}
-                    className="mt-1"
-                  />
-                  <div className="space-y-1 flex-1">
-                    <div className="flex justify-between items-center">
-                      <p className="font-bold text-sm">{zone.name}</p>
-                      {formData.zone_ids.includes(zone.id) && (
-                        <CheckCircle2 className="h-4 w-4 text-blue-600" />
-                      )}
+            {zones.map((zone) => {
+              const isSelected = formData.zone_ids.includes(zone.id);
+              return (
+                <Card 
+                  key={zone.id} 
+                  className={`transition-all cursor-pointer border-l-4 ${
+                    isSelected 
+                      ? 'border-l-blue-600 bg-blue-50/30 dark:bg-blue-900/10' 
+                      : 'border-l-transparent hover:border-l-muted'
+                  }`}
+                  onClick={() => toggleZone(zone.id)}
+                >
+                  <CardContent className="p-4 flex items-start gap-4">
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <Checkbox 
+                        checked={isSelected}
+                        onCheckedChange={() => toggleZone(zone.id)}
+                        className="mt-1"
+                      />
                     </div>
-                    <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-tighter">
-                      {zone.city}
-                    </p>
-                    <div className="flex flex-wrap gap-1 mt-2">
-                      {zone.areas?.map(area => (
-                        <span key={area} className="text-[9px] bg-muted px-1.5 py-0.5 rounded text-muted-foreground border border-border/50">
-                          {area}
-                        </span>
-                      ))}
+                    <div className="space-y-1 flex-1">
+                      <div className="flex justify-between items-center">
+                        <p className="font-bold text-sm">{zone.name}</p>
+                        {isSelected && (
+                          <CheckCircle2 className="h-4 w-4 text-blue-600" />
+                        )}
+                      </div>
+                      <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-tighter">
+                        {zone.city}
+                      </p>
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {Array.isArray(zone.areas) && zone.areas.map(area => (
+                          <span key={`${zone.id}-${area}`} className="text-[9px] bg-muted px-1.5 py-0.5 rounded text-muted-foreground border border-border/50">
+                            {area}
+                          </span>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
+
         </div>
 
         <div className="sticky bottom-4 pt-4 bg-background/80 backdrop-blur-sm z-10">
