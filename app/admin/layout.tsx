@@ -5,9 +5,10 @@ import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard, Users, Briefcase, UserCheck,
   Receipt, Settings, ClipboardList, Waves,
-  DollarSign, Building2, AlertTriangle, Package,
+  Building2, AlertTriangle, Package,
   UsersRound, TrendingUp, Globe,
 } from 'lucide-react';
+
 
 import { ScrollArea } from '@/components/ui/scroll-area';
 

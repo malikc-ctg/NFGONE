@@ -128,9 +128,11 @@ export interface Zone {
   name: string;
   city: string;
   is_active: boolean;
+  areas: string[];
   notes: string | null;
   created_at: string;
 }
+
 
 export interface Customer {
   id: string;

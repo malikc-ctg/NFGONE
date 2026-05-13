@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Plus, MapPin, Trash2, Edit2, Globe, Save, X } from 'lucide-react';
+import { Plus, Trash2, Edit2, Globe, Save, X } from 'lucide-react';
 import type { Zone } from '@/types';
 
 export default function AdminZonesPage() {
@@ -30,6 +30,7 @@ export default function AdminZonesPage() {
       const data = await res.json();
       setZones(Array.isArray(data) ? data : []);
     } catch (err) {
+      console.error(err);
       toast.error('Failed to fetch zones');
     } finally {
       setLoading(false);
