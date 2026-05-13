@@ -21,6 +21,14 @@ export async function POST(
       return NextResponse.json({ error: 'Lead not found' }, { status: 404 });
     }
 
+    if (!body.zone_id) {
+      return NextResponse.json({ error: 'A zone must be selected to convert a lead.' }, { status: 400 });
+    }
+
+    if (!lead.service_type && !body.service_type) {
+      return NextResponse.json({ error: 'Service type is missing from the lead.' }, { status: 400 });
+    }
+
     // Find or create customer
     let customerId: string;
     const { data: existingCustomer, error: findError } = await supabase

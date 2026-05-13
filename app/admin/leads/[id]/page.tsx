@@ -51,6 +51,10 @@ export default function LeadDetailPage() {
 
   async function handleConvert() {
     try {
+      if (!convertForm.zone_id) {
+        toast.error('Please select a zone');
+        return;
+      }
       const res = await fetch(`/api/leads/${params.id}/convert`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -60,12 +64,15 @@ export default function LeadDetailPage() {
           deposit_amount: parseFloat(convertForm.quoted_price) * 0.3,
         }),
       });
-      if (!res.ok) throw new Error('Failed to convert');
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Failed to convert');
+      }
       const job = await res.json();
       toast.success('Lead converted to job');
       router.push(`/admin/jobs/${job.id}`);
-    } catch {
-      toast.error('Conversion failed');
+    } catch (err: unknown) {
+      toast.error((err as Error).message);
     }
   }
 
