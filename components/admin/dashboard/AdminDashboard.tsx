@@ -9,7 +9,9 @@ import {
   TrendingUp, Calendar, Globe
 } from 'lucide-react';
 import { format } from 'date-fns';
+import Link from 'next/link';
 import type { Job, Contractor, Zone } from '@/types';
+
 
 export function AdminDashboard() {
   const [jobs, setJobs] = useState<Job[]>([]);
