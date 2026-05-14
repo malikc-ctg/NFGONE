@@ -44,8 +44,21 @@ export default function ContractorDetailPage() {
           <CardContent className="space-y-3 text-sm">
             <div className="flex justify-between"><span className="text-muted-foreground">Email</span><span>{contractor.email}</span></div>
             <div className="flex justify-between"><span className="text-muted-foreground">Phone</span><span>{contractor.phone}</span></div>
-            <div className="flex justify-between"><span className="text-muted-foreground">Zone</span><span>{(contractor as any).zone?.name ?? '—'}</span></div>
-            <div className="flex justify-between"><span className="text-muted-foreground">Vehicle</span><span>{contractor.has_vehicle ? 'Yes' : 'No'}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Primary Zone</span><span>{(contractor as any).zone?.name ?? '—'}</span></div>
+            <div className="space-y-2">
+              <span className="text-muted-foreground block">Additional Zones</span>
+              <div className="flex flex-wrap gap-1">
+                {(contractor as any).contractor_zones?.length > 0 ? (
+                  (contractor as any).contractor_zones.map((cz: any) => (
+                    <Badge key={cz.zone.id} variant="secondary" className="text-[10px]">{cz.zone.name}</Badge>
+                  ))
+                ) : (
+                  <span className="text-xs italic text-muted-foreground">No additional zones</span>
+                )}
+              </div>
+            </div>
+            <div className="flex justify-between pt-2 border-t"><span className="text-muted-foreground">Vehicle</span><span>{contractor.has_vehicle ? 'Yes' : 'No'}</span></div>
+
           </CardContent>
         </Card>
 

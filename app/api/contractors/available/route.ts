@@ -16,20 +16,28 @@ export async function GET(request: NextRequest) {
 
     const dayOfWeek = new Date(date).toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
 
-    // Get contractors in the zone who are active
+    // Get contractors who are active
     let query = supabase
       .from('contractors')
-      .select('*, zone:zones(*)')
+      .select('*, zone:zones(*), contractor_zones(zone_id)')
       .eq('status', 'active');
-
-    if (zone_id) query = query.eq('zone_id', zone_id);
 
     const { data: contractors, error } = await query;
     if (error) throw error;
 
+    // Filter by zone in memory (simpler than complex RLS/Join OR logic in PostgREST)
+    let filteredContractors = contractors || [];
+    if (zone_id) {
+      filteredContractors = filteredContractors.filter(c => 
+        c.zone_id === zone_id || 
+        (c.contractor_zones && c.contractor_zones.some((cz: any) => cz.zone_id === zone_id))
+      );
+    }
+
     // Get availability for each contractor
     const available = [];
-    for (const c of contractors ?? []) {
+    for (const c of filteredContractors) {
+
       // Check override first
       const { data: override } = await supabase
         .from('contractor_availability_overrides')
