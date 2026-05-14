@@ -12,7 +12,7 @@ import { Progress } from '@/components/ui/progress';
 
 import {
   ArrowLeft, MapPin, Navigation, Clock, DollarSign,
-  CheckCircle2,
+  CheckCircle2, User, Sparkles, Bath, BedDouble,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -192,38 +192,121 @@ export default function ContractorJobDetailPage() {
         </Card>
       )}
 
-      {/* Job info */}
-      <Card>
-        <CardContent className="p-4 space-y-3">
-          <div className="flex items-start gap-3">
-            <MapPin className="h-5 w-5 text-muted-foreground mt-0.5" />
+      {/* ── Job Details Card ── */}
+      <Card className="border-blue-200 dark:border-blue-800 overflow-hidden">
+        <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-3 flex items-center gap-2">
+          <Sparkles className="h-4 w-4 text-blue-100" />
+          <span className="text-sm font-bold text-white uppercase tracking-wider">Job Details</span>
+        </div>
+        <CardContent className="p-4 space-y-4">
+
+          {/* Customer Name */}
+          <div className="flex items-center gap-3">
+            <div className="bg-blue-50 dark:bg-blue-900/30 rounded-full p-2">
+              <User className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+            </div>
             <div>
-              <p className="font-medium text-sm">{job.address_line1}</p>
-              <p className="text-xs text-muted-foreground">{job.city} {job.postal_code}</p>
+              <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Customer</p>
+              <p className="font-semibold text-sm">{job.customer?.full_name ?? 'N/A'}</p>
             </div>
           </div>
-          <div className="flex gap-4">
-            <span className="flex items-center gap-1 text-sm"><Clock className="h-4 w-4 text-muted-foreground" />{TIME_WINDOW_LABELS[job.scheduled_window]}</span>
-            <span className="flex items-center gap-1 text-sm"><DollarSign className="h-4 w-4 text-muted-foreground" />${(job.quoted_price * 0.7).toFixed(0)}</span>
+
+          <div className="h-px bg-border" />
+
+          {/* Service Type / Task */}
+          <div className="flex items-center gap-3">
+            <div className="bg-purple-50 dark:bg-purple-900/30 rounded-full p-2">
+              <Sparkles className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+            </div>
+            <div>
+              <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Job Task</p>
+              <p className="font-semibold text-sm">{SERVICE_TYPE_LABELS[job.service_type]}</p>
+            </div>
           </div>
+
+          <div className="h-px bg-border" />
+
+          {/* Address */}
+          <div className="flex items-start gap-3">
+            <div className="bg-green-50 dark:bg-green-900/30 rounded-full p-2 mt-0.5">
+              <MapPin className="h-4 w-4 text-green-600 dark:text-green-400" />
+            </div>
+            <div>
+              <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Address</p>
+              <p className="font-semibold text-sm">{job.address_line1}</p>
+              {job.address_line2 && <p className="text-xs text-muted-foreground">{job.address_line2}</p>}
+              <p className="text-xs text-muted-foreground">{job.city}, {job.postal_code}</p>
+            </div>
+          </div>
+
+          <div className="h-px bg-border" />
+
+          {/* Time + Home Size */}
+          <div className="grid grid-cols-3 gap-3">
+            <div className="space-y-1">
+              <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider flex items-center gap-1">
+                <Clock className="h-3 w-3" /> Window
+              </p>
+              <p className="text-sm font-medium">{TIME_WINDOW_LABELS[job.scheduled_window]}</p>
+            </div>
+            {job.home_bedrooms != null && (
+              <div className="space-y-1">
+                <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider flex items-center gap-1">
+                  <BedDouble className="h-3 w-3" /> Beds
+                </p>
+                <p className="text-sm font-medium">{job.home_bedrooms}</p>
+              </div>
+            )}
+            {job.home_bathrooms != null && (
+              <div className="space-y-1">
+                <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider flex items-center gap-1">
+                  <Bath className="h-3 w-3" /> Baths
+                </p>
+                <p className="text-sm font-medium">{job.home_bathrooms}</p>
+              </div>
+            )}
+          </div>
+
+          {/* Payout */}
+          <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl p-3 flex justify-between items-center">
+            <div className="flex items-center gap-2">
+              <DollarSign className="h-4 w-4 text-green-600" />
+              <span className="text-sm font-bold text-green-800 dark:text-green-200">Your Payout</span>
+            </div>
+            <span className="text-xl font-black text-green-700 dark:text-green-300">
+              ${(job.quoted_price * 0.7).toFixed(0)}
+            </span>
+          </div>
+
           {job.access_instructions && (
-            <div className="bg-muted p-3 rounded-lg text-xs">
-              <strong>Access:</strong> {job.access_instructions}
+            <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3 text-xs">
+              <strong className="text-amber-800 dark:text-amber-200">🔑 Access Instructions:</strong>
+              <p className="mt-1 text-amber-700 dark:text-amber-300">{job.access_instructions}</p>
             </div>
           )}
+
           <a href={mapsUrl} target="_blank" rel="noopener noreferrer">
-            <Button variant="outline" className="w-full h-12">
+            <Button variant="outline" className="w-full h-11 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/30">
               <Navigation className="h-4 w-4 mr-2" />Open in Maps
             </Button>
           </a>
         </CardContent>
       </Card>
 
-      {/* Status actions */}
+      {/* ── On My Way CTA ── */}
       {['accepted', 'assigned'].includes(job.status) && (
-        <Button onClick={() => handleStatusUpdate('on_the_way')} className="w-full h-14 text-base bg-blue-600 hover:bg-blue-700" disabled={submitting}>
-          <Navigation className="h-5 w-5 mr-2" />On My Way
-        </Button>
+        <div className="relative">
+          <div className="absolute inset-0 rounded-xl bg-blue-500 opacity-20 animate-ping" style={{ animationDuration: '2s' }} />
+          <Button
+            id="on-my-way-btn"
+            onClick={() => handleStatusUpdate('on_the_way')}
+            className="relative w-full h-16 text-base font-bold bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-500/30"
+            disabled={submitting}
+          >
+            <Navigation className="h-6 w-6 mr-2" />
+            {submitting ? 'Updating...' : "🚗 I'm On My Way"}
+          </Button>
+        </div>
       )}
 
       {job.status === 'on_the_way' && (
