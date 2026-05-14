@@ -19,11 +19,17 @@ export function AdminDashboard() {
   const [zones, setZones] = useState<Zone[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isClient, setIsClient] = useState(false);
   
   const supabase = createClient();
   const supabaseRef = useRef(supabase);
 
   useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  useEffect(() => {
+
     const loadData = async () => {
       const today = format(new Date(), 'yyyy-MM-dd');
 
@@ -100,7 +106,9 @@ export function AdminDashboard() {
           <h1 className="text-3xl font-black tracking-tight text-foreground">Dashboard</h1>
         </div>
         <div className="text-right">
-          <p className="text-sm font-medium text-foreground">{format(new Date(), 'EEEE, MMMM do')}</p>
+          <p className="text-sm font-medium text-foreground">
+            {isClient ? format(new Date(), 'EEEE, MMMM do') : '...'}
+          </p>
           <p className="text-xs text-muted-foreground">Live updates enabled</p>
         </div>
       </div>

@@ -19,6 +19,7 @@ export default function ContractorDashboard() {
   const [contractor, setContractor] = useState<Contractor | null>(null);
   const [loading, setLoading] = useState(true);
   const [respondingId, setRespondingId] = useState<string | null>(null);
+  const [isClient, setIsClient] = useState(false);
 
   const fetchData = useCallback(async () => {
     try {
@@ -51,6 +52,7 @@ export default function ContractorDashboard() {
   }, []);
 
   useEffect(() => {
+    setIsClient(true);
     fetchData();
     // Auto-refresh every 30 seconds to keep offers current
     const interval = setInterval(fetchData, 30000);
@@ -91,7 +93,7 @@ export default function ContractorDashboard() {
       {/* Header card */}
       <Card className="bg-gradient-to-r from-blue-600 to-blue-700 text-white border-0">
         <CardContent className="p-5">
-          <p className="text-blue-100 text-sm">{format(new Date(), 'EEEE, MMMM d')}</p>
+          <p className="text-blue-100 text-sm">{isClient ? format(new Date(), 'EEEE, MMMM d') : '...'}</p>
           <h1 className="text-xl font-bold mt-1">Welcome back, {contractor?.full_name?.split(' ')[0]}</h1>
         </CardContent>
       </Card>
