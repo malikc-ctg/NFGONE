@@ -3,17 +3,18 @@
 import { useEffect, useState, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { 
-  Briefcase, Users, Radio, AlertCircle, 
-  Search, Filter, MapPin, Clock, 
+  Briefcase, Radio, AlertCircle, 
+  Search, MapPin, Clock, 
   ArrowRight, CheckCircle2, Waves,
-  TrendingUp, Calendar
+  TrendingUp, Calendar, Globe
 } from 'lucide-react';
 import { format } from 'date-fns';
-import type { Job, Contractor } from '@/types';
+import type { Job, Contractor, Zone } from '@/types';
 
 export function AdminDashboard() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [contractors, setContractors] = useState<Contractor[]>([]);
+  const [zones, setZones] = useState<Zone[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   
@@ -24,9 +25,10 @@ export function AdminDashboard() {
     const loadData = async () => {
       const today = format(new Date(), 'yyyy-MM-dd');
 
-      const [jobsRes, contractorsRes] = await Promise.all([
+      const [jobsRes, contractorsRes, zonesRes] = await Promise.all([
         fetch(`/api/jobs?date=${today}`),
-        fetch('/api/contractors')
+        fetch('/api/contractors'),
+        fetch('/api/zones')
       ]);
 
       const jobsData = await jobsRes.json();
@@ -35,13 +37,16 @@ export function AdminDashboard() {
       const contractorsData = await contractorsRes.json();
       setContractors(Array.isArray(contractorsData) ? contractorsData : []);
 
+      const zonesData = await zonesRes.json();
+      setZones(Array.isArray(zonesData) ? zonesData : []);
+
       setLoading(false);
     };
 
     loadData();
   }, []);
 
-  // Realtime updates
+  // ... (realtime updates remains the same)
   useEffect(() => {
     const channel = supabaseRef.current
       .channel('dashboard-updates')
@@ -224,8 +229,34 @@ export function AdminDashboard() {
               </button>
             </div>
           </div>
+
+          <div className="bg-card border border-border rounded-3xl p-6 shadow-sm">
+            <h3 className="font-bold mb-4 flex items-center gap-2 text-blue-600">
+              <Globe className="h-4 w-4" />
+              Regional Coverage
+            </h3>
+            <div className="space-y-3">
+              {zones.slice(0, 8).map((z) => (
+                <div key={z.id} className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <p className="text-xs font-bold text-foreground">{z.name}</p>
+                    <p className="text-[9px] text-muted-foreground uppercase tracking-wider">{z.city}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[10px] font-bold text-foreground">{z.areas?.length || 0} Areas</p>
+                  </div>
+                </div>
+              ))}
+              <Link href="/admin/zones">
+                <button className="w-full py-3 mt-2 rounded-xl text-xs font-bold text-muted-foreground hover:bg-muted hover:text-foreground transition-all uppercase tracking-widest border border-dashed border-border">
+                  Manage GTA Zones
+                </button>
+              </Link>
+            </div>
+          </div>
         </div>
       </div>
     </div>
   );
 }
+
