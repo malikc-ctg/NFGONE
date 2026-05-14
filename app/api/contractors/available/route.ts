@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
     const dayOfWeek = new Date(date).toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
 
     // Get contractors who are active
-    let query = supabase
+    const query = supabase
       .from('contractors')
       .select('*, zone:zones(*), contractor_zones(zone_id)')
       .eq('status', 'active');

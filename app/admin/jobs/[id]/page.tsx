@@ -8,14 +8,11 @@ import { StatusBadge } from '@/components/shared/StatusBadge';
 import { Separator } from '@/components/ui/separator';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
-  Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger,
+  Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from '@/components/ui/select';
-import {
-  ArrowLeft, Send, MapPin, Clock, DollarSign,
-  User, Star, CheckCircle2,
+  ArrowLeft, Send, MapPin,
+  User, Star,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
