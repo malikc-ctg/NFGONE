@@ -11,7 +11,7 @@ import {
   Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
 import {
-  ArrowLeft, Send, MapPin,
+  ArrowLeft, Send, MapPin, DollarSign,
   User, Star,
 } from 'lucide-react';
 import { toast } from 'sonner';

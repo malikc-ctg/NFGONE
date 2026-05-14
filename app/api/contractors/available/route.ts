@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
     // Get contractors who are active
     const query = supabase
       .from('contractors')
-      .select('*, zone:zones(*), contractor_zones(zone_id)')
+      .select('*, zone:zones!zone_id(*), contractor_zones(zone_id)')
       .eq('status', 'active');
 
     const { data: contractors, error } = await query;
@@ -33,6 +33,7 @@ export async function GET(request: NextRequest) {
         (c.contractor_zones && c.contractor_zones.some((cz: any) => cz.zone_id === zone_id))
       );
     }
+
 
     // Get availability for each contractor
     const available = [];

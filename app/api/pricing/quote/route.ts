@@ -8,9 +8,10 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const {
       zone_id, service_type, scheduled_date, scheduled_window,
-      home_bedrooms, home_bathrooms, home_size_sqft, has_pets,
+      home_bedrooms, home_bathrooms, has_pets,
       add_ons, customer_id,
     } = body;
+
 
     if (!zone_id || !service_type || !scheduled_date || !scheduled_window) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });

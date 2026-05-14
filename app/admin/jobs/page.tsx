@@ -11,7 +11,7 @@ import { SERVICE_TYPE_LABELS, TIME_WINDOW_LABELS } from '@/types';
 import type { Job, JobStatus } from '@/types';
 import Link from 'next/link';
 import { format } from 'date-fns';
-import { Plus } from 'lucide-react';
+
 
 const STATUS_FILTERS: { label: string; statuses: JobStatus[] | null }[] = [
   { label: 'All', statuses: null },

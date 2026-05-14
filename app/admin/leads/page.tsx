@@ -16,7 +16,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
-import { Plus, Phone, Mail } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { SERVICE_TYPE_LABELS, DEFAULT_PRICING } from '@/types';
@@ -96,7 +96,7 @@ export default function LeadsPage() {
         source: 'lsa',
       });
       fetchLeads();
-    } catch (err) {
+    } catch {
       toast.error('Failed to create lead');
     }
   }

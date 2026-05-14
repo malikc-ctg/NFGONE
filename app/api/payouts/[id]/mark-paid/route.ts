@@ -8,7 +8,7 @@ export async function POST(
   try {
     const supabase = await createServiceClient();
     const { id } = params;
-    const { payout_reference, amount } = await request.json();
+    const { payout_reference } = await request.json();
 
     if (!payout_reference) {
       return NextResponse.json({ error: 'payout_reference required' }, { status: 400 });
