@@ -10,19 +10,23 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Get contractor ID
-    const { data: contractor } = await supabase
+    // Get contractor ID using service client to avoid RLS hurdles
+    const { createServiceClient } = await import('@/lib/supabase/server');
+    const serviceClient = await createServiceClient();
+    
+    const { data: contractor } = await serviceClient
       .from('contractors')
       .select('id')
       .eq('profile_id', user.id)
       .single();
 
     if (!contractor) {
-      return NextResponse.json({ error: 'Contractor not found' }, { status: 404 });
+      return NextResponse.json({ error: 'Contractor not found in database' }, { status: 404 });
     }
 
-    // Get pending offers
-    const { data: offers, error } = await supabase
+
+    // Get pending offers using service client
+    const { data: offers, error } = await serviceClient
       .from('job_offers')
       .select('*, job:jobs(*)')
       .eq('contractor_id', contractor.id)
@@ -30,6 +34,7 @@ export async function GET() {
       .order('offered_at', { ascending: false });
 
     if (error) throw error;
+
 
     // Filter out offers where the job is already assigned or taken
     // (Though respond/route.ts should handle this by marking them declined, 
