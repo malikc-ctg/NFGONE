@@ -1,24 +1,25 @@
 import type { JobStatus } from '@/types';
 
 export const VALID_TRANSITIONS: Record<JobStatus, JobStatus[]> = {
-  lead_received: ['quoted', 'cancelled'],
-  quoted: ['deposit_paid', 'cancelled'],
-  deposit_paid: ['confirmed'],
-  confirmed: ['offered', 'rescheduled', 'cancelled'],
-  offered: ['accepted', 'confirmed'],
-  accepted: ['assigned'],
-  assigned: ['on_the_way', 'no_show', 'rescheduled'],
-  on_the_way: ['in_progress'],
-  in_progress: ['completed'],
-  completed: ['reviewed', 'disputed'],
-  reviewed: ['paid_out'],
-  disputed: ['refunded', 'completed', 'paid_out'],
+  lead_received: ['quoted', 'confirmed', 'cancelled'],
+  quoted: ['deposit_paid', 'confirmed', 'cancelled'],
+  deposit_paid: ['confirmed', 'cancelled'],
+  confirmed: ['offered', 'assigned', 'rescheduled', 'cancelled'],
+  offered: ['accepted', 'assigned', 'confirmed', 'cancelled'],
+  accepted: ['assigned', 'confirmed', 'cancelled'],
+  assigned: ['on_the_way', 'no_show', 'rescheduled', 'confirmed', 'cancelled'],
+  on_the_way: ['in_progress', 'assigned', 'cancelled'],
+  in_progress: ['completed', 'disputed', 'cancelled'],
+  completed: ['reviewed', 'disputed', 'paid_out'],
+  reviewed: ['paid_out', 'completed'],
+  disputed: ['refunded', 'completed', 'paid_out', 'cancelled'],
   paid_out: [],
-  cancelled: [],
-  rescheduled: ['offered', 'cancelled'],
-  no_show: ['rescheduled', 'cancelled'],
+  cancelled: ['confirmed'], // Allow undoing a cancellation if mistake
+  rescheduled: ['offered', 'confirmed', 'cancelled'],
+  no_show: ['rescheduled', 'confirmed', 'cancelled'],
   refunded: [],
 };
+
 
 export function isValidTransition(from: JobStatus, to: JobStatus): boolean {
   return VALID_TRANSITIONS[from]?.includes(to) ?? false;
