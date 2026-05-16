@@ -95,17 +95,17 @@ export function AdminDashboard() {
   }
 
   return (
-    <div className="p-8 space-y-8 max-w-7xl mx-auto">
+    <div className="p-4 md:p-8 space-y-6 md:space-y-8 max-w-7xl mx-auto">
       {/* Header */}
-      <div className="flex items-end justify-between">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <div className="flex items-center gap-2 text-blue-600 mb-1">
             <Calendar className="h-4 w-4" />
             <span className="text-xs font-bold uppercase tracking-wider">Operational Overview</span>
           </div>
-          <h1 className="text-3xl font-black tracking-tight text-foreground">Dashboard</h1>
+          <h1 className="text-2xl md:text-3xl font-black tracking-tight text-foreground">Dashboard</h1>
         </div>
-        <div className="text-right">
+        <div className="sm:text-right">
           <p className="text-sm font-medium text-foreground">
             {isClient ? format(new Date(), 'EEEE, MMMM do') : '...'}
           </p>
@@ -114,9 +114,9 @@ export function AdminDashboard() {
       </div>
 
       {/* Metrics Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
         {metrics.map((m) => (
-          <div key={m.label} className="bg-card border border-border rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
+          <div key={m.label} className="bg-card border border-border rounded-2xl p-4 md:p-6 shadow-sm hover:shadow-md transition-shadow">
             <div className={`w-10 h-10 rounded-xl mb-4 flex items-center justify-center
               ${m.color === 'blue' ? 'bg-blue-500/10 text-blue-600' : ''}
               ${m.color === 'green' ? 'bg-emerald-500/10 text-emerald-600' : ''}
@@ -126,7 +126,7 @@ export function AdminDashboard() {
               <m.icon className="h-5 w-5" />
             </div>
             <div className="space-y-1">
-              <p className="text-3xl font-bold tracking-tight text-foreground">{m.value}</p>
+              <p className="text-xl md:text-3xl font-bold tracking-tight text-foreground">{m.value}</p>
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{m.label}</p>
             </div>
           </div>
@@ -136,19 +136,19 @@ export function AdminDashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Main Job List */}
         <div className="lg:col-span-2 space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <h2 className="text-lg font-bold flex items-center gap-2">
               Today&apos;s Jobs
               <span className="px-2 py-0.5 rounded-full bg-muted text-[10px] font-bold text-muted-foreground uppercase">
                 {jobs.length}
               </span>
             </h2>
-            <div className="relative">
+            <div className="relative w-full sm:w-64">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <input 
                 type="text"
                 placeholder="Search jobs..."
-                className="pl-9 pr-4 py-2 bg-muted/50 border-none rounded-xl text-sm focus:ring-2 ring-blue-500/20 w-64"
+                className="w-full pl-9 pr-4 py-2 bg-muted/50 border-none rounded-xl text-sm focus:ring-2 ring-blue-500/20"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
@@ -158,16 +158,16 @@ export function AdminDashboard() {
           <div className="space-y-3">
             {filteredJobs.length > 0 ? (
               filteredJobs.map((job) => (
-                <div key={job.id} className="group bg-card border border-border rounded-2xl p-5 hover:border-blue-500/50 transition-all cursor-pointer shadow-sm">
-                  <div className="flex items-start justify-between">
-                    <div className="flex gap-4">
-                      <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center shrink-0">
-                        <MapPin className="h-5 w-5 text-muted-foreground" />
+                <div key={job.id} className="group bg-card border border-border rounded-2xl p-4 md:p-5 hover:border-blue-500/50 transition-all cursor-pointer shadow-sm">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex gap-3 md:gap-4 min-w-0">
+                      <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-muted flex items-center justify-center shrink-0">
+                        <MapPin className="h-4 w-4 md:h-5 md:w-5 text-muted-foreground" />
                       </div>
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <h3 className="font-bold text-foreground">{job.customer?.full_name || 'New Booking'}</h3>
-                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-tighter
+                      <div className="space-y-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h3 className="font-bold text-foreground text-sm md:text-base truncate">{job.customer?.full_name || 'New Booking'}</h3>
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-tighter shrink-0
                             ${job.status === 'in_progress' ? 'bg-emerald-100 text-emerald-700' : ''}
                             ${job.status === 'confirmed' ? 'bg-blue-100 text-blue-700' : ''}
                             ${job.status === 'on_the_way' ? 'bg-sky-100 text-sky-700' : ''}
@@ -176,25 +176,25 @@ export function AdminDashboard() {
                             {job.status.replace('_', ' ')}
                           </span>
                         </div>
-                        <p className="text-sm text-muted-foreground line-clamp-1">{job.address_line1}</p>
-                        <div className="flex items-center gap-4 mt-2">
+                        <p className="text-xs md:text-sm text-muted-foreground line-clamp-1">{job.address_line1}</p>
+                        <div className="flex items-center gap-3 md:gap-4 mt-2 flex-wrap">
                           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                            <Clock className="h-3.5 w-3.5" />
+                            <Clock className="h-3.5 w-3.5 shrink-0" />
                             {job.scheduled_window || 'Morning'}
                           </div>
                           <div className="flex items-center gap-1.5 text-xs font-bold text-foreground">
-                            <CheckCircle2 className="h-3.5 w-3.5 text-blue-500" />
-                            {job.service_type.replace('_', ' ')}
+                            <CheckCircle2 className="h-3.5 w-3.5 text-blue-500 shrink-0" />
+                            <span className="truncate">{job.service_type.replace('_', ' ')}</span>
                           </div>
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2 md:gap-3 shrink-0">
                       <div className="text-right">
                         <p className="text-sm font-bold text-foreground">${job.quoted_price?.toFixed(0)}</p>
-                        <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">Revenue</p>
+                        <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest hidden sm:block">Revenue</p>
                       </div>
-                      <div className="p-2 rounded-full hover:bg-muted text-muted-foreground group-hover:text-blue-600 transition-colors">
+                      <div className="p-2 rounded-full hover:bg-muted text-muted-foreground group-hover:text-blue-600 transition-colors hidden sm:block">
                         <ArrowRight className="h-4 w-4" />
                       </div>
                     </div>

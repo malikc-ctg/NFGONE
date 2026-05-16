@@ -85,3 +85,55 @@
     text-wrap: balance;
   }
 }
+
+/* ── Mobile Optimizations ── */
+
+/* Safe area padding for notched devices (iPhone X+) */
+@supports (padding: env(safe-area-inset-bottom)) {
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .safe-top {
+    padding-top: env(safe-area-inset-top);
+  }
+}
+
+/* Smooth touch scrolling */
+* {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Prevent text size adjustment on orientation change */
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+/* Touch-friendly tap targets — minimum 44x44px */
+@media (pointer: coarse) {
+  button,
+  [role="button"],
+  a {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Exclude tiny icon buttons that are intentionally small */
+  button.p-0,
+  [class*="h-6"][class*="w-6"],
+  [class*="h-5"][class*="w-5"] {
+    min-height: unset;
+    min-width: unset;
+  }
+}
+
+/* Prevent pull-to-refresh interfering with scroll */
+body {
+  overscroll-behavior-y: contain;
+}
+
+/* Ensure images don't overflow on mobile */
+img, video {
+  max-width: 100%;
+  height: auto;
+}

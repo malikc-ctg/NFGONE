@@ -40,7 +40,7 @@ export default function ContractorLayout({
       </main>
 
       {/* Bottom nav */}
-      <nav className="fixed bottom-0 left-0 right-0 max-w-lg mx-auto border-t border-border bg-card z-40">
+      <nav className="fixed bottom-0 left-0 right-0 max-w-lg mx-auto border-t border-border bg-card z-40 safe-bottom">
         <div className="flex justify-around py-2">
           {navItems.map((item) => {
             const isActive = item.href === '/contractor'

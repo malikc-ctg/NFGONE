@@ -44,10 +44,10 @@ export default function JobsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Jobs</h1>
-          <p className="text-muted-foreground">{filtered.length} jobs</p>
+          <h1 className="text-xl md:text-2xl font-bold tracking-tight">Jobs</h1>
+          <p className="text-muted-foreground text-sm">{filtered.length} jobs</p>
         </div>
       </div>
 
@@ -66,19 +66,19 @@ export default function JobsPage() {
       </div>
 
       <Card>
-        <CardContent className="p-0">
-          <Table>
+        <CardContent className="p-0 overflow-x-auto">
+          <Table className="min-w-[700px]">
             <TableHeader>
               <TableRow>
                 <TableHead>Job #</TableHead>
                 <TableHead>Date</TableHead>
-                <TableHead>Window</TableHead>
+                <TableHead className="hidden md:table-cell">Window</TableHead>
                 <TableHead>Customer</TableHead>
-                <TableHead>Address</TableHead>
+                <TableHead className="hidden lg:table-cell">Address</TableHead>
                 <TableHead>Service</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Quoted</TableHead>
-                <TableHead>Contractor</TableHead>
+                <TableHead className="hidden md:table-cell">Contractor</TableHead>
                 <TableHead></TableHead>
               </TableRow>
             </TableHeader>
@@ -91,14 +91,14 @@ export default function JobsPage() {
                 filtered.map((job) => (
                   <TableRow key={job.id}>
                     <TableCell className="font-mono text-xs">{job.job_number}</TableCell>
-                    <TableCell className="text-xs">{format(new Date(job.scheduled_date), 'MMM d, yyyy')}</TableCell>
-                    <TableCell className="text-xs">{TIME_WINDOW_LABELS[job.scheduled_window]}</TableCell>
+                    <TableCell className="text-xs whitespace-nowrap">{format(new Date(job.scheduled_date), 'MMM d, yyyy')}</TableCell>
+                    <TableCell className="text-xs hidden md:table-cell">{TIME_WINDOW_LABELS[job.scheduled_window]}</TableCell>
                     <TableCell className="text-sm">{(job as any).customer?.full_name ?? '—'}</TableCell>
-                    <TableCell className="text-xs max-w-[200px] truncate">{job.address_line1}, {job.city}</TableCell>
-                    <TableCell className="text-xs">{SERVICE_TYPE_LABELS[job.service_type]}</TableCell>
+                    <TableCell className="text-xs max-w-[200px] truncate hidden lg:table-cell">{job.address_line1}, {job.city}</TableCell>
+                    <TableCell className="text-xs whitespace-nowrap">{SERVICE_TYPE_LABELS[job.service_type]}</TableCell>
                     <TableCell><StatusBadge status={job.status} /></TableCell>
                     <TableCell className="text-xs font-medium">${job.quoted_price}</TableCell>
-                    <TableCell className="text-xs">{(job as any).contractor?.full_name ?? '—'}</TableCell>
+                    <TableCell className="text-xs hidden md:table-cell">{(job as any).contractor?.full_name ?? '—'}</TableCell>
                     <TableCell>
                       <Link href={`/admin/jobs/${job.id}`}>
                         <Button variant="ghost" size="sm">View</Button>
