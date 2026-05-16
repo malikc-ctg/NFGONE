@@ -1,12 +1,17 @@
 import { createServiceClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { getDisputeWithMessages, addDisputeMessage, resolveDispute } from '@/lib/dispute-engine';
+import { requireAuth } from '@/lib/api-auth';
 
 export async function GET(
   _request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
+  // Auth check
+  const auth = await requireAuth();
+  if (auth instanceof NextResponse) return auth;
+
     const result = await getDisputeWithMessages(params.id);
     return NextResponse.json(result);
   } catch (err: unknown) {
@@ -72,8 +77,8 @@ export async function PATCH(
       if (dispute?.job) {
         const job = dispute.job as unknown as { stripe_charge_id: string | null };
         if (job.stripe_charge_id) {
-          // TODO: call Stripe refunds API with job.stripe_charge_id and refund_amount
-          console.log(`[Stripe] Issue refund $${refund_amount} for charge ${job.stripe_charge_id}`);
+          // Stripe refund integration pending — refund amount is tracked in dispute record
+          console.warn(`[STRIPE_REFUND_PENDING] charge=${job.stripe_charge_id} amount=$${refund_amount} dispute=${params.id}`);
         }
       }
     }

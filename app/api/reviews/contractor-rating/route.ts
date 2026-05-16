@@ -1,10 +1,15 @@
 import { createServiceClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/api-auth';
 
 // POST /api/reviews/contractor-rating
 // Contractor rates a customer after completing their job
 export async function POST(request: NextRequest) {
   try {
+  // Auth check
+  const auth = await requireAuth();
+  if (auth instanceof NextResponse) return auth;
+
     const supabase = await createServiceClient();
     const body = await request.json();
     const { job_id, contractor_customer_rating, contractor_customer_notes } = body;

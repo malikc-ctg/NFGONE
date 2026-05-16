@@ -1,9 +1,19 @@
 import { createServiceClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { geocodeAddress } from '@/lib/geocode';
+import { requireAuth } from '@/lib/api-auth';
+import { rateLimit } from '@/lib/rate-limit';
 
 export async function POST(request: NextRequest) {
+  // Rate limit: 10 requests per minute per IP
+  const limited = rateLimit(request, { maxRequests: 10, windowMs: 60_000 });
+  if (limited) return limited;
+
   try {
+  // Auth check
+  const auth = await requireAuth();
+  if (auth instanceof NextResponse) return auth;
+
     const supabase = await createServiceClient();
     const body = await request.json();
 
@@ -61,6 +71,10 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
+  // Auth check
+  const auth = await requireAuth();
+  if (auth instanceof NextResponse) return auth;
+
     const supabase = await createServiceClient();
     const { searchParams } = new URL(request.url);
 

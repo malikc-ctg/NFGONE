@@ -1,8 +1,13 @@
 import { createServiceClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/api-auth';
 
 export async function POST(request: NextRequest) {
   try {
+  // Auth check
+  const auth = await requireAuth();
+  if (auth instanceof NextResponse) return auth;
+
     const supabase = await createServiceClient();
     const body = await request.json();
 
@@ -31,6 +36,10 @@ export async function POST(request: NextRequest) {
 
 export async function GET() {
   try {
+  // Auth check
+  const auth = await requireAuth();
+  if (auth instanceof NextResponse) return auth;
+
     const supabase = await createServiceClient();
     const { data, error } = await supabase
       .from('customers')

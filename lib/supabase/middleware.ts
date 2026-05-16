@@ -81,5 +81,38 @@ export async function updateSession(request: NextRequest) {
     // The page component will handle showing login state
   }
 
+  // Role-based access control for authenticated users
+  if (user && (pathname.startsWith('/admin') || pathname.startsWith('/partner') || pathname.startsWith('/contractor'))) {
+    try {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+
+      const role = profile?.role;
+
+      if (pathname.startsWith('/admin') && role !== 'admin') {
+        const url = request.nextUrl.clone();
+        url.pathname = '/contractor';
+        return NextResponse.redirect(url);
+      }
+
+      if (pathname.startsWith('/partner') && role !== 'partner' && role !== 'admin') {
+        const url = request.nextUrl.clone();
+        url.pathname = '/contractor';
+        return NextResponse.redirect(url);
+      }
+
+      if (pathname.startsWith('/contractor') && pathname !== '/contractor/login' && role !== 'contractor' && role !== 'admin') {
+        const url = request.nextUrl.clone();
+        url.pathname = '/contractor/login';
+        return NextResponse.redirect(url);
+      }
+    } catch {
+      // If profile lookup fails, allow through — API routes have their own auth
+    }
+  }
+
   return supabaseResponse;
 }

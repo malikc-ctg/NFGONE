@@ -1,5 +1,6 @@
 import { createServiceClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/api-auth';
 
 function generateReferralCode(): string {
   return 'SOB-' + Math.random().toString(36).slice(2, 7).toUpperCase();
@@ -8,6 +9,10 @@ function generateReferralCode(): string {
 // POST /api/partners/create — Admin only, invite-only
 export async function POST(request: NextRequest) {
   try {
+  // Auth check
+  const auth = await requireAuth();
+  if (auth instanceof NextResponse) return auth;
+
     const supabase = await createServiceClient();
     const body = await request.json();
     const { email, full_name, company_name, partner_type, zone_id, commission_rate, billing_email, notes } = body;
@@ -67,8 +72,8 @@ export async function POST(request: NextRequest) {
 
     if (partnerError) throw partnerError;
 
-    // Send invite email (TODO: wire to Resend)
-    console.log(`[INVITE EMAIL] → ${email}: Welcome to Sea of Blue partner portal. Set your password at /partner/login`);
+    // Partner invite email — integration pending
+    console.warn(`[PARTNER_INVITE_PENDING] email=${email} partner_id=${partner.id}`);
 
     return NextResponse.json(partner, { status: 201 });
   } catch (err: unknown) {
@@ -78,6 +83,10 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
+  // Auth check
+  const auth = await requireAuth();
+  if (auth instanceof NextResponse) return auth;
+
     const supabase = await createServiceClient();
     const { searchParams } = new URL(request.url);
     const zone_id = searchParams.get('zone_id');

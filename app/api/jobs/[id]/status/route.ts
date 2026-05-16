@@ -2,12 +2,17 @@ import { createServiceClient } from '@/lib/supabase/server';
 import { isValidTransition } from '@/lib/job-state-machine';
 import { NextRequest, NextResponse } from 'next/server';
 import type { JobStatus } from '@/types';
+import { requireAuth } from '@/lib/api-auth';
 
 export async function PATCH(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
+  // Auth check
+  const auth = await requireAuth();
+  if (auth instanceof NextResponse) return auth;
+
     const supabase = await createServiceClient();
     const { id } = params;
     const { status: newStatus, ...extraFields } = await request.json();

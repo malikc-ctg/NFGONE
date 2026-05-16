@@ -1,9 +1,14 @@
 import { createServiceClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { applyDynamicPricing } from '@/lib/dynamic-pricing';
+import { rateLimit } from '@/lib/rate-limit';
 import type { ServiceType, TimeWindow } from '@/types';
 
 export async function POST(request: NextRequest) {
+  // Rate limit: 20 requests per minute per IP (public endpoint)
+  const limited = rateLimit(request, { maxRequests: 20, windowMs: 60_000 });
+  if (limited) return limited;
+
   try {
     const body = await request.json();
     const {

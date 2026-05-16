@@ -1,6 +1,7 @@
 import { createServiceClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { applyReferralCode, getCustomerReferrals, ensureCustomerReferralCode } from '@/lib/referral-engine';
+import { requireAuth } from '@/lib/api-auth';
 
 export async function GET(request: NextRequest) {
   // GET code for a customer, or apply code

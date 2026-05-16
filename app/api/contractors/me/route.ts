@@ -1,8 +1,13 @@
 import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/api-auth';
 
 export async function GET() {
   try {
+  // Auth check
+  const auth = await requireAuth();
+  if (auth instanceof NextResponse) return auth;
+
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
@@ -44,6 +49,10 @@ export async function GET() {
 
 export async function PATCH(request: Request) {
   try {
+  // Auth check
+  const auth = await requireAuth();
+  if (auth instanceof NextResponse) return auth;
+
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
