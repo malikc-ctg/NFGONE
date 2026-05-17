@@ -31,37 +31,42 @@ export default function OnboardingPage() {
   );
 
   useEffect(() => {
-    async function loadInitialData() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        router.push('/contractor/login');
-        return;
-      }
+    // We use onAuthStateChange because when the user lands here from an email link, 
+    // the session is established via the URL hash fragment. Calling getUser() immediately 
+    // might happen before the client finishes parsing the hash.
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (session?.user) {
+        // Now that we have a session, fetch their contractor profile
+        const { data: contractorData } = await supabase
+          .from('contractors')
+          .select(`*, zone:zones(*)`)
+          .eq('profile_id', session.user.id)
+          .single();
 
-      // Get contractor profile
-      const { data: contractorData } = await supabase
-        .from('contractors')
-        .select(`*, zone:zones(*)`)
-        .eq('profile_id', user.id)
-        .single();
-
-      if (contractorData) {
-        if (contractorData.status === 'active') {
-            router.push('/contractor');
-            return;
+        if (contractorData) {
+          if (contractorData.status === 'active') {
+              router.push('/contractor');
+              return;
+          }
+          setContractor(contractorData);
         }
-        setContractor(contractorData);
-      }
 
-      // Get all zones
-      const res = await fetch('/api/zones');
-      const allZones = await res.json();
-      setZones(Array.isArray(allZones) ? allZones : []);
-      
-      setLoading(false);
-    }
+        // Get all zones
+        const res = await fetch('/api/zones');
+        const allZones = await res.json();
+        setZones(Array.isArray(allZones) ? allZones : []);
+        
+        setLoading(false);
+      } else if (event === 'INITIAL_SESSION' && !session) {
+        // If we finished checking the initial session and it's still null (no hash in URL),
+        // then they are truly not logged in.
+        router.push('/contractor/login');
+      }
+    });
     
-    loadInitialData();
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
   }, [router, supabase]);
 
   const toggleZone = (zoneId: string) => {
