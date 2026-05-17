@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Plus, Star } from 'lucide-react';
+import { Plus, Star, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Contractor } from '@/types';
 import Link from 'next/link';
@@ -69,6 +69,21 @@ export default function ContractorsPage() {
       toast.error(err.message || 'Failed to invite contractor'); 
     } finally {
       setIsSubmitting(false);
+    }
+  }
+
+  async function handleDelete(id: string, name: string) {
+    if (!confirm(`Are you sure you want to completely delete the contractor "${name}"? This action cannot be undone and will remove their ability to log in.`)) return;
+    
+    try {
+      const res = await fetch(`/api/contractors/${id}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) throw new Error('Failed to delete');
+      toast.success('Contractor deleted permanently');
+      fetchContractors();
+    } catch {
+      toast.error('Failed to delete contractor');
     }
   }
 
@@ -145,7 +160,16 @@ export default function ContractorsPage() {
                   <TableCell className="text-xs"><Star className="h-3 w-3 inline mr-1 text-amber-500" />{c.score}</TableCell>
                   <TableCell className="text-xs">{(c.payout_rate * 100).toFixed(0)}%</TableCell>
                   <TableCell className="text-xs">{c.brings_own_supplies ? '✓' : '—'}</TableCell>
-                  <TableCell><Link href={`/admin/contractors/${c.id}`}><Button variant="ghost" size="sm">View</Button></Link></TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <Link href={`/admin/contractors/${c.id}`}>
+                        <Button variant="ghost" size="sm">View</Button>
+                      </Link>
+                      <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-700 hover:bg-red-50" onClick={() => handleDelete(c.id, c.full_name)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
