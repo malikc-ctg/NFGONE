@@ -11,7 +11,7 @@ import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 import { Suspense } from 'react';
 
-function ContractorLoginContent() {
+function AdminLoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [email, setEmail] = useState('');
@@ -26,7 +26,7 @@ function ContractorLoginContent() {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
       router.refresh();
-      const redirect = searchParams.get('redirect') ?? '/contractor';
+      const redirect = searchParams.get('redirect') ?? '/admin';
       router.push(redirect);
     } catch (err: unknown) {
       toast.error((err as Error).message ?? 'Login failed');
@@ -39,11 +39,11 @@ function ContractorLoginContent() {
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center space-y-4">
-          <div className="flex items-center justify-center mx-auto w-14 h-14 rounded-2xl bg-blue-600">
-            <Waves className="h-7 w-7 text-white" />
+          <div className="flex items-center justify-center mx-auto w-14 h-14 rounded-2xl bg-slate-900 dark:bg-white">
+            <Waves className="h-7 w-7 text-white dark:text-black" />
           </div>
           <CardTitle className="text-xl">Sea of Blue</CardTitle>
-          <p className="text-sm text-muted-foreground">Contractor login</p>
+          <p className="text-sm text-muted-foreground">Admin Portal Login</p>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleLogin} className="space-y-4">
@@ -79,10 +79,10 @@ function ContractorLoginContent() {
   );
 }
 
-export default function ContractorLoginPage() {
+export default function AdminLoginPage() {
   return (
     <Suspense fallback={<div>Loading...</div>}>
-      <ContractorLoginContent />
+      <AdminLoginContent />
     </Suspense>
   );
 }

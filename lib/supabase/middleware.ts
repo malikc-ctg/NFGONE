@@ -46,6 +46,7 @@ export async function updateSession(request: NextRequest) {
   // Public routes that don't need auth
   const publicRoutes = [
     '/contractor/login',
+    '/admin/login',
     '/api/webhooks',
     '/tracking',
   ];
@@ -66,7 +67,13 @@ export async function updateSession(request: NextRequest) {
 
   // Redirect unauthenticated users
   if (!user) {
-    if (pathname.startsWith('/admin') || pathname.startsWith('/partner')) {
+    if (pathname.startsWith('/admin') && pathname !== '/admin/login') {
+      const url = request.nextUrl.clone();
+      url.pathname = '/admin/login';
+      url.searchParams.set('redirect', pathname);
+      return NextResponse.redirect(url);
+    }
+    if (pathname.startsWith('/partner')) {
       const url = request.nextUrl.clone();
       url.pathname = '/contractor/login';
       url.searchParams.set('redirect', pathname);
