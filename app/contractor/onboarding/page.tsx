@@ -3,18 +3,16 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createBrowserClient } from '@supabase/ssr';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import type { Contractor, Zone } from '@/types';
 import { Checkbox } from '@/components/ui/checkbox';
 
 export default function OnboardingPage() {
   const router = useRouter();
-  const [user, setUser] = useState<any>(null);
   const [contractor, setContractor] = useState<Contractor | null>(null);
   const [zones, setZones] = useState<Zone[]>([]);
   
@@ -39,10 +37,9 @@ export default function OnboardingPage() {
         router.push('/contractor/login');
         return;
       }
-      setUser(user);
 
       // Get contractor profile
-      const { data: contractorData, error: contractorError } = await supabase
+      const { data: contractorData } = await supabase
         .from('contractors')
         .select(`*, zone:zones(*)`)
         .eq('profile_id', user.id)

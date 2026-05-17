@@ -2,9 +2,8 @@ import { NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
 import { Resend } from 'resend';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 export async function POST(request: Request) {
+  const resend = new Resend(process.env.RESEND_API_KEY);
   try {
     const body = await request.json();
     const { full_name, email, phone, zone_id, tier, payout_rate, brings_own_supplies, has_vehicle, max_jobs_per_day } = body;
@@ -68,7 +67,6 @@ export async function POST(request: Request) {
     }
 
     // 5. Send Email via Resend
-    const onboardingUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://nfgone.ca'}/contractor/onboarding?token=${inviteData.properties.hashed_token}`;
     // Wait, the action link returned by generateLink already includes the token and redirects them.
     // The link from Supabase is: inviteData.properties.action_link
     // BUT we want to ensure they go to our onboarding page.
