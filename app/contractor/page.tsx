@@ -3,13 +3,16 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import {
   MapPin, Briefcase, DollarSign, Star, TrendingUp,
   Clock, CheckCircle2, ArrowRight, CalendarDays,
-  Sparkles, Bath, BedDouble, ChevronRight, Timer, Package, Key, Info
+  Sparkles, Bath, BedDouble, ChevronRight, Timer, Package, Key, Info,
+  AlertTriangle, UploadCloud, FileText
 } from 'lucide-react';
+import { createBrowserClient } from '@supabase/ssr';
 import { SERVICE_TYPE_LABELS, TIME_WINDOW_LABELS } from '@/types';
 import type { Job, JobOffer, Contractor } from '@/types';
 import Link from 'next/link';
@@ -47,6 +50,12 @@ export default function ContractorDashboard() {
   const [loading, setLoading] = useState(true);
   const [respondingId, setRespondingId] = useState<string | null>(null);
   const [isClient, setIsClient] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
 
   const fetchData = useCallback(async () => {
     try {
@@ -129,6 +138,65 @@ export default function ContractorDashboard() {
     }
   }
 
+  // Check if they have insurance
+  let hasInsurance = false;
+  if (contractor) {
+    const notesStr = contractor.notes || '{}';
+    try {
+      const notesObj = JSON.parse(notesStr);
+      if (notesObj.insurance_details?.provider || notesObj.insurance_details?.policy_number || notesObj.insurance_details?.file_url) {
+        hasInsurance = true;
+      }
+    } catch { }
+  }
+
+  async function handleInsuranceUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !contractor) return;
+    
+    setIsUploading(true);
+    try {
+      // 1. Upload to Supabase Storage
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${contractor.id}-${Math.random()}.${fileExt}`;
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('documents')
+        .upload(fileName, file);
+        
+      if (uploadError) throw uploadError;
+      
+      // 2. Get public URL
+      const { data: { publicUrl } } = supabase.storage.from('documents').getPublicUrl(fileName);
+      
+      // 3. Update contractor JSON notes
+      const existingNotes = contractor.notes ? JSON.parse(contractor.notes) : {};
+      const updatedNotes = {
+          ...existingNotes,
+          insurance_details: {
+             ...existingNotes.insurance_details,
+             file_url: publicUrl,
+             uploaded_at: new Date().toISOString()
+          }
+      };
+      
+      const { error: dbError } = await supabase
+        .from('contractors')
+        .update({ notes: JSON.stringify(updatedNotes) })
+        .eq('id', contractor.id);
+        
+      if (dbError) throw dbError;
+      
+      toast.success('Insurance document uploaded successfully!');
+      fetchData(); // Refresh data
+    } catch (err: any) {
+      toast.error('Failed to upload document: ' + err.message);
+    } finally {
+      setIsUploading(false);
+      // Reset input
+      e.target.value = '';
+    }
+  }
+
   return (
     <div className="space-y-5">
       {/* ── Hero Header ── */}
@@ -151,6 +219,42 @@ export default function ContractorDashboard() {
           )}
         </CardContent>
       </Card>
+
+      {/* ── Insurance Reminder ── */}
+      {!loading && !hasInsurance && (
+        <Card className="border-red-200 bg-red-50 dark:bg-red-950/20">
+          <CardContent className="p-4 flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
+            <div className="flex gap-3">
+              <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center shrink-0">
+                <AlertTriangle className="h-5 w-5 text-red-600" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-red-900 dark:text-red-400">Action Required: Upload Insurance</h3>
+                <p className="text-sm text-red-700 dark:text-red-300 mt-1">
+                  You must provide proof of liability insurance before you can accept any jobs on the platform.
+                </p>
+              </div>
+            </div>
+            <div className="shrink-0 relative">
+              <Input 
+                type="file" 
+                accept="image/*,.pdf" 
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" 
+                onChange={handleInsuranceUpload}
+                disabled={isUploading}
+              />
+              <Button variant="destructive" disabled={isUploading}>
+                {isUploading ? 'Uploading...' : (
+                  <>
+                    <UploadCloud className="h-4 w-4 mr-2" />
+                    Upload PDF / Image
+                  </>
+                )}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* ── Stats Row ── */}
       {stats && (
@@ -301,11 +405,11 @@ export default function ContractorDashboard() {
 
                   <div className="flex gap-2 pt-1">
                     <Button 
-                      className="flex-1 h-12 bg-green-600 hover:bg-green-700 text-white font-bold" 
-                      disabled={respondingId === offer.id}
+                      className="flex-1 h-12 bg-green-600 hover:bg-green-700 text-white font-bold disabled:bg-slate-300" 
+                      disabled={respondingId === offer.id || !hasInsurance}
                       onClick={() => handleOfferResponse(offer.id, 'accept')}
                     >
-                      {respondingId === offer.id ? 'Accepting...' : 'Accept Job'}
+                      {!hasInsurance ? 'Insurance Required' : respondingId === offer.id ? 'Accepting...' : 'Accept Job'}
                     </Button>
                     <Button 
                       variant="outline" 

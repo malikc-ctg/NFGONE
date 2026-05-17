@@ -95,10 +95,7 @@ export default function OnboardingPage() {
       return;
     }
 
-    if (!insurance.provider || !insurance.policy_number) {
-      toast.error('Insurance provider and policy number are required');
-      return;
-    }
+    // Insurance is optional during onboarding. They will be reminded on the dashboard.
 
     setSubmitting(true);
     try {
@@ -210,13 +207,12 @@ export default function OnboardingPage() {
 
             {/* Insurance */}
             <div className="p-6 border-b space-y-4">
-              <h2 className="text-sm font-bold uppercase tracking-wider text-slate-500">Insurance Details</h2>
-              <p className="text-sm text-muted-foreground">Please provide your liability insurance information.</p>
+              <h2 className="text-sm font-bold uppercase tracking-wider text-slate-500">Insurance Details (Optional)</h2>
+              <p className="text-sm text-muted-foreground">You can provide your liability insurance information now or later.</p>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="md:col-span-2">
-                  <Label>Insurance Provider <span className="text-red-500">*</span></Label>
+                  <Label>Insurance Provider</Label>
                   <Input 
-                    required 
                     placeholder="e.g. Intact Insurance" 
                     value={insurance.provider}
                     onChange={e => setInsurance({...insurance, provider: e.target.value})}
@@ -231,9 +227,8 @@ export default function OnboardingPage() {
                   />
                 </div>
                 <div className="md:col-span-3">
-                  <Label>Policy Number <span className="text-red-500">*</span></Label>
+                  <Label>Policy Number</Label>
                   <Input 
-                    required 
                     placeholder="e.g. POL-123456789" 
                     value={insurance.policy_number}
                     onChange={e => setInsurance({...insurance, policy_number: e.target.value})}
