@@ -37,11 +37,13 @@ export default function OnboardingPage() {
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session?.user) {
         // Now that we have a session, fetch their contractor profile
-        const { data: contractorData } = await supabase
+        const { data: contractorData, error } = await supabase
           .from('contractors')
-          .select(`*, zone:zones(*)`)
+          .select(`*, zone:zones!contractors_zone_id_fkey(*)`)
           .eq('profile_id', session.user.id)
           .single();
+          
+        if (error) console.error("Error fetching contractor:", error);
 
         if (contractorData) {
           if (contractorData.status === 'active') {
