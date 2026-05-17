@@ -8,7 +8,7 @@ import { StatusBadge } from '@/components/shared/StatusBadge';
 import {
   MapPin, Briefcase, DollarSign, Star, TrendingUp,
   Clock, CheckCircle2, ArrowRight, CalendarDays,
-  Sparkles, Bath, BedDouble, ChevronRight,
+  Sparkles, Bath, BedDouble, ChevronRight, Timer, Package, Key, Info, Home
 } from 'lucide-react';
 import { SERVICE_TYPE_LABELS, TIME_WINDOW_LABELS } from '@/types';
 import type { Job, JobOffer, Contractor } from '@/types';
@@ -237,6 +237,23 @@ export default function ContractorDashboard() {
                       <p className="text-[10px] text-muted-foreground uppercase font-bold">Window</p>
                       <p className="text-sm font-medium">{offer.job ? TIME_WINDOW_LABELS[offer.job.scheduled_window] : '—'}</p>
                     </div>
+                    {offer.job && offer.job.estimated_duration_minutes && (
+                      <>
+                        <div className="space-y-1">
+                          <p className="text-[10px] text-muted-foreground uppercase font-bold">Est. Duration</p>
+                          <p className="text-sm font-medium flex items-center gap-1">
+                            <Timer className="h-3 w-3 text-muted-foreground" />
+                            {Math.floor(offer.job.estimated_duration_minutes / 60)}h {offer.job.estimated_duration_minutes % 60}m
+                          </p>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-[10px] text-muted-foreground uppercase font-bold">Implied Rate</p>
+                          <p className="text-sm font-medium text-green-600 dark:text-green-400">
+                            ${((offer.job.quoted_price * 0.7) / (offer.job.estimated_duration_minutes / 60)).toFixed(2)} / hr
+                          </p>
+                        </div>
+                      </>
+                    )}
                   </div>
 
                   {/* Checklist Preview */}
@@ -255,22 +272,30 @@ export default function ContractorDashboard() {
                     </div>
                   )}
 
-                  {/* Home details */}
-                  {offer.job && (offer.job.home_bedrooms || offer.job.home_bathrooms) && (
-                    <div className="flex gap-4 text-xs text-muted-foreground">
-                      {offer.job.home_bedrooms != null && (
-                        <span className="flex items-center gap-1">
-                          <BedDouble className="h-3 w-3" /> {offer.job.home_bedrooms} Bed{offer.job.home_bedrooms > 1 ? 's' : ''}
-                        </span>
-                      )}
-                      {offer.job.home_bathrooms != null && (
-                        <span className="flex items-center gap-1">
-                          <Bath className="h-3 w-3" /> {offer.job.home_bathrooms} Bath{offer.job.home_bathrooms > 1 ? 's' : ''}
-                        </span>
-                      )}
-                      {offer.job.has_pets && (
-                        <span className="flex items-center gap-1">🐾 Pets</span>
-                      )}
+                  {/* Home details & Supplies */}
+                  {offer.job && (
+                    <div className="space-y-2">
+                      <div className="flex gap-4 text-xs text-muted-foreground">
+                        {offer.job.home_bedrooms != null && (
+                          <span className="flex items-center gap-1">
+                            <BedDouble className="h-3 w-3" /> {offer.job.home_bedrooms} Bed{offer.job.home_bedrooms > 1 ? 's' : ''}
+                          </span>
+                        )}
+                        {offer.job.home_bathrooms != null && (
+                          <span className="flex items-center gap-1">
+                            <Bath className="h-3 w-3" /> {offer.job.home_bathrooms} Bath{offer.job.home_bathrooms > 1 ? 's' : ''}
+                          </span>
+                        )}
+                        {offer.job.has_pets && (
+                          <span className="flex items-center gap-1">🐾 Pets</span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="text-[10px] bg-blue-50/50 dark:bg-blue-900/20 flex items-center gap-1">
+                          <Package className="h-3 w-3 text-blue-600 dark:text-blue-400" />
+                          {offer.job.service_type.includes('deep') || offer.job.service_type.includes('move') ? 'Heavy-Duty Supplies Required' : 'Standard Supplies Required'}
+                        </Badge>
+                      </div>
                     </div>
                   )}
 
@@ -357,17 +382,47 @@ export default function ContractorDashboard() {
                     </div>
 
                     {/* Checklist/Scope Preview */}
-                    <div className="bg-muted/40 rounded-lg p-2.5">
-                      <p className="text-[10px] text-muted-foreground uppercase font-bold mb-1.5 flex items-center gap-1">
+                    <div className="bg-muted/40 rounded-lg p-2.5 space-y-2">
+                      <p className="text-[10px] text-muted-foreground uppercase font-bold flex items-center gap-1">
                         <CheckCircle2 className="h-3 w-3" /> What To Clean
                       </p>
                       <div className="flex flex-wrap gap-1.5">
                         {scope.map((item, i) => (
-                          <span key={i} className="text-[10px] bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200 px-2 py-0.5 rounded-full font-medium">
+                          <span key={i} className="text-[10px] bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200 px-2 py-0.5 rounded-full font-medium flex items-center gap-1">
                             {item}
                           </span>
                         ))}
                       </div>
+                      
+                      <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border/50">
+                        {job.estimated_duration_minutes && (
+                          <div className="flex items-center gap-1 text-[10px] text-muted-foreground font-medium">
+                            <Timer className="h-3 w-3" /> 
+                            {Math.floor(job.estimated_duration_minutes / 60)}h {job.estimated_duration_minutes % 60}m
+                          </div>
+                        )}
+                        <div className="flex items-center gap-1 text-[10px] text-muted-foreground font-medium">
+                          <Package className="h-3 w-3" /> 
+                          {job.service_type.includes('deep') || job.service_type.includes('move') ? 'Heavy-Duty Kit' : 'Standard Kit'}
+                        </div>
+                      </div>
+
+                      {(job.access_instructions || job.scope_notes) && (
+                        <div className="pt-2 border-t border-border/50 space-y-1">
+                           {job.access_instructions && (
+                             <div className="flex items-start gap-1.5 text-xs text-muted-foreground">
+                               <Key className="h-3 w-3 mt-0.5 shrink-0" />
+                               <span className="line-clamp-1">{job.access_instructions}</span>
+                             </div>
+                           )}
+                           {job.scope_notes && (
+                             <div className="flex items-start gap-1.5 text-xs text-muted-foreground">
+                               <Info className="h-3 w-3 mt-0.5 shrink-0" />
+                               <span className="line-clamp-1">{job.scope_notes}</span>
+                             </div>
+                           )}
+                        </div>
+                      )}
                     </div>
 
                     {/* Active job CTA */}

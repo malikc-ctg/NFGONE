@@ -63,6 +63,8 @@ export type NotificationType =
   | 'job_offer' | 'booking_confirmed' | 'reminder'
   | 'review_request' | 'cleaner_on_way' | 'job_complete';
 
+export type ExpenseCategory = 'supplies' | 'gas' | 'insurance' | 'maintenance' | 'other';
+
 // ---------- Human-readable display maps ----------
 
 export const SERVICE_TYPE_LABELS: Record<ServiceType, string> = {
@@ -454,6 +456,18 @@ export interface ContractorScoreHistory {
   reason: string | null;
   triggered_by: string | null;
   created_at: string;
+}
+
+export interface ContractorExpense {
+  id: string;
+  contractor_id: string;
+  expense_date: string;
+  category: ExpenseCategory;
+  amount: number;
+  description: string | null;
+  receipt_url: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 // ---------- Minimum photo requirements ----------
