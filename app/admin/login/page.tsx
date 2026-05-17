@@ -55,6 +55,7 @@ function AdminLoginContent() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="h-12"
+                autoComplete="email"
                 required
               />
             </div>
@@ -66,6 +67,7 @@ function AdminLoginContent() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="h-12"
+                autoComplete="current-password"
                 required
               />
             </div>

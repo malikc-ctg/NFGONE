@@ -21,6 +21,9 @@ export const metadata: Metadata = {
     statusBarStyle: 'black-translucent',
     title: 'Sea of Blue',
   },
+  other: {
+    'mobile-web-app-capable': 'yes',
+  },
 };
 
 export default function RootLayout({
