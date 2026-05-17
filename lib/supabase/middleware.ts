@@ -5,16 +5,17 @@ export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  // Support both key env var names for compatibility
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-  if (!supabaseUrl || !supabaseAnonKey) {
+  if (!supabaseUrl || !supabaseKey) {
     console.error('Middleware: Missing Supabase environment variables');
     return supabaseResponse;
   }
 
   const supabase = createServerClient(
     supabaseUrl,
-    supabaseAnonKey,
+    supabaseKey,
     {
       cookies: {
         getAll() {
@@ -33,6 +34,10 @@ export async function updateSession(request: NextRequest) {
     }
   );
 
+  // IMPORTANT: Do not run code between createServerClient and
+  // supabase.auth.getUser(). A simple mistake could make it very hard to debug
+  // issues with users being randomly logged out.
+
   let user = null;
   try {
     const { data } = await supabase.auth.getUser();
@@ -49,14 +54,15 @@ export async function updateSession(request: NextRequest) {
     '/admin/login',
     '/api/webhooks',
     '/tracking',
+    '/',
   ];
 
   const isPublicRoute = publicRoutes.some((route) =>
-    pathname.startsWith(route)
+    pathname === route || (route !== '/' && pathname.startsWith(route))
   );
 
   // API routes handle their own auth
-  if (pathname.startsWith('/api/') && !pathname.startsWith('/api/webhooks')) {
+  if (pathname.startsWith('/api/')) {
     return supabaseResponse;
   }
 
@@ -67,9 +73,15 @@ export async function updateSession(request: NextRequest) {
 
   // Redirect unauthenticated users
   if (!user) {
-    if (pathname.startsWith('/admin') && pathname !== '/admin/login') {
+    if (pathname.startsWith('/admin')) {
       const url = request.nextUrl.clone();
       url.pathname = '/admin/login';
+      url.searchParams.set('redirect', pathname);
+      return NextResponse.redirect(url);
+    }
+    if (pathname.startsWith('/contractor')) {
+      const url = request.nextUrl.clone();
+      url.pathname = '/contractor/login';
       url.searchParams.set('redirect', pathname);
       return NextResponse.redirect(url);
     }
@@ -79,13 +91,6 @@ export async function updateSession(request: NextRequest) {
       url.searchParams.set('redirect', pathname);
       return NextResponse.redirect(url);
     }
-    if (pathname.startsWith('/contractor') && pathname !== '/contractor/login') {
-      const url = request.nextUrl.clone();
-      url.pathname = '/contractor/login';
-      return NextResponse.redirect(url);
-    }
-    // Booking pages use magic link - let them through for now
-    // The page component will handle showing login state
   }
 
   // Role-based access control for authenticated users
@@ -117,9 +122,15 @@ export async function updateSession(request: NextRequest) {
         return NextResponse.redirect(url);
       }
     } catch {
-      // If profile lookup fails, allow through — API routes have their own auth
+      // If profile lookup fails, allow through
     }
   }
 
+  // IMPORTANT: You *must* return the supabaseResponse object as it is.
+  // If you're creating a new response object with NextResponse.next() make sure to:
+  // 1. Pass the request in it
+  // 2. Copy over the cookies
+  // If this is not done, you may be causing the browser and server to go out
+  // of sync and terminate the user's session prematurely!
   return supabaseResponse;
 }

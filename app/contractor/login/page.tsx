@@ -44,6 +44,12 @@ function ContractorLoginContent() {
           </div>
           <CardTitle className="text-xl">Sea of Blue</CardTitle>
           <p className="text-sm text-muted-foreground">Contractor login</p>
+          {searchParams.get('error') && (
+            <div className="p-3 text-sm bg-red-100 text-red-700 rounded-md">
+              Error: {searchParams.get('error')} 
+              {searchParams.get('role') && ` (Role: ${searchParams.get('role')})`}
+            </div>
+          )}
         </CardHeader>
         <CardContent>
           <form onSubmit={handleLogin} className="space-y-4">
