@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS contractor_expenses (
 ALTER TABLE contractor_expenses ENABLE ROW LEVEL SECURITY;
 
 -- Policy: Contractors can SELECT their own expenses
+DROP POLICY IF EXISTS "contractors_select_own_expenses" ON contractor_expenses;
 CREATE POLICY "contractors_select_own_expenses" ON contractor_expenses
   FOR SELECT
   USING (
@@ -26,6 +27,7 @@ CREATE POLICY "contractors_select_own_expenses" ON contractor_expenses
   );
 
 -- Policy: Contractors can INSERT their own expenses
+DROP POLICY IF EXISTS "contractors_insert_own_expenses" ON contractor_expenses;
 CREATE POLICY "contractors_insert_own_expenses" ON contractor_expenses
   FOR INSERT
   WITH CHECK (
@@ -35,6 +37,7 @@ CREATE POLICY "contractors_insert_own_expenses" ON contractor_expenses
   );
 
 -- Policy: Contractors can UPDATE their own expenses
+DROP POLICY IF EXISTS "contractors_update_own_expenses" ON contractor_expenses;
 CREATE POLICY "contractors_update_own_expenses" ON contractor_expenses
   FOR UPDATE
   USING (
@@ -44,6 +47,7 @@ CREATE POLICY "contractors_update_own_expenses" ON contractor_expenses
   );
 
 -- Policy: Contractors can DELETE their own expenses
+DROP POLICY IF EXISTS "contractors_delete_own_expenses" ON contractor_expenses;
 CREATE POLICY "contractors_delete_own_expenses" ON contractor_expenses
   FOR DELETE
   USING (
@@ -53,6 +57,7 @@ CREATE POLICY "contractors_delete_own_expenses" ON contractor_expenses
   );
 
 -- Policy: Admins can do everything
+DROP POLICY IF EXISTS "admins_full_access_expenses" ON contractor_expenses;
 CREATE POLICY "admins_full_access_expenses" ON contractor_expenses
   FOR ALL
   USING (
