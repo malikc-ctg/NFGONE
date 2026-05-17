@@ -41,12 +41,17 @@ export async function POST(request: Request) {
 
     const authUserId = inviteData.user.id;
 
-    // 3. The handle_new_user trigger just created a profile with 'customer' role.
-    // Let's update it to 'contractor' and update the name/phone.
+    // 3. The handle_new_user trigger SHOULD have created a profile, but if generateLink 
+    // bypasses the trigger, we upsert manually to ensure the profile row exists.
     const { error: profileError } = await supabase
       .from('profiles')
-      .update({ role: 'contractor', full_name, phone })
-      .eq('id', authUserId);
+      .upsert({ 
+        id: authUserId, 
+        email: email,
+        role: 'contractor', 
+        full_name, 
+        phone 
+      }, { onConflict: 'id' });
 
     if (profileError) {
       throw new Error(`Failed to update profile role: ${profileError.message}`);
