@@ -31,7 +31,8 @@ export async function POST(request: Request) {
       type: 'invite',
       email: email,
       options: {
-        data: { full_name, phone }
+        data: { full_name, phone },
+        redirectTo: `${process.env.NEXT_PUBLIC_APP_URL || 'https://www.nfgone.ca'}/contractor/onboarding`
       }
     });
 
