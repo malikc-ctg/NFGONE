@@ -57,6 +57,9 @@ export async function POST(request: Request) {
       .from('contractors')
       .insert({
         profile_id: authUserId,
+        full_name,
+        email,
+        phone,
         zone_id: zone_id || null,
         status: 'invited',
         tier: tier || 'basic',
