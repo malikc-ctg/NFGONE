@@ -3,8 +3,12 @@ import { createServiceClient } from '@/lib/supabase/server';
 import { Resend } from 'resend';
 
 export async function POST(request: Request) {
-  const resend = new Resend(process.env.RESEND_API_KEY);
   try {
+    if (!process.env.RESEND_API_KEY) {
+      throw new Error('RESEND_API_KEY is not set in the environment variables');
+    }
+    const resend = new Resend(process.env.RESEND_API_KEY);
+
     const body = await request.json();
     const { full_name, email, phone, zone_id, tier, payout_rate, brings_own_supplies, has_vehicle, max_jobs_per_day } = body;
 
