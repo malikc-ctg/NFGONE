@@ -33,7 +33,7 @@ DO $$ BEGIN CREATE TYPE recurring_frequency AS ENUM ('weekly','biweekly','monthl
 -- CORE TABLES
 -- ============================================================
 
-CREATE TABLE IF NOT EXISTS IF NOT EXISTS profiles (
+CREATE TABLE IF NOT EXISTS profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   role user_role NOT NULL DEFAULT 'customer',
   full_name TEXT NOT NULL,
