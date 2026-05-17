@@ -16,8 +16,8 @@ CREATE TABLE IF NOT EXISTS zone_staff (
   UNIQUE(zone_id, profile_id)
 );
 
-CREATE INDEX idx_zone_staff_zone ON zone_staff(zone_id);
-CREATE INDEX idx_zone_staff_profile ON zone_staff(profile_id);
+CREATE INDEX IF NOT EXISTS idx_zone_staff_zone ON zone_staff(zone_id);
+CREATE INDEX IF NOT EXISTS idx_zone_staff_profile ON zone_staff(profile_id);
 
 -- ============================================================
 -- SECTION 2: CONTRACTOR TEAMS
@@ -45,8 +45,8 @@ CREATE TABLE IF NOT EXISTS contractor_team_members (
   UNIQUE(team_id, contractor_id)
 );
 
-CREATE INDEX idx_contractor_teams_zone ON contractor_teams(zone_id);
-CREATE INDEX idx_contractor_team_members_team ON contractor_team_members(team_id);
+CREATE INDEX IF NOT EXISTS idx_contractor_teams_zone ON contractor_teams(zone_id);
+CREATE INDEX IF NOT EXISTS idx_contractor_team_members_team ON contractor_team_members(team_id);
 
 -- Jobs can be assigned to a team in addition to a solo contractor
 ALTER TABLE jobs ADD COLUMN IF NOT EXISTS assigned_team_id UUID REFERENCES contractor_teams(id);
@@ -105,9 +105,9 @@ CREATE TABLE IF NOT EXISTS supply_restock_orders (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX idx_supply_inventory_item ON supply_inventory(item_id);
-CREATE INDEX idx_supply_assignments_job ON supply_assignments(job_id);
-CREATE INDEX idx_supply_assignments_contractor ON supply_assignments(contractor_id);
+CREATE INDEX IF NOT EXISTS idx_supply_inventory_item ON supply_inventory(item_id);
+CREATE INDEX IF NOT EXISTS idx_supply_assignments_job ON supply_assignments(job_id);
+CREATE INDEX IF NOT EXISTS idx_supply_assignments_contractor ON supply_assignments(contractor_id);
 
 -- ============================================================
 -- SECTION 4: DISPUTES
@@ -142,9 +142,9 @@ CREATE TABLE IF NOT EXISTS dispute_messages (
   sent_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX idx_disputes_job ON disputes(job_id);
-CREATE INDEX idx_disputes_status ON disputes(status);
-CREATE INDEX idx_dispute_messages_dispute ON dispute_messages(dispute_id);
+CREATE INDEX IF NOT EXISTS idx_disputes_job ON disputes(job_id);
+CREATE INDEX IF NOT EXISTS idx_disputes_status ON disputes(status);
+CREATE INDEX IF NOT EXISTS idx_dispute_messages_dispute ON dispute_messages(dispute_id);
 
 -- ============================================================
 -- SECTION 5: PARTNERS (Realtors & Property Managers)
@@ -194,10 +194,10 @@ CREATE TABLE IF NOT EXISTS partner_invoices (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX idx_partners_zone ON partners(zone_id);
-CREATE INDEX idx_partner_bookings_partner ON partner_bookings(partner_id);
-CREATE INDEX idx_partner_invoices_partner ON partner_invoices(partner_id);
-CREATE INDEX idx_partner_invoices_status ON partner_invoices(status);
+CREATE INDEX IF NOT EXISTS idx_partners_zone ON partners(zone_id);
+CREATE INDEX IF NOT EXISTS idx_partner_bookings_partner ON partner_bookings(partner_id);
+CREATE INDEX IF NOT EXISTS idx_partner_invoices_partner ON partner_invoices(partner_id);
+CREATE INDEX IF NOT EXISTS idx_partner_invoices_status ON partner_invoices(status);
 
 -- ============================================================
 -- SECTION 6: CUSTOMER REFERRALS
@@ -221,8 +221,8 @@ ALTER TABLE customers ADD COLUMN IF NOT EXISTS referral_code TEXT UNIQUE;
 ALTER TABLE customers ADD COLUMN IF NOT EXISTS credit_balance NUMERIC(8,2) DEFAULT 0;
 ALTER TABLE customers ADD COLUMN IF NOT EXISTS customer_score NUMERIC(3,2) DEFAULT 5.00;
 
-CREATE INDEX idx_customer_referrals_referrer ON customer_referrals(referrer_customer_id);
-CREATE INDEX idx_customer_referrals_code ON customer_referrals(referral_code);
+CREATE INDEX IF NOT EXISTS idx_customer_referrals_referrer ON customer_referrals(referrer_customer_id);
+CREATE INDEX IF NOT EXISTS idx_customer_referrals_code ON customer_referrals(referral_code);
 
 -- ============================================================
 -- SECTION 7: BOOKING SESSIONS (Abandoned Booking Tracking)
@@ -245,8 +245,8 @@ CREATE TABLE IF NOT EXISTS booking_sessions (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX idx_booking_sessions_email ON booking_sessions(email);
-CREATE INDEX idx_booking_sessions_recovered ON booking_sessions(recovered);
+CREATE INDEX IF NOT EXISTS idx_booking_sessions_email ON booking_sessions(email);
+CREATE INDEX IF NOT EXISTS idx_booking_sessions_recovered ON booking_sessions(recovered);
 
 -- ============================================================
 -- SECTION 8: DYNAMIC PRICING CONFIG
@@ -317,10 +317,12 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_zone_monthly_pnl_zone_month
 -- zone_staff
 ALTER TABLE zone_staff ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "zone_staff_admin" ON zone_staff;
 CREATE POLICY "zone_staff_admin" ON zone_staff FOR ALL USING (
   EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
 );
 
+DROP POLICY IF EXISTS "zone_staff_own_read" ON zone_staff;
 CREATE POLICY "zone_staff_own_read" ON zone_staff FOR SELECT USING (
   profile_id = auth.uid()
 );
@@ -332,11 +334,13 @@ RETURNS SETOF UUID AS $$
 $$ LANGUAGE SQL SECURITY DEFINER STABLE;
 
 -- Zone-scoped jobs policy for zone managers
+DROP POLICY IF EXISTS "jobs_zone_manager" ON jobs;
 CREATE POLICY "jobs_zone_manager" ON jobs FOR SELECT USING (
   EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'zone_manager')
   AND zone_id IN (SELECT get_managed_zone_ids())
 );
 
+DROP POLICY IF EXISTS "jobs_zone_manager_update" ON jobs;
 CREATE POLICY "jobs_zone_manager_update" ON jobs FOR UPDATE USING (
   EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'zone_manager')
   AND zone_id IN (SELECT get_managed_zone_ids())
@@ -345,10 +349,12 @@ CREATE POLICY "jobs_zone_manager_update" ON jobs FOR UPDATE USING (
 -- contractor_teams
 ALTER TABLE contractor_teams ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "contractor_teams_admin" ON contractor_teams;
 CREATE POLICY "contractor_teams_admin" ON contractor_teams FOR ALL USING (
   EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
 );
 
+DROP POLICY IF EXISTS "contractor_teams_zone_manager" ON contractor_teams;
 CREATE POLICY "contractor_teams_zone_manager" ON contractor_teams FOR SELECT USING (
   EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'zone_manager')
   AND zone_id IN (SELECT get_managed_zone_ids())
@@ -357,6 +363,7 @@ CREATE POLICY "contractor_teams_zone_manager" ON contractor_teams FOR SELECT USI
 -- contractor_team_members
 ALTER TABLE contractor_team_members ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "contractor_team_members_admin" ON contractor_team_members;
 CREATE POLICY "contractor_team_members_admin" ON contractor_team_members FOR ALL USING (
   EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
 );
@@ -364,19 +371,23 @@ CREATE POLICY "contractor_team_members_admin" ON contractor_team_members FOR ALL
 -- supply_items
 ALTER TABLE supply_items ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "supply_items_admin" ON supply_items;
 CREATE POLICY "supply_items_admin" ON supply_items FOR ALL USING (
   EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role IN ('admin', 'zone_manager'))
 );
 
+DROP POLICY IF EXISTS "supply_items_read" ON supply_items;
 CREATE POLICY "supply_items_read" ON supply_items FOR SELECT USING (is_active = TRUE);
 
 -- supply_inventory
 ALTER TABLE supply_inventory ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "supply_inventory_admin" ON supply_inventory;
 CREATE POLICY "supply_inventory_admin" ON supply_inventory FOR ALL USING (
   EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
 );
 
+DROP POLICY IF EXISTS "supply_inventory_zone_manager" ON supply_inventory;
 CREATE POLICY "supply_inventory_zone_manager" ON supply_inventory FOR SELECT USING (
   EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'zone_manager')
   AND zone_id IN (SELECT get_managed_zone_ids())
@@ -385,10 +396,12 @@ CREATE POLICY "supply_inventory_zone_manager" ON supply_inventory FOR SELECT USI
 -- supply_assignments
 ALTER TABLE supply_assignments ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "supply_assignments_admin" ON supply_assignments;
 CREATE POLICY "supply_assignments_admin" ON supply_assignments FOR ALL USING (
   EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
 );
 
+DROP POLICY IF EXISTS "supply_assignments_contractor" ON supply_assignments;
 CREATE POLICY "supply_assignments_contractor" ON supply_assignments FOR SELECT USING (
   contractor_id IN (SELECT id FROM contractors WHERE profile_id = auth.uid())
 );
@@ -396,6 +409,7 @@ CREATE POLICY "supply_assignments_contractor" ON supply_assignments FOR SELECT U
 -- supply_restock_orders
 ALTER TABLE supply_restock_orders ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "supply_restock_admin" ON supply_restock_orders;
 CREATE POLICY "supply_restock_admin" ON supply_restock_orders FOR ALL USING (
   EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role IN ('admin', 'zone_manager'))
 );
@@ -403,19 +417,23 @@ CREATE POLICY "supply_restock_admin" ON supply_restock_orders FOR ALL USING (
 -- disputes
 ALTER TABLE disputes ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "disputes_admin" ON disputes;
 CREATE POLICY "disputes_admin" ON disputes FOR ALL USING (
   EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
 );
 
+DROP POLICY IF EXISTS "disputes_zone_manager" ON disputes;
 CREATE POLICY "disputes_zone_manager" ON disputes FOR SELECT USING (
   EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'zone_manager')
   AND job_id IN (SELECT id FROM jobs WHERE zone_id IN (SELECT get_managed_zone_ids()))
 );
 
+DROP POLICY IF EXISTS "disputes_customer_own" ON disputes;
 CREATE POLICY "disputes_customer_own" ON disputes FOR SELECT USING (
   customer_id IN (SELECT id FROM customers WHERE profile_id = auth.uid())
 );
 
+DROP POLICY IF EXISTS "disputes_customer_insert" ON disputes;
 CREATE POLICY "disputes_customer_insert" ON disputes FOR INSERT WITH CHECK (
   customer_id IN (SELECT id FROM customers WHERE profile_id = auth.uid())
 );
@@ -423,11 +441,13 @@ CREATE POLICY "disputes_customer_insert" ON disputes FOR INSERT WITH CHECK (
 -- dispute_messages: CRITICAL — separate thread visibility
 ALTER TABLE dispute_messages ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "dispute_messages_admin" ON dispute_messages;
 CREATE POLICY "dispute_messages_admin" ON dispute_messages FOR ALL USING (
   EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
 );
 
 -- Customer sees only customer and admin messages (never contractor side)
+DROP POLICY IF EXISTS "dispute_messages_customer_read" ON dispute_messages;
 CREATE POLICY "dispute_messages_customer_read" ON dispute_messages FOR SELECT USING (
   sender_role IN ('customer', 'admin')
   AND dispute_id IN (
@@ -437,6 +457,7 @@ CREATE POLICY "dispute_messages_customer_read" ON dispute_messages FOR SELECT US
 );
 
 -- Contractor sees only contractor and admin messages (never customer side)
+DROP POLICY IF EXISTS "dispute_messages_contractor_read" ON dispute_messages;
 CREATE POLICY "dispute_messages_contractor_read" ON dispute_messages FOR SELECT USING (
   sender_role IN ('contractor', 'admin')
   AND dispute_id IN (
@@ -445,6 +466,7 @@ CREATE POLICY "dispute_messages_contractor_read" ON dispute_messages FOR SELECT 
   )
 );
 
+DROP POLICY IF EXISTS "dispute_messages_insert" ON dispute_messages;
 CREATE POLICY "dispute_messages_insert" ON dispute_messages FOR INSERT WITH CHECK (
   EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid())
 );
@@ -452,14 +474,17 @@ CREATE POLICY "dispute_messages_insert" ON dispute_messages FOR INSERT WITH CHEC
 -- partners
 ALTER TABLE partners ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "partners_admin" ON partners;
 CREATE POLICY "partners_admin" ON partners FOR ALL USING (
   EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
 );
 
+DROP POLICY IF EXISTS "partners_own" ON partners;
 CREATE POLICY "partners_own" ON partners FOR SELECT USING (
   profile_id = auth.uid()
 );
 
+DROP POLICY IF EXISTS "partners_own_update" ON partners;
 CREATE POLICY "partners_own_update" ON partners FOR UPDATE USING (
   profile_id = auth.uid()
 );
@@ -467,10 +492,12 @@ CREATE POLICY "partners_own_update" ON partners FOR UPDATE USING (
 -- partner_bookings
 ALTER TABLE partner_bookings ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "partner_bookings_admin" ON partner_bookings;
 CREATE POLICY "partner_bookings_admin" ON partner_bookings FOR ALL USING (
   EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
 );
 
+DROP POLICY IF EXISTS "partner_bookings_own" ON partner_bookings;
 CREATE POLICY "partner_bookings_own" ON partner_bookings FOR ALL USING (
   partner_id IN (SELECT id FROM partners WHERE profile_id = auth.uid())
 );
@@ -478,10 +505,12 @@ CREATE POLICY "partner_bookings_own" ON partner_bookings FOR ALL USING (
 -- partner_invoices
 ALTER TABLE partner_invoices ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "partner_invoices_admin" ON partner_invoices;
 CREATE POLICY "partner_invoices_admin" ON partner_invoices FOR ALL USING (
   EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
 );
 
+DROP POLICY IF EXISTS "partner_invoices_own" ON partner_invoices;
 CREATE POLICY "partner_invoices_own" ON partner_invoices FOR SELECT USING (
   partner_id IN (SELECT id FROM partners WHERE profile_id = auth.uid())
 );
@@ -489,10 +518,12 @@ CREATE POLICY "partner_invoices_own" ON partner_invoices FOR SELECT USING (
 -- customer_referrals
 ALTER TABLE customer_referrals ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "referrals_admin" ON customer_referrals;
 CREATE POLICY "referrals_admin" ON customer_referrals FOR ALL USING (
   EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
 );
 
+DROP POLICY IF EXISTS "referrals_own" ON customer_referrals;
 CREATE POLICY "referrals_own" ON customer_referrals FOR SELECT USING (
   referrer_customer_id IN (SELECT id FROM customers WHERE profile_id = auth.uid())
   OR referred_customer_id IN (SELECT id FROM customers WHERE profile_id = auth.uid())
@@ -501,25 +532,30 @@ CREATE POLICY "referrals_own" ON customer_referrals FOR SELECT USING (
 -- booking_sessions
 ALTER TABLE booking_sessions ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "booking_sessions_admin" ON booking_sessions;
 CREATE POLICY "booking_sessions_admin" ON booking_sessions FOR ALL USING (
   EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
 );
 
+DROP POLICY IF EXISTS "booking_sessions_service_only" ON booking_sessions;
 CREATE POLICY "booking_sessions_service_only" ON booking_sessions FOR INSERT WITH CHECK (true);
+DROP POLICY IF EXISTS "booking_sessions_update" ON booking_sessions;
 CREATE POLICY "booking_sessions_update" ON booking_sessions FOR UPDATE USING (true);
 
 -- dynamic_pricing_config
 ALTER TABLE dynamic_pricing_config ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "pricing_config_admin" ON dynamic_pricing_config;
 CREATE POLICY "pricing_config_admin" ON dynamic_pricing_config FOR ALL USING (
   EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
 );
 
+DROP POLICY IF EXISTS "pricing_config_read" ON dynamic_pricing_config;
 CREATE POLICY "pricing_config_read" ON dynamic_pricing_config FOR SELECT USING (true);
 
 -- ============================================================
 -- SECTION 12: REALTIME
 -- ============================================================
 
-ALTER PUBLICATION supabase_realtime ADD TABLE disputes;
-ALTER PUBLICATION supabase_realtime ADD TABLE dispute_messages;
+DO $$ BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE disputes; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE dispute_messages; EXCEPTION WHEN duplicate_object THEN NULL; END $$;

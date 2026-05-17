@@ -16,14 +16,17 @@ CREATE TABLE IF NOT EXISTS contractor_zones (
 ALTER TABLE contractor_zones ENABLE ROW LEVEL SECURITY;
 
 -- Policies for contractor_zones
+DROP POLICY IF EXISTS "Contractors can view their own zone selections" ON contractor_zones;
 CREATE POLICY "Contractors can view their own zone selections"
     ON contractor_zones FOR SELECT
     USING (auth.uid() IN (SELECT profile_id FROM contractors WHERE id = contractor_id));
 
+DROP POLICY IF EXISTS "Contractors can manage their own zone selections" ON contractor_zones;
 CREATE POLICY "Contractors can manage their own zone selections"
     ON contractor_zones FOR ALL
     USING (auth.uid() IN (SELECT profile_id FROM contractors WHERE id = contractor_id));
 
+DROP POLICY IF EXISTS "Admins have full access to contractor_zones" ON contractor_zones;
 CREATE POLICY "Admins have full access to contractor_zones"
     ON contractor_zones FOR ALL
     TO authenticated

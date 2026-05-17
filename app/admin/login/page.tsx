@@ -25,10 +25,10 @@ function AdminLoginContent() {
       const supabase = createClient();
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
-      router.refresh();
       const redirect = searchParams.get('redirect') ?? '/admin';
-      router.push(redirect);
+      window.location.href = redirect;
     } catch (err: unknown) {
+      console.error('Login error:', err);
       toast.error((err as Error).message ?? 'Login failed');
     } finally {
       setLoading(false);

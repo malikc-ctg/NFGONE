@@ -2,38 +2,38 @@
 -- Run this migration against your Supabase project
 
 -- ============================================================
--- ENUMS
+-- ENUMS (idempotent — safe to re-run)
 -- ============================================================
 
-CREATE TYPE user_role AS ENUM ('admin', 'contractor', 'customer');
+DO $$ BEGIN CREATE TYPE user_role AS ENUM ('admin', 'contractor', 'customer'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
-CREATE TYPE job_status AS ENUM (
+DO $$ BEGIN CREATE TYPE job_status AS ENUM (
   'lead_received','quoted','deposit_paid','confirmed',
   'offered','accepted','assigned','on_the_way',
   'in_progress','completed','reviewed','paid_out',
   'cancelled','rescheduled','no_show','disputed','refunded'
-);
+); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
-CREATE TYPE service_type AS ENUM (
+DO $$ BEGIN CREATE TYPE service_type AS ENUM (
   'standard_clean','deep_clean','move_in_clean','move_out_clean',
   'recurring_standard','recurring_deep'
-);
+); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
-CREATE TYPE time_window AS ENUM ('morning','afternoon','evening');
+DO $$ BEGIN CREATE TYPE time_window AS ENUM ('morning','afternoon','evening'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
-CREATE TYPE day_of_week AS ENUM (
+DO $$ BEGIN CREATE TYPE day_of_week AS ENUM (
   'monday','tuesday','wednesday','thursday','friday','saturday','sunday'
-);
+); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
-CREATE TYPE offer_status AS ENUM ('pending','accepted','declined','expired');
-CREATE TYPE payout_status AS ENUM ('pending','processing','completed','failed');
-CREATE TYPE recurring_frequency AS ENUM ('weekly','biweekly','monthly');
+DO $$ BEGIN CREATE TYPE offer_status AS ENUM ('pending','accepted','declined','expired'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN CREATE TYPE payout_status AS ENUM ('pending','processing','completed','failed'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN CREATE TYPE recurring_frequency AS ENUM ('weekly','biweekly','monthly'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- ============================================================
 -- CORE TABLES
 -- ============================================================
 
-CREATE TABLE profiles (
+CREATE TABLE IF NOT EXISTS IF NOT EXISTS profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   role user_role NOT NULL DEFAULT 'customer',
   full_name TEXT NOT NULL,
@@ -43,7 +43,7 @@ CREATE TABLE profiles (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE TABLE zones (
+CREATE TABLE IF NOT EXISTS zones (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
   city TEXT NOT NULL,
@@ -52,7 +52,7 @@ CREATE TABLE zones (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE TABLE customers (
+CREATE TABLE IF NOT EXISTS customers (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   profile_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
   full_name TEXT NOT NULL,
@@ -71,7 +71,7 @@ CREATE TABLE customers (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE TABLE contractors (
+CREATE TABLE IF NOT EXISTS contractors (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   profile_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
   full_name TEXT NOT NULL,
@@ -93,7 +93,7 @@ CREATE TABLE contractors (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE TABLE contractor_documents (
+CREATE TABLE IF NOT EXISTS contractor_documents (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   contractor_id UUID NOT NULL REFERENCES contractors(id) ON DELETE CASCADE,
   document_type TEXT NOT NULL,
@@ -104,7 +104,7 @@ CREATE TABLE contractor_documents (
   notes TEXT
 );
 
-CREATE TABLE contractor_availability (
+CREATE TABLE IF NOT EXISTS contractor_availability (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   contractor_id UUID NOT NULL REFERENCES contractors(id) ON DELETE CASCADE,
   day_of_week day_of_week NOT NULL,
@@ -113,7 +113,7 @@ CREATE TABLE contractor_availability (
   UNIQUE(contractor_id, day_of_week, time_window)
 );
 
-CREATE TABLE contractor_availability_overrides (
+CREATE TABLE IF NOT EXISTS contractor_availability_overrides (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   contractor_id UUID NOT NULL REFERENCES contractors(id) ON DELETE CASCADE,
   override_date DATE NOT NULL,
@@ -123,7 +123,7 @@ CREATE TABLE contractor_availability_overrides (
   UNIQUE(contractor_id, override_date, time_window)
 );
 
-CREATE TABLE leads (
+CREATE TABLE IF NOT EXISTS leads (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   source TEXT DEFAULT 'lsa',
   customer_name TEXT,
@@ -147,7 +147,7 @@ CREATE TABLE leads (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE TABLE jobs (
+CREATE TABLE IF NOT EXISTS jobs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   job_number TEXT UNIQUE NOT NULL,
   lead_id UUID REFERENCES leads(id),
@@ -188,7 +188,7 @@ CREATE TABLE jobs (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE TABLE job_offers (
+CREATE TABLE IF NOT EXISTS job_offers (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   job_id UUID NOT NULL REFERENCES jobs(id) ON DELETE CASCADE,
   contractor_id UUID NOT NULL REFERENCES contractors(id),
@@ -200,7 +200,7 @@ CREATE TABLE job_offers (
   UNIQUE(job_id, contractor_id)
 );
 
-CREATE TABLE job_photos (
+CREATE TABLE IF NOT EXISTS job_photos (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   job_id UUID NOT NULL REFERENCES jobs(id) ON DELETE CASCADE,
   contractor_id UUID NOT NULL REFERENCES contractors(id),
@@ -211,7 +211,7 @@ CREATE TABLE job_photos (
   uploaded_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE TABLE job_checklists (
+CREATE TABLE IF NOT EXISTS job_checklists (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   job_id UUID NOT NULL REFERENCES jobs(id) ON DELETE CASCADE,
   contractor_id UUID NOT NULL REFERENCES contractors(id),
@@ -221,7 +221,7 @@ CREATE TABLE job_checklists (
   reviewed_at TIMESTAMPTZ
 );
 
-CREATE TABLE payments (
+CREATE TABLE IF NOT EXISTS payments (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   job_id UUID NOT NULL REFERENCES jobs(id),
   customer_id UUID NOT NULL REFERENCES customers(id),
@@ -235,7 +235,7 @@ CREATE TABLE payments (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE TABLE contractor_payouts (
+CREATE TABLE IF NOT EXISTS contractor_payouts (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   job_id UUID NOT NULL REFERENCES jobs(id),
   contractor_id UUID NOT NULL REFERENCES contractors(id),
@@ -249,7 +249,7 @@ CREATE TABLE contractor_payouts (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE TABLE reviews (
+CREATE TABLE IF NOT EXISTS reviews (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   job_id UUID NOT NULL REFERENCES jobs(id) UNIQUE,
   customer_id UUID NOT NULL REFERENCES customers(id),
@@ -266,7 +266,7 @@ CREATE TABLE reviews (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE TABLE recurring_bookings (
+CREATE TABLE IF NOT EXISTS recurring_bookings (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   customer_id UUID NOT NULL REFERENCES customers(id),
   preferred_contractor_id UUID REFERENCES contractors(id),
@@ -288,7 +288,7 @@ CREATE TABLE recurring_bookings (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE TABLE notifications (
+CREATE TABLE IF NOT EXISTS notifications (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   recipient_id UUID REFERENCES profiles(id),
   recipient_phone TEXT,
@@ -302,7 +302,7 @@ CREATE TABLE notifications (
   error TEXT
 );
 
-CREATE TABLE contractor_score_history (
+CREATE TABLE IF NOT EXISTS contractor_score_history (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   contractor_id UUID NOT NULL REFERENCES contractors(id),
   score_before NUMERIC(3,2),
@@ -316,14 +316,14 @@ CREATE TABLE contractor_score_history (
 -- INDEXES
 -- ============================================================
 
-CREATE INDEX idx_jobs_customer_id ON jobs(customer_id);
-CREATE INDEX idx_jobs_assigned_contractor ON jobs(assigned_contractor_id);
-CREATE INDEX idx_jobs_status ON jobs(status);
-CREATE INDEX idx_jobs_scheduled_date ON jobs(scheduled_date);
-CREATE INDEX idx_job_offers_job_id ON job_offers(job_id);
-CREATE INDEX idx_job_offers_contractor_id ON job_offers(contractor_id);
-CREATE INDEX idx_payments_job_id ON payments(job_id);
-CREATE INDEX idx_reviews_contractor_id ON reviews(contractor_id);
+CREATE INDEX IF NOT EXISTS idx_jobs_customer_id ON jobs(customer_id);
+CREATE INDEX IF NOT EXISTS idx_jobs_assigned_contractor ON jobs(assigned_contractor_id);
+CREATE INDEX IF NOT EXISTS idx_jobs_status ON jobs(status);
+CREATE INDEX IF NOT EXISTS idx_jobs_scheduled_date ON jobs(scheduled_date);
+CREATE INDEX IF NOT EXISTS idx_job_offers_job_id ON job_offers(job_id);
+CREATE INDEX IF NOT EXISTS idx_job_offers_contractor_id ON job_offers(contractor_id);
+CREATE INDEX IF NOT EXISTS idx_payments_job_id ON payments(job_id);
+CREATE INDEX IF NOT EXISTS idx_reviews_contractor_id ON reviews(contractor_id);
 
 -- ============================================================
 -- JOB NUMBER GENERATOR
@@ -348,136 +348,206 @@ ALTER TABLE jobs ALTER COLUMN job_number SET DEFAULT generate_job_number();
 -- ============================================================
 
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "profiles_own" ON profiles;
 CREATE POLICY "profiles_own" ON profiles FOR ALL USING (auth.uid() = id);
+
+DROP POLICY IF EXISTS "profiles_admin" ON profiles;
 CREATE POLICY "profiles_admin" ON profiles FOR ALL USING (
   EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
 );
 
 ALTER TABLE zones ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "zones_read" ON zones;
 CREATE POLICY "zones_read" ON zones FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "zones_admin" ON zones;
 CREATE POLICY "zones_admin" ON zones FOR ALL USING (
   EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
 );
 
 ALTER TABLE customers ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "customers_admin" ON customers;
 CREATE POLICY "customers_admin" ON customers FOR ALL USING (
   EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
 );
+
+DROP POLICY IF EXISTS "customers_own" ON customers;
 CREATE POLICY "customers_own" ON customers FOR SELECT USING (
   profile_id = auth.uid()
 );
 
 ALTER TABLE contractors ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "contractors_admin" ON contractors;
 CREATE POLICY "contractors_admin" ON contractors FOR ALL USING (
   EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
 );
+
+DROP POLICY IF EXISTS "contractors_own" ON contractors;
 CREATE POLICY "contractors_own" ON contractors FOR SELECT USING (
   profile_id = auth.uid()
 );
 
 ALTER TABLE jobs ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "jobs_admin" ON jobs;
 CREATE POLICY "jobs_admin" ON jobs FOR ALL USING (
   EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
 );
+
+DROP POLICY IF EXISTS "jobs_contractor" ON jobs;
 CREATE POLICY "jobs_contractor" ON jobs FOR SELECT USING (
   assigned_contractor_id IN (SELECT id FROM contractors WHERE profile_id = auth.uid())
 );
+
+DROP POLICY IF EXISTS "jobs_customer" ON jobs;
 CREATE POLICY "jobs_customer" ON jobs FOR SELECT USING (
   customer_id IN (SELECT id FROM customers WHERE profile_id = auth.uid())
 );
 
 ALTER TABLE job_offers ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "offers_admin" ON job_offers;
 CREATE POLICY "offers_admin" ON job_offers FOR ALL USING (
   EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
 );
+
+DROP POLICY IF EXISTS "offers_contractor" ON job_offers;
 CREATE POLICY "offers_contractor" ON job_offers FOR ALL USING (
   contractor_id IN (SELECT id FROM contractors WHERE profile_id = auth.uid())
 );
 
 ALTER TABLE job_photos ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "photos_admin" ON job_photos;
 CREATE POLICY "photos_admin" ON job_photos FOR ALL USING (
   EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
 );
+
+DROP POLICY IF EXISTS "photos_contractor_insert" ON job_photos;
 CREATE POLICY "photos_contractor_insert" ON job_photos FOR INSERT WITH CHECK (
   contractor_id IN (SELECT id FROM contractors WHERE profile_id = auth.uid())
 );
+
+DROP POLICY IF EXISTS "photos_contractor_select" ON job_photos;
 CREATE POLICY "photos_contractor_select" ON job_photos FOR SELECT USING (
   contractor_id IN (SELECT id FROM contractors WHERE profile_id = auth.uid())
 );
 
 ALTER TABLE job_checklists ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "checklists_admin" ON job_checklists;
 CREATE POLICY "checklists_admin" ON job_checklists FOR ALL USING (
   EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
 );
+
+DROP POLICY IF EXISTS "checklists_contractor" ON job_checklists;
 CREATE POLICY "checklists_contractor" ON job_checklists FOR ALL USING (
   contractor_id IN (SELECT id FROM contractors WHERE profile_id = auth.uid())
 );
 
 ALTER TABLE payments ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "payments_admin" ON payments;
 CREATE POLICY "payments_admin" ON payments FOR ALL USING (
   EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
 );
 
 ALTER TABLE contractor_payouts ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "payouts_admin" ON contractor_payouts;
 CREATE POLICY "payouts_admin" ON contractor_payouts FOR ALL USING (
   EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
 );
+
+DROP POLICY IF EXISTS "payouts_contractor" ON contractor_payouts;
 CREATE POLICY "payouts_contractor" ON contractor_payouts FOR SELECT USING (
   contractor_id IN (SELECT id FROM contractors WHERE profile_id = auth.uid())
 );
 
 ALTER TABLE reviews ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "reviews_admin" ON reviews;
 CREATE POLICY "reviews_admin" ON reviews FOR ALL USING (
   EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
 );
+
+DROP POLICY IF EXISTS "reviews_customer_insert" ON reviews;
 CREATE POLICY "reviews_customer_insert" ON reviews FOR INSERT WITH CHECK (
   customer_id IN (SELECT id FROM customers WHERE profile_id = auth.uid())
 );
+
+DROP POLICY IF EXISTS "reviews_read" ON reviews;
 CREATE POLICY "reviews_read" ON reviews FOR SELECT USING (true);
 
 ALTER TABLE leads ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "leads_admin" ON leads;
 CREATE POLICY "leads_admin" ON leads FOR ALL USING (
   EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
 );
 
 ALTER TABLE contractor_availability ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "availability_admin" ON contractor_availability;
 CREATE POLICY "availability_admin" ON contractor_availability FOR ALL USING (
   EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
 );
+
+DROP POLICY IF EXISTS "availability_contractor" ON contractor_availability;
 CREATE POLICY "availability_contractor" ON contractor_availability FOR ALL USING (
   contractor_id IN (SELECT id FROM contractors WHERE profile_id = auth.uid())
 );
 
 ALTER TABLE contractor_availability_overrides ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "overrides_admin" ON contractor_availability_overrides;
 CREATE POLICY "overrides_admin" ON contractor_availability_overrides FOR ALL USING (
   EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
 );
+
+DROP POLICY IF EXISTS "overrides_contractor" ON contractor_availability_overrides;
 CREATE POLICY "overrides_contractor" ON contractor_availability_overrides FOR ALL USING (
   contractor_id IN (SELECT id FROM contractors WHERE profile_id = auth.uid())
 );
 
 ALTER TABLE contractor_documents ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "docs_admin" ON contractor_documents;
 CREATE POLICY "docs_admin" ON contractor_documents FOR ALL USING (
   EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
 );
+
+DROP POLICY IF EXISTS "docs_contractor" ON contractor_documents;
 CREATE POLICY "docs_contractor" ON contractor_documents FOR SELECT USING (
   contractor_id IN (SELECT id FROM contractors WHERE profile_id = auth.uid())
 );
 
 ALTER TABLE recurring_bookings ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "recurring_admin" ON recurring_bookings;
 CREATE POLICY "recurring_admin" ON recurring_bookings FOR ALL USING (
   EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
 );
 
 ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "notifications_admin" ON notifications;
 CREATE POLICY "notifications_admin" ON notifications FOR ALL USING (
   EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
 );
 
 ALTER TABLE contractor_score_history ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "score_history_admin" ON contractor_score_history;
 CREATE POLICY "score_history_admin" ON contractor_score_history FOR ALL USING (
   EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
 );
+
+DROP POLICY IF EXISTS "score_history_contractor" ON contractor_score_history;
 CREATE POLICY "score_history_contractor" ON contractor_score_history FOR SELECT USING (
   contractor_id IN (SELECT id FROM contractors WHERE profile_id = auth.uid())
 );

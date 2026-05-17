@@ -18,8 +18,8 @@ CREATE TABLE IF NOT EXISTS contractor_locations (
   last_updated TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX idx_contractor_locations_contractor ON contractor_locations(contractor_id);
-CREATE INDEX idx_contractor_locations_active ON contractor_locations(is_active) WHERE is_active = TRUE;
+CREATE INDEX IF NOT EXISTS idx_contractor_locations_contractor ON contractor_locations(contractor_id);
+CREATE INDEX IF NOT EXISTS idx_contractor_locations_active ON contractor_locations(is_active) WHERE is_active = TRUE;
 
 -- ============================================================
 -- JOB LOCATION HISTORY
@@ -35,8 +35,8 @@ CREATE TABLE IF NOT EXISTS job_location_history (
   recorded_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX idx_job_location_history_job ON job_location_history(job_id);
-CREATE INDEX idx_job_location_history_contractor ON job_location_history(contractor_id);
+CREATE INDEX IF NOT EXISTS idx_job_location_history_job ON job_location_history(job_id);
+CREATE INDEX IF NOT EXISTS idx_job_location_history_contractor ON job_location_history(contractor_id);
 
 -- ============================================================
 -- ZONE BOUNDARIES
@@ -53,7 +53,7 @@ CREATE TABLE IF NOT EXISTS zone_boundaries (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX idx_zone_boundaries_zone ON zone_boundaries(zone_id);
+CREATE INDEX IF NOT EXISTS idx_zone_boundaries_zone ON zone_boundaries(zone_id);
 
 -- ============================================================
 -- GEOCODED COORDINATES ON EXISTING TABLES
@@ -71,15 +71,18 @@ ALTER TABLE customers ADD COLUMN IF NOT EXISTS longitude NUMERIC(10,7);
 -- contractor_locations
 ALTER TABLE contractor_locations ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "contractor_locations_admin" ON contractor_locations;
 CREATE POLICY "contractor_locations_admin" ON contractor_locations FOR ALL USING (
   EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
 );
 
+DROP POLICY IF EXISTS "contractor_locations_own" ON contractor_locations;
 CREATE POLICY "contractor_locations_own" ON contractor_locations FOR ALL USING (
   contractor_id IN (SELECT id FROM contractors WHERE profile_id = auth.uid())
 );
 
 -- Allow public read for customer tracking (contractor location visible to anyone with job link)
+DROP POLICY IF EXISTS "contractor_locations_public_read" ON contractor_locations;
 CREATE POLICY "contractor_locations_public_read" ON contractor_locations FOR SELECT USING (
   is_active = TRUE
 );
@@ -87,10 +90,12 @@ CREATE POLICY "contractor_locations_public_read" ON contractor_locations FOR SEL
 -- job_location_history
 ALTER TABLE job_location_history ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "job_location_history_admin" ON job_location_history;
 CREATE POLICY "job_location_history_admin" ON job_location_history FOR ALL USING (
   EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
 );
 
+DROP POLICY IF EXISTS "job_location_history_contractor_insert" ON job_location_history;
 CREATE POLICY "job_location_history_contractor_insert" ON job_location_history FOR INSERT WITH CHECK (
   contractor_id IN (SELECT id FROM contractors WHERE profile_id = auth.uid())
 );
@@ -98,8 +103,10 @@ CREATE POLICY "job_location_history_contractor_insert" ON job_location_history F
 -- zone_boundaries
 ALTER TABLE zone_boundaries ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "zone_boundaries_read" ON zone_boundaries;
 CREATE POLICY "zone_boundaries_read" ON zone_boundaries FOR SELECT USING (true);
 
+DROP POLICY IF EXISTS "zone_boundaries_admin" ON zone_boundaries;
 CREATE POLICY "zone_boundaries_admin" ON zone_boundaries FOR ALL USING (
   EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
 );
@@ -108,4 +115,4 @@ CREATE POLICY "zone_boundaries_admin" ON zone_boundaries FOR ALL USING (
 -- ENABLE REALTIME
 -- ============================================================
 
-ALTER PUBLICATION supabase_realtime ADD TABLE contractor_locations;
+DO $$ BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE contractor_locations; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
