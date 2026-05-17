@@ -8,7 +8,7 @@ import { StatusBadge } from '@/components/shared/StatusBadge';
 import {
   MapPin, Briefcase, DollarSign, Star, TrendingUp,
   Clock, CheckCircle2, ArrowRight, CalendarDays,
-  Sparkles, Bath, BedDouble, ChevronRight, Timer, Package, Key, Info, Home
+  Sparkles, Bath, BedDouble, ChevronRight, Timer, Package, Key, Info
 } from 'lucide-react';
 import { SERVICE_TYPE_LABELS, TIME_WINDOW_LABELS } from '@/types';
 import type { Job, JobOffer, Contractor } from '@/types';

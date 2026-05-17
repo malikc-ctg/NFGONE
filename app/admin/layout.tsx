@@ -44,11 +44,6 @@ export default function AdminLayout({
     setSidebarOpen(false);
   }, [pathname]);
 
-  // Don't show layout on login page
-  if (pathname === '/admin/login') {
-    return <>{children}</>;
-  }
-
   // Close sidebar on escape key
   useEffect(() => {
     function handleKey(e: KeyboardEvent) {
@@ -57,6 +52,11 @@ export default function AdminLayout({
     document.addEventListener('keydown', handleKey);
     return () => document.removeEventListener('keydown', handleKey);
   }, []);
+
+  // Don't show layout on login page
+  if (pathname === '/admin/login') {
+    return <>{children}</>;
+  }
 
   const sidebarContent = (
     <>
