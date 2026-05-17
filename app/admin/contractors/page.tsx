@@ -38,9 +38,12 @@ export default function ContractorsPage() {
     fetch('/api/zones').then(r => r.json()).then(d => setZones(Array.isArray(d) ? d : []));
   }, []);
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   async function handleSubmit() {
+    setIsSubmitting(true);
     try {
-      const res = await fetch('/api/contractors', {
+      const res = await fetch('/api/contractors/invite', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -50,11 +53,23 @@ export default function ContractorsPage() {
           zone_id: form.zone_id || null,
         }),
       });
-      if (!res.ok) throw new Error('Failed');
-      toast.success('Contractor created');
+      
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to send invite');
+      
+      toast.success('Contractor invited! Email sent.');
       setDrawerOpen(false);
+      setForm({
+        full_name: '', email: '', phone: '', zone_id: '',
+        tier: 'basic', payout_rate: '0.700',
+        brings_own_supplies: false, has_vehicle: true, max_jobs_per_day: '2',
+      });
       fetchContractors();
-    } catch { toast.error('Failed to create contractor'); }
+    } catch (err: any) { 
+      toast.error(err.message || 'Failed to invite contractor'); 
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -91,7 +106,9 @@ export default function ContractorsPage() {
               <div><Label>Payout Rate (%)</Label><Input value={form.payout_rate} onChange={e => setForm({ ...form, payout_rate: e.target.value })} /></div>
               <div className="flex items-center gap-2"><Checkbox checked={form.brings_own_supplies} onCheckedChange={c => setForm({ ...form, brings_own_supplies: !!c })} /><Label>Brings Own Supplies</Label></div>
               <div className="flex items-center gap-2"><Checkbox checked={form.has_vehicle} onCheckedChange={c => setForm({ ...form, has_vehicle: !!c })} /><Label>Has Vehicle</Label></div>
-              <Button onClick={handleSubmit} className="w-full">Create Contractor</Button>
+              <Button onClick={handleSubmit} disabled={isSubmitting} className="w-full">
+                {isSubmitting ? 'Sending Invite...' : 'Send Invite'}
+              </Button>
             </div>
           </SheetContent>
         </Sheet>
