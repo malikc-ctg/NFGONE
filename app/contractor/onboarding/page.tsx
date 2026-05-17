@@ -58,9 +58,16 @@ export default function OnboardingPage() {
         
         setLoading(false);
       } else if (event === 'INITIAL_SESSION' && !session) {
-        // If we finished checking the initial session and it's still null (no hash in URL),
-        // then they are truly not logged in.
-        router.push('/contractor/login');
+        // If we finished checking the initial session and it's still null,
+        // we should only redirect to login if the URL DOES NOT contain an auth token.
+        // If it does contain a token, we wait for the SIGNED_IN event.
+        const hasAuthTokens = window.location.hash.includes('access_token') || 
+                              window.location.search.includes('token_hash') ||
+                              window.location.search.includes('code');
+                              
+        if (!hasAuthTokens) {
+          router.push('/contractor/login');
+        }
       }
     });
     
