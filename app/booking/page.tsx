@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { DEFAULT_PRICING, SERVICE_TYPE_LABELS } from '@/types';
 import type { ServiceType } from '@/types';
@@ -120,9 +120,9 @@ export default function BookingPage() {
             </svg>
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">You're Booked! 🎉</h1>
+            <h1 className="text-3xl font-bold text-gray-900">You&apos;re Booked! 🎉</h1>
             <p className="text-gray-600 mt-3 leading-relaxed">
-              We've received your request for a <strong>{SERVICE_TYPE_LABELS[form.service_type as ServiceType]}</strong> on <strong>{form.scheduled_date}</strong>.
+              We&apos;ve received your request for a <strong>{SERVICE_TYPE_LABELS[form.service_type as ServiceType]}</strong> on <strong>{form.scheduled_date}</strong>.
               Our team will confirm your cleaner within 2 hours via email.
             </p>
           </div>
@@ -130,8 +130,8 @@ export default function BookingPage() {
             <p className="text-sm font-semibold text-blue-900">What happens next?</p>
             <ul className="text-sm text-blue-700 space-y-1.5">
               <li>✅ A confirmation email is on its way to {form.email}</li>
-              <li>📋 We'll match you with a verified, insured cleaner</li>
-              <li>📱 You'll get a notification when your cleaner is on the way</li>
+              <li>📋 We&apos;ll match you with a verified, insured cleaner</li>
+              <li>📱 You&apos;ll get a notification when your cleaner is on the way</li>
             </ul>
           </div>
           <button
