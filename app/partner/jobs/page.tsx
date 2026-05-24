@@ -2,13 +2,26 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ExternalLink } from 'lucide-react';
+import { ExternalLink, TrendingUp, DollarSign, Briefcase } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface PartnerJob {
   id: string; job_number: string; scheduled_date: string;
   address_line1: string; city: string; service_type: string;
   status: string; final_price: number | null; quoted_price: number;
+  billing_notes?: string;
+}
+
+interface Financials {
+  base_price: number;
+  posting_fee: number;
+  total_charged: number;
+  commission_earned: number;
+}
+
+function parseFinancials(job: PartnerJob): Financials | null {
+  if (!job.billing_notes) return null;
+  try { return JSON.parse(job.billing_notes); } catch { return null; }
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -26,18 +39,65 @@ export default function PartnerJobsPage() {
   const [statusFilter, setStatusFilter] = useState('');
 
   useEffect(() => {
-    // TODO: get partner_id from session
-    fetch('/api/partners/me/jobs').then(r => r.json()).then((d) => { setJobs(Array.isArray(d) ? d : []); setLoading(false); });
+    fetch('/api/partners/me/jobs')
+      .then(r => r.json())
+      .then(d => { setJobs(Array.isArray(d) ? d : []); setLoading(false); });
   }, []);
 
   const filtered = statusFilter ? jobs.filter(j => j.status === statusFilter) : jobs;
 
+  // Aggregate stats
+  const totalPosted = filtered.length;
+  const totalFeesPaid = filtered.reduce((sum, j) => {
+    const f = parseFinancials(j);
+    return sum + (f?.posting_fee ?? 0);
+  }, 0);
+  const totalCommissionEarned = filtered.filter(j => ['completed', 'reviewed', 'paid_out'].includes(j.status)).reduce((sum, j) => {
+    const f = parseFinancials(j);
+    return sum + (f?.commission_earned ?? 0);
+  }, 0);
+
   return (
     <div className="p-8 space-y-6">
-      <h1 className="text-2xl font-bold text-foreground">Jobs</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold text-foreground">Jobs</h1>
+        <Link href="/partner/book" className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors">
+          + Book New Job
+        </Link>
+      </div>
 
-      <div className="flex gap-2">
-        {['', 'confirmed', 'in_progress', 'completed'].map((s) => (
+      {/* Financial Summary */}
+      {!loading && filtered.length > 0 && (
+        <div className="grid grid-cols-3 gap-4">
+          <div className="bg-card border border-border rounded-xl p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Briefcase className="h-4 w-4 text-muted-foreground" />
+              <p className="text-xs text-muted-foreground">Jobs Posted</p>
+            </div>
+            <p className="text-2xl font-bold text-foreground">{totalPosted}</p>
+          </div>
+          <div className="bg-card border border-amber-200 rounded-xl p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <DollarSign className="h-4 w-4 text-amber-500" />
+              <p className="text-xs text-muted-foreground">Posting Fees Paid</p>
+            </div>
+            <p className="text-2xl font-bold text-amber-600">${totalFeesPaid.toFixed(2)}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">5% per job</p>
+          </div>
+          <div className="bg-card border border-green-200 rounded-xl p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <TrendingUp className="h-4 w-4 text-green-500" />
+              <p className="text-xs text-muted-foreground">Commission Earned</p>
+            </div>
+            <p className="text-2xl font-bold text-green-600">${totalCommissionEarned.toFixed(2)}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">25% on completed jobs</p>
+          </div>
+        </div>
+      )}
+
+      {/* Filter chips */}
+      <div className="flex gap-2 flex-wrap">
+        {['', 'confirmed', 'in_progress', 'completed', 'cancelled'].map(s => (
           <button
             key={s}
             onClick={() => setStatusFilter(s)}
@@ -50,45 +110,78 @@ export default function PartnerJobsPage() {
         ))}
       </div>
 
+      {/* Jobs Table */}
       <div className="bg-card border border-border rounded-xl overflow-hidden">
         {loading ? (
           <div className="p-12 text-center text-muted-foreground text-sm">Loading jobs…</div>
         ) : filtered.length === 0 ? (
-          <div className="p-12 text-center text-muted-foreground text-sm">No jobs found.</div>
+          <div className="p-12 text-center space-y-3">
+            <Briefcase className="h-10 w-10 text-muted-foreground/30 mx-auto" />
+            <p className="text-muted-foreground text-sm">No jobs found.</p>
+            <Link href="/partner/book" className="inline-flex items-center gap-1 text-sm text-primary hover:underline">
+              Book your first job →
+            </Link>
+          </div>
         ) : (
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border bg-muted/30">
-                <th className="text-left px-6 py-3 text-xs font-medium text-muted-foreground">Date</th>
+                <th className="text-left px-5 py-3 text-xs font-medium text-muted-foreground">Date</th>
                 <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Address</th>
                 <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Service</th>
                 <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Status</th>
-                <th className="text-right px-4 py-3 text-xs font-medium text-muted-foreground">Price</th>
+                <th className="text-right px-4 py-3 text-xs font-medium text-muted-foreground">Base Price</th>
+                <th className="text-right px-4 py-3 text-xs font-medium text-muted-foreground">Fee (5%)</th>
+                <th className="text-right px-4 py-3 text-xs font-medium text-muted-foreground">Commission (25%)</th>
                 <th className="px-4 py-3" />
               </tr>
             </thead>
             <tbody>
-              {filtered.map((job) => (
-                <tr key={job.id} className="border-b border-border/50 hover:bg-muted/20">
-                  <td className="px-6 py-3.5 text-muted-foreground text-xs">{format(new Date(job.scheduled_date), 'MMM d, yyyy')}</td>
-                  <td className="px-4 py-3.5">
-                    <p className="font-medium text-foreground">{job.address_line1}</p>
-                    <p className="text-xs text-muted-foreground">{job.city}</p>
-                  </td>
-                  <td className="px-4 py-3.5 text-muted-foreground capitalize text-xs">{job.service_type.replace(/_/g, ' ')}</td>
-                  <td className="px-4 py-3.5">
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium capitalize ${STATUS_COLORS[job.status] ?? 'bg-muted text-muted-foreground'}`}>
-                      {job.status.replace(/_/g, ' ')}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3.5 text-right font-medium">${(job.final_price ?? job.quoted_price).toFixed(2)}</td>
-                  <td className="px-4 py-3.5">
-                    <Link href={`/tracking/${job.id}`} className="text-primary text-xs flex items-center gap-0.5 hover:underline">
-                      Track <ExternalLink className="h-3 w-3" />
-                    </Link>
-                  </td>
-                </tr>
-              ))}
+              {filtered.map(job => {
+                const financials = parseFinancials(job);
+                const basePrice = financials?.base_price ?? (job.final_price ?? job.quoted_price);
+                const postingFee = financials?.posting_fee ?? 0;
+                const commissionEarned = financials?.commission_earned ?? 0;
+                const isCompleted = ['completed', 'reviewed', 'paid_out'].includes(job.status);
+                return (
+                  <tr key={job.id} className="border-b border-border/50 hover:bg-muted/20">
+                    <td className="px-5 py-3.5 text-muted-foreground text-xs whitespace-nowrap">
+                      {format(new Date(job.scheduled_date + 'T12:00:00'), 'MMM d, yyyy')}
+                    </td>
+                    <td className="px-4 py-3.5">
+                      <p className="font-medium text-foreground">{job.address_line1}</p>
+                      <p className="text-xs text-muted-foreground">{job.city}</p>
+                    </td>
+                    <td className="px-4 py-3.5 text-muted-foreground capitalize text-xs">
+                      {job.service_type.replace(/_/g, ' ')}
+                    </td>
+                    <td className="px-4 py-3.5">
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium capitalize ${STATUS_COLORS[job.status] ?? 'bg-muted text-muted-foreground'}`}>
+                        {job.status.replace(/_/g, ' ')}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3.5 text-right font-medium">
+                      ${basePrice.toFixed(2)}
+                    </td>
+                    <td className="px-4 py-3.5 text-right text-amber-600 font-medium">
+                      {postingFee > 0 ? `+$${postingFee.toFixed(2)}` : '—'}
+                    </td>
+                    <td className="px-4 py-3.5 text-right">
+                      {commissionEarned > 0 ? (
+                        <span className={`font-bold ${isCompleted ? 'text-green-600' : 'text-muted-foreground'}`}>
+                          {isCompleted ? '+' : '~'}${commissionEarned.toFixed(2)}
+                          {!isCompleted && <span className="text-[10px] ml-0.5 font-normal">(pending)</span>}
+                        </span>
+                      ) : '—'}
+                    </td>
+                    <td className="px-4 py-3.5">
+                      <Link href={`/tracking/${job.id}`} className="text-primary text-xs flex items-center gap-0.5 hover:underline whitespace-nowrap">
+                        Track <ExternalLink className="h-3 w-3" />
+                      </Link>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         )}

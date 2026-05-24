@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Plus, Star, Trash2 } from 'lucide-react';
+import { Plus, Star, Trash2, ShieldCheck, ShieldAlert, ShieldX } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Contractor } from '@/types';
 import Link from 'next/link';
@@ -142,36 +142,57 @@ export default function ContractorsPage() {
                 <TableHead>Score</TableHead>
                 <TableHead>Rate</TableHead>
                 <TableHead>Supplies</TableHead>
+                <TableHead>Insurance</TableHead>
                 <TableHead></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
-                <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">Loading...</TableCell></TableRow>
+                <TableRow><TableCell colSpan={10} className="text-center py-8 text-muted-foreground">Loading...</TableCell></TableRow>
               ) : contractors.length === 0 ? (
-                <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">No contractors yet</TableCell></TableRow>
-              ) : contractors.map(c => (
-                <TableRow key={c.id}>
-                  <TableCell className="font-medium">{c.full_name}</TableCell>
-                  <TableCell className="text-xs">{c.phone}</TableCell>
-                  <TableCell className="text-xs">{(c as any).zone?.name ?? '—'}</TableCell>
-                  <TableCell><Badge variant="outline" className="capitalize text-xs">{c.tier}</Badge></TableCell>
-                  <TableCell><Badge variant="outline" className={`text-xs capitalize ${c.status === 'active' ? 'bg-green-100 text-green-700' : c.status === 'probation' ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'}`}>{c.status}</Badge></TableCell>
-                  <TableCell className="text-xs"><Star className="h-3 w-3 inline mr-1 text-amber-500" />{c.score}</TableCell>
-                  <TableCell className="text-xs">{(c.payout_rate * 100).toFixed(0)}%</TableCell>
-                  <TableCell className="text-xs">{c.brings_own_supplies ? '✓' : '—'}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <Link href={`/admin/contractors/${c.id}`}>
-                        <Button variant="ghost" size="sm">View</Button>
-                      </Link>
-                      <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-700 hover:bg-red-50" onClick={() => handleDelete(c.id, c.full_name)}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
+                <TableRow><TableCell colSpan={10} className="text-center py-8 text-muted-foreground">No contractors yet</TableCell></TableRow>
+              ) : contractors.map(c => {
+                let insuranceStatus = 'missing';
+                let insuranceLabel = 'Missing';
+                try {
+                  const notes = c.notes ? JSON.parse(c.notes) : {};
+                  const ins = notes.insurance_details;
+                  if (ins?.status === 'verified') { insuranceStatus = 'verified'; insuranceLabel = 'Verified'; }
+                  else if (ins?.file_url) { insuranceStatus = 'pending'; insuranceLabel = 'Pending'; }
+                } catch { /* no-op */ }
+                return (
+                  <TableRow key={c.id}>
+                    <TableCell className="font-medium">{c.full_name}</TableCell>
+                    <TableCell className="text-xs">{c.phone}</TableCell>
+                    <TableCell className="text-xs">{(c as any).zone?.name ?? '—'}</TableCell>
+                    <TableCell><Badge variant="outline" className="capitalize text-xs">{c.tier}</Badge></TableCell>
+                    <TableCell><Badge variant="outline" className={`text-xs capitalize ${c.status === 'active' ? 'bg-green-100 text-green-700' : c.status === 'probation' ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'}`}>{c.status}</Badge></TableCell>
+                    <TableCell className="text-xs"><Star className="h-3 w-3 inline mr-1 text-amber-500" />{c.score}</TableCell>
+                    <TableCell className="text-xs">{(c.payout_rate * 100).toFixed(0)}%</TableCell>
+                    <TableCell className="text-xs">{c.brings_own_supplies ? '✓' : '—'}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className={`text-xs flex items-center gap-1 w-fit ${
+                        insuranceStatus === 'verified' ? 'bg-green-100 text-green-700 border-green-200'
+                        : insuranceStatus === 'pending' ? 'bg-amber-100 text-amber-700 border-amber-200'
+                        : 'bg-red-50 text-red-600 border-red-200'
+                      }`}>
+                        {insuranceStatus === 'verified' ? <ShieldCheck className="h-3 w-3" /> : insuranceStatus === 'pending' ? <ShieldAlert className="h-3 w-3" /> : <ShieldX className="h-3 w-3" />}
+                        {insuranceLabel}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Link href={`/admin/contractors/${c.id}`}>
+                          <Button variant="ghost" size="sm">View</Button>
+                        </Link>
+                        <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-700 hover:bg-red-50" onClick={() => handleDelete(c.id, c.full_name)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </CardContent>

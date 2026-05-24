@@ -11,6 +11,7 @@ import { SERVICE_TYPE_LABELS, TIME_WINDOW_LABELS } from '@/types';
 import type { Job, JobStatus } from '@/types';
 import Link from 'next/link';
 import { format } from 'date-fns';
+import { Plus } from 'lucide-react';
 
 
 const STATUS_FILTERS: { label: string; statuses: JobStatus[] | null }[] = [
@@ -49,6 +50,9 @@ export default function JobsPage() {
           <h1 className="text-xl md:text-2xl font-bold tracking-tight">Jobs</h1>
           <p className="text-muted-foreground text-sm">{filtered.length} jobs</p>
         </div>
+        <Link href="/admin/jobs/new">
+          <Button><Plus className="h-4 w-4 mr-2" />Create Job</Button>
+        </Link>
       </div>
 
       {/* Filter chips */}

@@ -3,6 +3,10 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Zone } from '@/types';
+import { toast } from 'sonner';
+
+const POSTING_FEE_RATE = 0.05;
+const COMMISSION_RATE = 0.25;
 
 const SERVICE_TYPES = [
   { value: 'standard_clean', label: 'Standard Clean' },
@@ -36,7 +40,10 @@ export default function PartnerBookPage() {
   }, []);
 
   async function fetchQuote() {
-    if (!form.zone_id || !form.scheduled_date) return;
+    if (!form.zone_id || !form.scheduled_date) {
+      toast.error('Select a zone and date to get a quote');
+      return;
+    }
     const res = await fetch('/api/pricing/quote', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -52,36 +59,62 @@ export default function PartnerBookPage() {
       }),
     });
     if (res.ok) setQuote(await res.json());
+    else toast.error('Failed to get quote');
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!quote) return;
+    if (!quote) { toast.error('Get a price quote first'); return; }
     setSubmitting(true);
-    // TODO: get partner_id from session
-    const res = await fetch('/api/partners/PARTNER_ID/book', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...form, quoted_price: quote.final_price }),
-    });
-    if (res.ok) {
-      const job = await res.json();
-      router.push(`/partner/jobs?booked=${job.id}`);
+    try {
+      // Get partner ID from session — use /me endpoint
+      const meRes = await fetch('/api/partners/me');
+      if (!meRes.ok) throw new Error('Could not identify your partner account');
+      const me = await meRes.json();
+
+      const res = await fetch(`/api/partners/${me.id}/book`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...form, quoted_price: quote.final_price }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Booking failed');
+      toast.success('Job booked successfully!');
+      router.push(`/partner/jobs?booked=${data.id}`);
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setSubmitting(false);
     }
-    setSubmitting(false);
   }
 
   const update = (k: string, v: unknown) => setForm(f => ({ ...f, [k]: v }));
 
+  // Computed financials from quote
+  const basePrice = quote?.final_price ?? 0;
+  const postingFee = Math.round(basePrice * POSTING_FEE_RATE * 100) / 100;
+  const totalCharged = basePrice + postingFee;
+  const commissionEarned = Math.round(basePrice * COMMISSION_RATE * 100) / 100;
+  const netCost = totalCharged - commissionEarned;
+
+  // Tomorrow min date
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const minDate = tomorrow.toISOString().split('T')[0];
+
   return (
     <div className="p-8 max-w-2xl mx-auto space-y-6">
-      <h1 className="text-2xl font-bold text-foreground">Book a Job</h1>
+      <div>
+        <h1 className="text-2xl font-bold text-foreground">Book a Job</h1>
+        <p className="text-sm text-muted-foreground mt-1">Submit a cleaning job and earn your 25% commission when complete.</p>
+      </div>
 
       <form onSubmit={handleSubmit} className="space-y-5">
+        {/* Location */}
         <div className="bg-card border border-border rounded-xl p-5 space-y-4">
           <h2 className="text-sm font-semibold text-foreground">Location</h2>
           <div>
-            <label className="block text-xs text-muted-foreground mb-1">Address *</label>
+            <label className="block text-xs text-muted-foreground mb-1">Street Address *</label>
             <input required className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background" value={form.address_line1} onChange={e => update('address_line1', e.target.value)} />
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -96,6 +129,7 @@ export default function PartnerBookPage() {
           </div>
         </div>
 
+        {/* Service */}
         <div className="bg-card border border-border rounded-xl p-5 space-y-4">
           <h2 className="text-sm font-semibold text-foreground">Service</h2>
           <div className="grid grid-cols-2 gap-3">
@@ -116,7 +150,7 @@ export default function PartnerBookPage() {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs text-muted-foreground mb-1">Date *</label>
-              <input required type="date" className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background" value={form.scheduled_date} onChange={e => update('scheduled_date', e.target.value)} />
+              <input required type="date" min={minDate} className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background" value={form.scheduled_date} onChange={e => update('scheduled_date', e.target.value)} />
             </div>
             <div>
               <label className="block text-xs text-muted-foreground mb-1">Window</label>
@@ -144,6 +178,7 @@ export default function PartnerBookPage() {
           </div>
         </div>
 
+        {/* Details */}
         <div className="bg-card border border-border rounded-xl p-5 space-y-4">
           <h2 className="text-sm font-semibold text-foreground">Details</h2>
           <div>
@@ -156,6 +191,7 @@ export default function PartnerBookPage() {
           </div>
         </div>
 
+        {/* Quote Button */}
         <button
           type="button"
           onClick={fetchQuote}
@@ -164,19 +200,46 @@ export default function PartnerBookPage() {
           Get Price Quote
         </button>
 
+        {/* Financial Breakdown */}
         {quote && (
-          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-            {quote.surge_reason && (
-              <div className="flex items-center gap-2 text-xs text-amber-700 bg-amber-100 px-3 py-2 rounded-lg mb-3">
-                <span>⚡</span>
-                <span>{quote.surge_reason} — pricing reflects current demand</span>
-              </div>
-            )}
-            <div className="flex items-center justify-between">
-              <p className="text-sm font-medium text-blue-900">Quoted Price</p>
-              <p className="text-2xl font-bold text-blue-900">${quote.final_price.toFixed(2)}</p>
+          <div className="bg-card border border-border rounded-xl overflow-hidden">
+            <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-5 py-3">
+              <p className="text-white font-semibold text-sm">Price Breakdown</p>
+              {quote.surge_reason && (
+                <p className="text-blue-100 text-xs mt-0.5">⚡ {quote.surge_reason}</p>
+              )}
             </div>
-            <p className="text-xs text-blue-600 mt-0.5">No deposit required — invoiced monthly</p>
+            <div className="divide-y divide-border">
+              <div className="flex justify-between px-5 py-3 text-sm">
+                <span className="text-muted-foreground">Base Service Price</span>
+                <span className="font-medium">${basePrice.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between px-5 py-3 text-sm">
+                <span className="text-muted-foreground flex items-center gap-1">
+                  Platform Posting Fee
+                  <span className="text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-medium">5%</span>
+                </span>
+                <span className="font-medium text-amber-600">+${postingFee.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between px-5 py-3 text-sm font-semibold border-t-2 border-border">
+                <span>Total You Pay</span>
+                <span className="text-lg">${totalCharged.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between px-5 py-3.5 text-sm bg-green-50 dark:bg-green-950/30">
+                <span className="text-green-800 dark:text-green-300 font-medium flex items-center gap-1">
+                  Your Commission Earned
+                  <span className="text-xs bg-green-200 text-green-800 px-1.5 py-0.5 rounded font-semibold">25%</span>
+                </span>
+                <span className="text-green-700 dark:text-green-400 font-bold text-base">+${commissionEarned.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between px-5 py-3 text-sm bg-muted/30">
+                <span className="text-muted-foreground">Your Net Cost After Commission</span>
+                <span className="font-bold">${netCost.toFixed(2)}</span>
+              </div>
+            </div>
+            <div className="px-5 py-3 bg-blue-50 dark:bg-blue-950/30 text-xs text-blue-700 dark:text-blue-300">
+              Commission is credited to your account when the job is completed and reviewed. Invoiced monthly.
+            </div>
           </div>
         )}
 
@@ -184,7 +247,7 @@ export default function PartnerBookPage() {
           <button
             type="submit"
             disabled={submitting}
-            className="w-full py-3 bg-primary text-primary-foreground rounded-xl font-semibold hover:bg-primary/90 transition-colors disabled:opacity-50"
+            className="w-full py-3.5 bg-primary text-primary-foreground rounded-xl font-semibold hover:bg-primary/90 transition-colors disabled:opacity-50"
           >
             {submitting ? 'Booking…' : 'Confirm Booking'}
           </button>

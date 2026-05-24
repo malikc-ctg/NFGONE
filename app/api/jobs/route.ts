@@ -62,6 +62,32 @@ export async function POST(request: NextRequest) {
       })
       .catch((err) => console.error('Geocoding failed for job:', data.id, err));
 
+    // Auto-dispatch: create job_offers for all verified, active contractors in this zone (non-blocking)
+    supabase
+      .from('contractors')
+      .select('id')
+      .eq('zone_id', zone_id)
+      .eq('status', 'active')
+      .eq('insurance_on_file', true)
+      .then(async ({ data: contractors }) => {
+        if (!contractors || contractors.length === 0) return;
+        const expiresAt = new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString(); // 4 hours
+        const offers = contractors.map((c: { id: string }) => ({
+          job_id: data.id,
+          contractor_id: c.id,
+          status: 'pending',
+          offered_at: new Date().toISOString(),
+          expires_at: expiresAt,
+        }));
+        const { error: offersError } = await supabase.from('job_offers').insert(offers);
+        if (offersError) console.error('Failed to dispatch offers:', offersError);
+        else {
+          // Update job status to 'offered'
+          await supabase.from('jobs').update({ status: 'offered' }).eq('id', data.id);
+        }
+      })
+      .then(undefined, (err: unknown) => console.error('Auto-dispatch failed:', err));
+
     return NextResponse.json(data, { status: 201 });
   } catch (err: unknown) {
     console.error('POST /api/jobs error:', err);

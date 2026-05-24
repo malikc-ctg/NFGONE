@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { PlusCircle, Briefcase, DollarSign, Star } from 'lucide-react';
+import { PlusCircle, Briefcase, DollarSign, TrendingUp } from 'lucide-react';
 
 interface PartnerDashData {
   partner: { company_name: string; credit_balance: number; referral_code: string };
@@ -47,7 +47,7 @@ export default function PartnerDashboard() {
       {/* Credit balance highlight */}
       {partner.credit_balance > 0 && (
         <div className="bg-green-50 border border-green-200 rounded-xl p-4 flex items-center gap-3">
-          <Star className="h-5 w-5 text-green-600" />
+          <TrendingUp className="h-5 w-5 text-green-600" />
           <div>
             <p className="text-sm font-semibold text-green-800">${partner.credit_balance.toFixed(2)} credit available</p>
             <p className="text-xs text-green-600">Applied automatically to your next booking</p>
@@ -71,12 +71,13 @@ export default function PartnerDashboard() {
           </div>
           <p className="text-2xl font-bold text-foreground">${thisMonth.spend.toFixed(0)}</p>
         </div>
-        <div className="bg-card border border-border rounded-xl p-5">
+        <div className="bg-card border border-green-200 rounded-xl p-5">
           <div className="flex items-center gap-2 mb-2">
-            <Star className="h-4 w-4 text-muted-foreground" />
-            <p className="text-xs text-muted-foreground">Credit Earned</p>
+            <TrendingUp className="h-4 w-4 text-green-500" />
+            <p className="text-xs text-muted-foreground">Commission Earned</p>
           </div>
           <p className="text-2xl font-bold text-green-600">${thisMonth.credit_earned.toFixed(0)}</p>
+          <p className="text-xs text-muted-foreground mt-1">25% on completed jobs</p>
         </div>
       </div>
 
