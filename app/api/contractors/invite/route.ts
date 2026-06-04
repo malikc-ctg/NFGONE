@@ -32,7 +32,7 @@ export async function POST(request: Request) {
       email: email,
       options: {
         data: { full_name, phone },
-        redirectTo: `${process.env.NEXT_PUBLIC_APP_URL || 'https://www.nfgone.ca'}/contractor/onboarding`
+        redirectTo: `${process.env.NEXT_PUBLIC_APP_URL || 'https://www.seaofblue.app'}/contractor/onboarding`
       }
     });
 
@@ -103,7 +103,7 @@ export async function POST(request: Request) {
     `;
 
     const { error: emailError } = await resend.emails.send({
-      from: 'Sea of Blue <onboarding@nfgone.ca>',
+      from: 'Sea of Blue <onboarding@seaofblue.app>',
       to: email,
       subject: 'You are invited to join Sea of Blue',
       html: emailHtml,

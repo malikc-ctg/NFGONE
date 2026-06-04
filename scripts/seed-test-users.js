@@ -15,8 +15,8 @@ const supabase = createClient(
 
 async function createTestUsers() {
   const users = [
-    { email: 'admin@seaofblue.ca', password: 'SOBtest123', role: 'admin', name: 'Test Admin' },
-    { email: 'contractor@seaofblue.ca', password: 'SOBtest123', role: 'contractor', name: 'Test Contractor' }
+    { email: 'admin@seaofblue.app', password: 'SOBtest123', role: 'admin', name: 'Test Admin' },
+    { email: 'contractor@seaofblue.app', password: 'SOBtest123', role: 'contractor', name: 'Test Contractor' }
   ];
 
   for (const u of users) {
