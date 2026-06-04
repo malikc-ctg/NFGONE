@@ -18,10 +18,9 @@ export default function PartnerLayout({ children }: { children: React.ReactNode 
   return (
     <div className="flex h-screen bg-background">
       <aside className="w-60 border-r border-border bg-card flex flex-col">
-        <div className="flex items-center gap-3 px-5 py-5 border-b border-border">
-          <img src="/logo.png" alt="Sea of Blue Logo" className="w-12 h-12 object-contain" />
+        <div className="flex flex-col items-center justify-center gap-2 px-5 py-5 border-b border-border text-center">
+          <img src="/logo.png" alt="Sea of Blue Logo" className="w-28 h-28 object-contain" />
           <div>
-            <h1 className="text-sm font-bold text-foreground">Sea of Blue</h1>
             <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Partner Portal</p>
           </div>
         </div>

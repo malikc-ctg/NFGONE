@@ -73,7 +73,7 @@ export default function TrackingPage() {
     <div className="min-h-screen bg-muted/30 p-6 flex flex-col items-center">
       {/* Branding */}
       <div className="flex items-center gap-2 mb-12">
-        <img src="/logo.png" alt="Sea of Blue Logo" className="w-16 h-16 object-contain" />
+          <img src="/logo.png" alt="Sea of Blue Logo" className="w-32 h-32 object-contain" />
         <span className="font-black text-foreground tracking-tight">Sea of Blue</span>
       </div>
 
