@@ -112,7 +112,7 @@ export default function BookingStatusPage() {
       {/* Header */}
       <header className="bg-blue-600 text-white px-4 py-6">
         <div className="max-w-lg mx-auto flex items-center gap-3">
-          <img src="/logo.png" alt="Sea of Blue Logo" className="w-32 h-32 object-contain" />
+          <img src="/logo.png" alt="Sea of Blue Logo" className="w-64 h-64 object-contain" />
           <div>
             <h1 className="font-bold text-lg">Sea of Blue</h1>
             <p className="text-blue-100 text-sm">Booking Status</p>

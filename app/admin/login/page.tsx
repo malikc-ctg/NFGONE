@@ -39,7 +39,7 @@ function AdminLoginContent() {
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center space-y-4">
-          <img src="/logo.png" alt="Sea of Blue Logo" className="mx-auto w-48 h-48 object-contain" />
+          <img src="/logo.png" alt="Sea of Blue Logo" className="mx-auto w-80 h-80 object-contain" />
           <CardTitle className="text-xl">Sea of Blue</CardTitle>
           <p className="text-sm text-muted-foreground">Admin Portal Login</p>
         </CardHeader>
