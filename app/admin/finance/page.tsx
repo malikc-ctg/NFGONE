@@ -41,6 +41,8 @@ export default function FinancePage() {
   const [pnl, setPnl] = useState<ZoneMonthlyPnl[]>([]);
   const [zones, setZones] = useState<Zone[]>([]);
   const [selectedZone, setSelectedZone] = useState<string>('');
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [error, setError] = useState<string | null>(null);
   const [forecast, setForecast] = useState<{
     forecast: Array<{ month: string; projected_revenue: number; projected_jobs: number; projected_profit: number }>;
     break_even_jobs: number | null;
@@ -49,14 +51,22 @@ export default function FinancePage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/api/zones').then(r => r.json()).then(setZones);
+    fetch('/api/zones').then(r => r.json()).then((data) => setZones(Array.isArray(data) ? data : []));
   }, []);
 
   useEffect(() => {
     setLoading(true);
+    setError(null);
     const url = selectedZone ? `/api/finance/pnl?zone_id=${selectedZone}` : '/api/finance/pnl';
-    fetch(url).then(r => r.json()).then((data) => { setPnl(Array.isArray(data) ? data : []); setLoading(false); });
-  }, [selectedZone]);
+    fetch(url)
+      .then(async (r) => {
+        const data = await r.json();
+        if (!r.ok) throw new Error(data?.error ?? `HTTP ${r.status}`);
+        return data;
+      })
+      .then((data) => { setPnl(Array.isArray(data) ? data : []); setLoading(false); })
+      .catch((err) => { setError(err.message); setLoading(false); });
+  }, [selectedZone, refreshKey]);
 
   useEffect(() => {
     if (selectedZone && tab === 'forecast') {
@@ -95,10 +105,11 @@ export default function FinancePage() {
             {zones.map((z) => <option key={z.id} value={z.id}>{z.name}</option>)}
           </select>
           <button
-            onClick={() => setLoading(true)}
+            onClick={() => setRefreshKey(k => k + 1)}
             className="p-2 border border-border rounded-lg hover:bg-muted transition-colors"
+            title="Refresh P&L data"
           >
-            <RefreshCw className="h-4 w-4 text-muted-foreground" />
+            <RefreshCw className={`h-4 w-4 text-muted-foreground ${loading ? 'animate-spin' : ''}`} />
           </button>
         </div>
       </div>
@@ -120,6 +131,13 @@ export default function FinancePage() {
 
       {tab === 'overview' && (
         <div className="space-y-6">
+          {/* Error banner */}
+          {error && (
+            <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-red-800 text-sm">
+              <strong>Could not load finance data:</strong> {error}
+            </div>
+          )}
+
           {/* Summary cards */}
           <div className="grid grid-cols-4 gap-4">
             <StatCard label="Monthly Revenue" value={formatCAD(totalRevenue)} sub="This month across all zones" />
@@ -137,6 +155,8 @@ export default function FinancePage() {
             </div>
             {loading ? (
               <div className="p-12 text-center text-muted-foreground text-sm">Loading P&amp;L data…</div>
+            ) : error ? (
+              <div className="p-12 text-center text-red-500 text-sm">Failed to load data. Click refresh to retry.</div>
             ) : latestByZone.length === 0 ? (
               <div className="p-12 text-center text-muted-foreground text-sm">No data yet. The view refreshes nightly after jobs are completed.</div>
             ) : (
