@@ -61,7 +61,7 @@ export default function AdminLayout({
   const sidebarContent = (
     <>
       <div className="flex items-center gap-3 px-6 py-5 border-b border-border">
-        <img src="/favicon.png" alt="Sea of Blue Logo" className="w-9 h-9 rounded-lg object-cover" />
+        <img src="/logo.png" alt="Sea of Blue Logo" className="w-16 h-16 object-contain" />
         <div>
           <h1 className="text-base font-bold tracking-tight text-foreground">Sea of Blue</h1>
           <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Operations</p>
@@ -115,7 +115,7 @@ export default function AdminLayout({
           {sidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </button>
         <div className="flex items-center gap-2">
-          <img src="/favicon.png" alt="Sea of Blue Logo" className="w-7 h-7 rounded-lg object-cover" />
+          <img src="/logo.png" alt="Sea of Blue Logo" className="w-12 h-12 object-contain" />
           <span className="font-bold text-sm">Sea of Blue</span>
         </div>
       </div>

@@ -29,7 +29,7 @@ export default function ContractorLayout({
     <div className="flex flex-col min-h-screen bg-background max-w-lg mx-auto">
       {/* Top bar */}
       <header className="flex items-center gap-3 px-4 py-3 border-b border-border bg-card sticky top-0 z-40">
-        <img src="/favicon.png" alt="Sea of Blue Logo" className="w-8 h-8 rounded-lg object-cover" />
+        <img src="/logo.png" alt="Sea of Blue Logo" className="w-12 h-12 object-contain" />
         <span className="font-bold text-sm">Sea of Blue</span>
       </header>
 
