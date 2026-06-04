@@ -39,9 +39,7 @@ function ContractorLoginContent() {
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center space-y-4">
-          <div className="flex items-center justify-center mx-auto w-14 h-14 rounded-2xl bg-blue-600">
-            <Waves className="h-7 w-7 text-white" />
-          </div>
+          <img src="/favicon.png" alt="Sea of Blue Logo" className="mx-auto w-14 h-14 rounded-2xl object-cover" />
           <CardTitle className="text-xl">Sea of Blue</CardTitle>
           <p className="text-sm text-muted-foreground">Contractor login</p>
           {searchParams.get('error') && (
