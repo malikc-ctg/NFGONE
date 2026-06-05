@@ -149,7 +149,7 @@ export default function LandingPage() {
               PRIVATE BETA
             </Badge>
             <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight text-slate-900 mb-6 drop-shadow-sm">
-              Ontario's <span className="text-primary">Cleaning Network</span>
+              Ontario&apos;s <span className="text-primary">Cleaning Network</span>
             </h1>
             <p className="text-xl md:text-2xl text-slate-600 mb-10 max-w-3xl mx-auto leading-relaxed">
               Sea of Blue is currently onboarding professional cleaners and cleaning companies across Ontario during our private beta.
@@ -181,7 +181,7 @@ export default function LandingPage() {
           <div className="container max-w-6xl mx-auto px-4">
             <div className="text-center mb-16">
               <h2 className="text-3xl md:text-4xl font-bold mb-4">Why Join Sea of Blue?</h2>
-              <p className="text-muted-foreground text-lg max-w-2xl mx-auto">Build your business and connect with customers through Ontario's trusted network of service professionals.</p>
+              <p className="text-muted-foreground text-lg max-w-2xl mx-auto">Build your business and connect with customers through Ontario&apos;s trusted network of service professionals.</p>
             </div>
             
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
