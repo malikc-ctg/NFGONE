@@ -4,7 +4,22 @@ import './globals.css';
 import { Toaster } from '@/components/ui/sonner';
 
 
+import localFont from 'next/font/local';
+import { LenisProvider } from '@/lib/motion/LenisProvider';
+
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
+
+const rustic = localFont({
+  src: './fonts/Rustic Printed Regular.ttf',
+  variable: '--font-rustic',
+  display: 'swap',
+});
+
+const brice = localFont({
+  src: './fonts/Brice Regular SemiExpanded.otf',
+  variable: '--font-brice',
+  display: 'swap',
+});
 
 export const metadata: Metadata = {
   title: 'Sea of Blue',
@@ -32,9 +47,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="dark">
-      <body className={`${inter.variable} font-sans antialiased`}>
-        {children}
+    <html lang="en" className={`${inter.variable} ${rustic.variable} ${brice.variable}`}>
+      <body className="font-sans antialiased">
+        <LenisProvider startPaused>
+          {children}
+        </LenisProvider>
         <Toaster position="top-right" richColors />
       </body>
     </html>

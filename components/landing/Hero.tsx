@@ -1,0 +1,107 @@
+'use client';
+
+import { useRef } from 'react';
+import { useParallaxLayer, useMouseParallax, useLineReveal } from '@/lib/motion/hooks';
+
+export function Hero() {
+  const sectionRef = useRef<HTMLElement>(null);
+  const bgRef = useRef<HTMLDivElement>(null);
+  const midRef = useRef<HTMLDivElement>(null);
+  const fgRef = useRef<HTMLDivElement>(null);
+  const headlineRef = useRef<HTMLHeadingElement>(null);
+  const subRef = useRef<HTMLParagraphElement>(null);
+
+  // Parallax at different speeds
+  useParallaxLayer(bgRef, -0.15);
+  useParallaxLayer(midRef, -0.3);
+  useParallaxLayer(fgRef, -0.5);
+
+  // Mouse parallax at different intensities
+  useMouseParallax(bgRef, 5);
+  useMouseParallax(midRef, 10);
+  useMouseParallax(fgRef, 18);
+
+  // Headline reveal
+  useLineReveal(headlineRef, { delay: 0.3, stagger: 0.15, duration: 1.4 });
+  useLineReveal(subRef, { delay: 0.8, stagger: 0.1, duration: 1.0 });
+
+  return (
+    <section
+      ref={sectionRef}
+      id="hero"
+      className="relative min-h-screen flex items-center justify-center overflow-hidden"
+      style={{ backgroundColor: '#001a36' }}
+    >
+      {/* Background layer — slowest parallax */}
+      <div
+        ref={bgRef}
+        className="parallax-layer absolute inset-0 w-full h-[120%] -top-[10%]"
+      >
+        <img
+          src="/hero-bg.png"
+          alt=""
+          className="w-full h-full object-cover"
+          aria-hidden="true"
+        />
+      </div>
+
+      {/* Mid layer */}
+      <div
+        ref={midRef}
+        className="parallax-layer absolute inset-0 w-full h-[130%] -top-[15%] opacity-40 mix-blend-screen"
+      >
+        <img
+          src="/hero-mid.png"
+          alt=""
+          className="w-full h-full object-cover"
+          aria-hidden="true"
+        />
+      </div>
+
+      {/* Foreground — blur shape */}
+      <div
+        ref={fgRef}
+        className="parallax-layer absolute bottom-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] opacity-20"
+      >
+        <img
+          src="/blur-shape.png"
+          alt=""
+          className="w-full h-full object-contain"
+          aria-hidden="true"
+        />
+      </div>
+
+      {/* Content */}
+      <div className="relative z-10 text-center px-4 max-w-5xl mx-auto">
+        <h1
+          ref={headlineRef}
+          className="font-rustic text-white text-7xl md:text-[10rem] lg:text-[14rem] leading-[0.85] tracking-tight mb-8 uppercase"
+        >
+          SEA OF BLUE
+        </h1>
+        <p
+          ref={subRef}
+          className="text-white/60 text-xl md:text-2xl lg:text-3xl tracking-wide"
+        >
+          Ontario&apos;s Cleaning Network
+        </p>
+      </div>
+
+      {/* Wave divider at bottom */}
+      <div className="absolute bottom-0 left-0 w-full">
+        <svg
+          viewBox="0 0 1440 120"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          className="w-full h-auto block"
+          preserveAspectRatio="none"
+        >
+          <path
+            d="M0 60C240 120 480 0 720 60C960 120 1200 0 1440 60V120H0V60Z"
+            fill="#001a36"
+          />
+        </svg>
+      </div>
+    </section>
+  );
+}
