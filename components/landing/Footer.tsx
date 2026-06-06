@@ -4,7 +4,7 @@ export function Footer() {
       <div className="container max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-6 text-sm text-center md:text-left">
         <div>
           <span className="font-rustic text-white text-2xl block mb-2 tracking-tight">Sea of Blue</span>
-          <p className="text-white/40">Private beta cleaning network.</p>
+          <p className="text-white/40">Private beta home service network.</p>
         </div>
         <div className="text-white/40">
           <p>Ontario, Canada.</p>

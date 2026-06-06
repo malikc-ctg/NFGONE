@@ -40,7 +40,7 @@ export function Contact() {
               ref={headlineRef}
               className="font-rustic text-white text-4xl md:text-6xl leading-snug"
             >
-              Ready to join Ontario&apos;s trusted cleaning network?
+              Ready to join Ontario&apos;s trusted home service network?
             </h2>
             <p className="text-white/50 text-lg mt-6 leading-relaxed">
               Sea of Blue will expand into additional home service categories in future releases, including landscaping, lawn care, junk removal, handyman services, painting, plumbing, electrical, HVAC, and more.

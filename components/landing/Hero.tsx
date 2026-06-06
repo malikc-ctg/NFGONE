@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef } from 'react';
-import { useParallaxLayer, useMouseParallax, useLineReveal } from '@/lib/motion/hooks';
+import { useParallaxLayer, useMouseParallax, useFadeIn, useLineReveal } from '@/lib/motion/hooks';
 
 export function Hero() {
   const sectionRef = useRef<HTMLElement>(null);
@@ -21,8 +21,8 @@ export function Hero() {
   useMouseParallax(midRef, 10);
   useMouseParallax(fgRef, 18);
 
-  // Headline reveal
-  useLineReveal(headlineRef, { delay: 0.3, stagger: 0.15, duration: 1.4 });
+  // Headline reveal (now logo)
+  useFadeIn(headlineRef, { delay: 0.3, duration: 1.4, y: 30 });
   useLineReveal(subRef, { delay: 0.8, stagger: 0.1, duration: 1.0 });
 
   return (
@@ -72,18 +72,22 @@ export function Hero() {
       </div>
 
       {/* Content */}
-      <div className="relative z-10 text-center px-4 max-w-5xl mx-auto">
+      <div className="relative z-10 text-center px-4 max-w-5xl mx-auto flex flex-col items-center">
         <h1
           ref={headlineRef}
-          className="font-rustic text-white text-7xl md:text-[10rem] lg:text-[14rem] leading-[0.85] tracking-tight mb-8 uppercase"
+          className="mb-8 flex justify-center w-full"
         >
-          SEA OF BLUE
+          <img
+            src="/logo.png"
+            alt="Sea of Blue"
+            className="w-auto h-[120px] md:h-[200px] lg:h-[260px] object-contain select-none pointer-events-none"
+          />
         </h1>
         <p
           ref={subRef}
-          className="text-white/60 text-xl md:text-2xl lg:text-3xl tracking-wide"
+          className="text-white/60 text-xl md:text-2xl lg:text-3xl tracking-wide uppercase"
         >
-          Ontario&apos;s Cleaning Network
+          Home Service Network
         </p>
       </div>
 
