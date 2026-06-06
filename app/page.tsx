@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { Preloader } from '@/components/landing/Preloader';
-import { StartGate } from '@/components/landing/StartGate';
 import { Hero } from '@/components/landing/Hero';
 import { BrandStatement } from '@/components/landing/BrandStatement';
 import { Services } from '@/components/landing/Services';
@@ -15,11 +14,10 @@ import { useLenis } from '@/lib/motion/LenisProvider';
 
 export default function LandingPage() {
   const [preloaderDone, setPreloaderDone] = useState(false);
-  const [gateDismissed, setGateDismissed] = useState(false);
   const { startScroll } = useLenis();
 
-  const handleStart = () => {
-    setGateDismissed(true);
+  const handlePreloaderComplete = () => {
+    setPreloaderDone(true);
     startScroll();
   };
 
@@ -27,15 +25,10 @@ export default function LandingPage() {
     <main className="bg-[#001a36] min-h-screen text-white overflow-hidden selection:bg-white/20">
       {/* 1. Preloader */}
       {!preloaderDone && (
-        <Preloader onComplete={() => setPreloaderDone(true)} />
+        <Preloader onComplete={handlePreloaderComplete} />
       )}
 
-      {/* 2. Start Gate (shows after preloader) */}
-      {preloaderDone && !gateDismissed && (
-        <StartGate onStart={handleStart} />
-      )}
-
-      {/* 3. Main Experience (visible underneath gate) */}
+      {/* Main Experience */}
       <Navigation />
       <Hero />
       <BrandStatement />
