@@ -60,10 +60,14 @@ export function Navigation() {
         {/* Logo */}
         <button
           onClick={() => scrollTo('hero')}
-          className="font-rustic text-white text-xl tracking-tight focus:outline-none focus:ring-2 focus:ring-white/40 rounded"
+          className="flex items-center justify-start focus:outline-none focus:ring-2 focus:ring-white/40 rounded-sm transition-opacity hover:opacity-80"
           aria-label="Scroll to top"
         >
-          Sea of Blue
+          <img
+            src="/nav-logo.png"
+            alt="Sea of Blue"
+            className="h-5 w-auto object-contain"
+          />
         </button>
 
         {/* Nav items — hidden on mobile */}
