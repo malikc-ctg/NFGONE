@@ -13,10 +13,35 @@ const NAV_ITEMS = [
 export function Navigation() {
   const [activeSection, setActiveSection] = useState('hero');
   const [visible, setVisible] = useState(false);
+  const [scrolledUp, setScrolledUp] = useState(true);
+  const [isScrolled, setIsScrolled] = useState(false);
+  const lastScrollY = useRef(0);
 
   useEffect(() => {
     // Show nav after a brief delay (after gate dismissal)
     const timer = setTimeout(() => setVisible(true), 100);
+
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+
+      // Determine scrolled state (for background glassmorphism)
+      setIsScrolled(currentScrollY > 10);
+
+      // Near top of the page: always show navigation
+      if (currentScrollY < 50) {
+        setScrolledUp(true);
+      } else if (currentScrollY > lastScrollY.current) {
+        // Scrolling down: hide navigation
+        setScrolledUp(false);
+      } else {
+        // Scrolling up: show navigation
+        setScrolledUp(true);
+      }
+
+      lastScrollY.current = currentScrollY;
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
 
     // Use IntersectionObserver for active section tracking
     const observers: IntersectionObserver[] = [];
@@ -39,6 +64,7 @@ export function Navigation() {
 
     return () => {
       clearTimeout(timer);
+      window.removeEventListener('scroll', handleScroll);
       observers.forEach((obs) => obs.disconnect());
     };
   }, []);
@@ -52,8 +78,12 @@ export function Navigation() {
 
   return (
     <header
-      className={`fixed top-0 left-0 right-0 z-[80] transition-opacity duration-700 ${
+      className={`fixed top-0 left-0 right-0 z-[80] transition-all duration-300 ${
         visible ? 'opacity-100' : 'opacity-0 pointer-events-none'
+      } ${
+        scrolledUp ? 'translate-y-0' : '-translate-y-full'
+      } ${
+        isScrolled ? 'bg-[#010A14]/80 backdrop-blur-md border-b border-white/5' : 'bg-transparent'
       }`}
     >
       <div className="container max-w-7xl mx-auto px-6 flex items-center justify-between h-16">
