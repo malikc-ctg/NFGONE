@@ -1,25 +1,18 @@
 'use client';
 
 import { useRef } from 'react';
-import { useParallaxLayer, useMouseParallax, useFadeIn, useLineReveal } from '@/lib/motion/hooks';
+import { useParallaxLayer, useFadeIn, useLineReveal } from '@/lib/motion/hooks';
 
 export function Hero() {
   const sectionRef = useRef<HTMLElement>(null);
   const bgRef = useRef<HTMLDivElement>(null);
   const midRef = useRef<HTMLDivElement>(null);
-  const fgRef = useRef<HTMLDivElement>(null);
   const headlineRef = useRef<HTMLHeadingElement>(null);
   const subRef = useRef<HTMLParagraphElement>(null);
 
   // Parallax at different speeds
   useParallaxLayer(bgRef, -0.15);
   useParallaxLayer(midRef, -0.3);
-  useParallaxLayer(fgRef, -0.5);
-
-  // Mouse parallax at different intensities
-  useMouseParallax(bgRef, 5);
-  useMouseParallax(midRef, 10);
-  useMouseParallax(fgRef, 18);
 
   // Headline reveal (now logo)
   useFadeIn(headlineRef, { delay: 0.3, duration: 1.4, y: 30 });
@@ -54,19 +47,6 @@ export function Hero() {
           src="/hero-mid.png"
           alt=""
           className="w-full h-full object-cover"
-          aria-hidden="true"
-        />
-      </div>
-
-      {/* Foreground — blur shape */}
-      <div
-        ref={fgRef}
-        className="parallax-layer absolute bottom-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] opacity-20"
-      >
-        <img
-          src="/blur-shape.png"
-          alt=""
-          className="w-full h-full object-contain"
           aria-hidden="true"
         />
       </div>
