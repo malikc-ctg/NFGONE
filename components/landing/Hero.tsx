@@ -1,57 +1,28 @@
 'use client';
 
 import { useRef } from 'react';
-import { useParallaxLayer, useFadeIn, useLineReveal } from '@/lib/motion/hooks';
+import { useFadeIn, useLineReveal } from '@/lib/motion/hooks';
+import { OceanCanvas } from '@/components/landing/OceanCanvas';
 
 export function Hero() {
-  const sectionRef = useRef<HTMLElement>(null);
-  const bgRef = useRef<HTMLDivElement>(null);
-  const midRef = useRef<HTMLDivElement>(null);
-  const headlineRef = useRef<HTMLHeadingElement>(null);
-  const subRef = useRef<HTMLParagraphElement>(null);
+  const sectionRef   = useRef<HTMLElement>(null);
+  const headlineRef  = useRef<HTMLHeadingElement>(null);
+  const subRef       = useRef<HTMLParagraphElement>(null);
 
-  // Parallax at different speeds
-  useParallaxLayer(bgRef, -0.15);
-  useParallaxLayer(midRef, -0.3);
-
-  // Headline reveal (now logo)
   useFadeIn(headlineRef, { delay: 0.3, duration: 1.4, y: 30 });
-  useLineReveal(subRef, { delay: 0.8, stagger: 0.1, duration: 1.0 });
+  useLineReveal(subRef,  { delay: 0.8, stagger: 0.1, duration: 1.0 });
 
   return (
     <section
       ref={sectionRef}
       id="hero"
       className="relative min-h-screen flex items-center justify-center overflow-hidden"
-      style={{ backgroundColor: '#001a36' }}
+      style={{ backgroundColor: '#010A14' }}
     >
-      {/* Background layer — slowest parallax */}
-      <div
-        ref={bgRef}
-        className="parallax-layer absolute inset-0 w-full h-[120%] -top-[10%]"
-      >
-        <img
-          src="/hero-bg.png"
-          alt=""
-          className="w-full h-full object-cover"
-          aria-hidden="true"
-        />
-      </div>
+      {/* WebGL ocean environment — hero only */}
+      <OceanCanvas />
 
-      {/* Mid layer */}
-      <div
-        ref={midRef}
-        className="parallax-layer absolute inset-0 w-full h-[130%] -top-[15%] opacity-40 mix-blend-screen"
-      >
-        <img
-          src="/hero-mid.png"
-          alt=""
-          className="w-full h-full object-cover"
-          aria-hidden="true"
-        />
-      </div>
-
-      {/* Content */}
+      {/* Content — sits above the ocean */}
       <div className="relative z-10 text-center px-4 max-w-5xl mx-auto flex flex-col items-center">
         <h1
           ref={headlineRef}
@@ -72,7 +43,7 @@ export function Hero() {
       </div>
 
       {/* Wave divider at bottom */}
-      <div className="absolute bottom-0 left-0 w-full">
+      <div className="absolute bottom-0 left-0 w-full z-10">
         <svg
           viewBox="0 0 1440 120"
           fill="none"
