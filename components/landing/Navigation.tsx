@@ -94,9 +94,9 @@ export function Navigation() {
           aria-label="Scroll to top"
         >
           <img
-            src="/nav-logo.png"
+            src="/nav-logo.png?v=2"
             alt="Sea of Blue"
-            className="h-5 w-auto object-contain"
+            className="h-4 w-auto object-contain"
           />
         </button>
 
