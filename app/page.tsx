@@ -7,7 +7,7 @@ import { Hero } from '@/components/landing/Hero';
 import { BrandStatement } from '@/components/landing/BrandStatement';
 import { Services } from '@/components/landing/Services';
 import { KineticTypography } from '@/components/landing/KineticTypography';
-import { Testimonials } from '@/components/landing/Testimonials';
+import { ContractorComparison } from '@/components/landing/ContractorComparison';
 import { Contact } from '@/components/landing/Contact';
 import { Navigation } from '@/components/landing/Navigation';
 import { Footer } from '@/components/landing/Footer';
@@ -41,7 +41,7 @@ export default function LandingPage() {
       <BrandStatement />
       <Services />
       <KineticTypography />
-      <Testimonials />
+      <ContractorComparison />
       <Contact />
       <Footer />
     </main>
