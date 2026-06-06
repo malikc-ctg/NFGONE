@@ -66,7 +66,7 @@ export function Navigation() {
           <img
             src="/nav-logo.png"
             alt="Sea of Blue"
-            className="h-5 w-auto object-contain"
+            className="h-8 w-auto object-contain"
           />
         </button>
 
