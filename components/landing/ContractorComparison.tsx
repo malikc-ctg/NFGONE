@@ -17,6 +17,12 @@ const comparisonData = [
     goingSolo: '✕',
   },
   {
+    feature: 'No Cost Per Lead',
+    seaOfBlue: '✓',
+    leadPlatforms: '✕',
+    goingSolo: '✕',
+  },
+  {
     feature: 'Dedicated Dispatch Support',
     seaOfBlue: '✓',
     leadPlatforms: '✕',
