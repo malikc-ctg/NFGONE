@@ -31,7 +31,7 @@ export function Hero() {
           <img
             src="/logo.png"
             alt="Sea of Blue"
-            className="w-auto h-[500px] md:h-[800px] lg:h-[1100px] object-contain select-none pointer-events-none -my-[140px] md:-my-[240px] lg:-my-[320px]"
+            className="w-auto h-[280px] sm:h-[450px] md:h-[800px] lg:h-[1100px] object-contain select-none pointer-events-none -my-[80px] sm:-my-[140px] md:-my-[240px] lg:-my-[320px]"
           />
         </h1>
         <p

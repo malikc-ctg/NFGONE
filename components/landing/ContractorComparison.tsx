@@ -63,6 +63,9 @@ export function ContractorComparison() {
           <p className="text-white/60 text-xl md:text-2xl font-light">
             Less time chasing leads. More time doing the work.
           </p>
+          <p className="text-white/30 text-xs mt-6 block md:hidden text-center animate-pulse tracking-wider">
+            Swipe left/right to view full comparison table ↔
+          </p>
         </div>
 
         <div ref={tableRef} className="w-full overflow-x-auto pb-8">

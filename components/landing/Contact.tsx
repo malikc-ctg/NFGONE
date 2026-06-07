@@ -22,9 +22,9 @@ export function Contact() {
           Apply
         </p>
 
-        <div className="grid md:grid-cols-10 gap-12 md:gap-16 items-center">
+        <div className="grid md:grid-cols-12 gap-12 md:gap-16 items-center">
           {/* Left: Headline */}
-          <div className="md:col-span-5">
+          <div className="md:col-span-6">
             <h2
               ref={headlineRef}
               className="font-rustic text-white text-4xl md:text-6xl leading-snug"
@@ -37,7 +37,7 @@ export function Contact() {
           </div>
 
           {/* Right: CTA Card */}
-          <div ref={cardRef} className="md:col-span-5 md:col-start-7">
+          <div ref={cardRef} className="md:col-span-5 md:col-start-8">
             <div className="bg-[#0B3D6E]/20 backdrop-blur border border-white/10 p-8 md:p-10 rounded-lg flex flex-col gap-6">
               <h3 className="font-rustic text-white text-2xl tracking-wide">
                 Join the Provider Network
