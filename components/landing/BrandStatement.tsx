@@ -48,13 +48,10 @@ export function BrandStatement() {
           className="font-rustic text-white text-3xl md:text-5xl lg:text-6xl leading-snug max-w-4xl space-y-8"
         >
           <p>
-            Sea of Blue is a private home services network currently launching in beta with cleaning professionals, cleaning teams, and cleaning companies.
+            Sea of Blue is a private home services network currently accepting beta applications from cleaning professionals, cleaning teams, and cleaning companies.
           </p>
           <p>
-            We are building a selective contractor network focused on reliability, communication, and professional service standards. Every application is manually reviewed before approval, and acceptance is not guaranteed.
-          </p>
-          <p>
-            Our goal is simple: connect quality cleaning providers with real service opportunities while giving customers a more organized, trusted way to book home services.
+            Every application is manually reviewed to help us build a reliable network of trusted providers. Approval is selective and not guaranteed.
           </p>
         </div>
 
