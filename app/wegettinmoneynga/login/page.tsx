@@ -36,7 +36,7 @@ function AdminLoginContent() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4">
+    <div className="min-h-screen flex items-center justify-center bg-background text-foreground dark px-4">
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center space-y-4">
           <img src="/logo.png" alt="Sea of Blue Logo" className="mx-auto w-80 h-80 object-contain" />
