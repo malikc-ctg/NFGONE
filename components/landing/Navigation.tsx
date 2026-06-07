@@ -7,7 +7,7 @@ const NAV_ITEMS = [
   { label: 'Intro', target: 'hero' },
   { label: 'Services', target: 'services' },
   { label: 'About', target: 'about' },
-  { label: 'Contact', target: 'contact' },
+  { label: 'Apply', target: 'contact' },
 ];
 
 export function Navigation() {
