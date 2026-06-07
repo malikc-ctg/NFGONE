@@ -129,6 +129,11 @@ export function Footer() {
                 </Link>
               </li>
               <li>
+                <Link href="/booking" className="hover:text-white transition-colors">
+                  Customer Portal
+                </Link>
+              </li>
+              <li>
                 <Link href="/partner" className="hover:text-white transition-colors">
                   Partner Portal
                 </Link>
