@@ -257,7 +257,7 @@ export function AdminDashboard() {
                   </div>
                 </div>
               ))}
-              <Link href="/admin/zones">
+              <Link href="/wegettinmoneynga/zones">
                 <button className="w-full py-3 mt-2 rounded-xl text-xs font-bold text-muted-foreground hover:bg-muted hover:text-foreground transition-all uppercase tracking-widest border border-dashed border-border">
                   Manage GTA Zones
                 </button>

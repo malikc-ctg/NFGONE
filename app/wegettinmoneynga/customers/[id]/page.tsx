@@ -27,7 +27,7 @@ export default function CustomerDetailPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
-        <Link href="/admin/customers"><Button variant="ghost" size="sm"><ArrowLeft className="h-4 w-4 mr-1" />Back</Button></Link>
+        <Link href="/wegettinmoneynga/customers"><Button variant="ghost" size="sm"><ArrowLeft className="h-4 w-4 mr-1" />Back</Button></Link>
         <h1 className="text-2xl font-bold">{customer.full_name}</h1>
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

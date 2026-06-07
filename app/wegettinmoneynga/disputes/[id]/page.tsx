@@ -113,7 +113,7 @@ export default function DisputeDetailPage() {
   return (
     <div className="p-8 space-y-6 max-w-5xl mx-auto">
       <div className="flex items-center gap-3">
-        <Link href="/admin/disputes" className="p-2 hover:bg-muted rounded-lg transition-colors">
+        <Link href="/wegettinmoneynga/disputes" className="p-2 hover:bg-muted rounded-lg transition-colors">
           <ArrowLeft className="h-4 w-4 text-muted-foreground" />
         </Link>
         <div>

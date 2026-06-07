@@ -116,7 +116,7 @@ export default function JobDetailPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
-        <Link href="/admin/jobs"><Button variant="ghost" size="sm"><ArrowLeft className="h-4 w-4 mr-1" />Back</Button></Link>
+        <Link href="/wegettinmoneynga/jobs"><Button variant="ghost" size="sm"><ArrowLeft className="h-4 w-4 mr-1" />Back</Button></Link>
         <div>
           <h1 className="text-2xl font-bold">{job.job_number}</h1>
           <StatusBadge status={job.status} />
@@ -179,7 +179,7 @@ export default function JobDetailPage() {
           <CardContent className="space-y-3 text-sm">
             {customer ? (
               <>
-                <div className="flex justify-between"><span className="text-muted-foreground">Name</span><Link href={`/admin/customers/${customer.id}`} className="text-primary hover:underline">{customer.full_name}</Link></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Name</span><Link href={`/wegettinmoneynga/customers/${customer.id}`} className="text-primary hover:underline">{customer.full_name}</Link></div>
                 <div className="flex justify-between"><span className="text-muted-foreground">Phone</span><span>{customer.phone}</span></div>
                 <div className="flex justify-between"><span className="text-muted-foreground">Email</span><span>{customer.email}</span></div>
               </>
@@ -193,7 +193,7 @@ export default function JobDetailPage() {
           <CardContent className="space-y-3 text-sm">
             {contractor ? (
               <>
-                <div className="flex justify-between"><span className="text-muted-foreground">Name</span><Link href={`/admin/contractors/${contractor.id}`} className="text-primary hover:underline">{contractor.full_name}</Link></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Name</span><Link href={`/wegettinmoneynga/contractors/${contractor.id}`} className="text-primary hover:underline">{contractor.full_name}</Link></div>
                 <div className="flex justify-between"><span className="text-muted-foreground">Phone</span><span>{contractor.phone}</span></div>
                 <div className="flex justify-between"><span className="text-muted-foreground">Score</span><span>{contractor.score}/5.00</span></div>
                 <div className="flex justify-between"><span className="text-muted-foreground">Tier</span><span className="capitalize">{contractor.tier}</span></div>

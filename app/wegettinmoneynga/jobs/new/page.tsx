@@ -168,7 +168,7 @@ export default function NewJobPage() {
       }
       const job = await res.json();
       toast.success(`Job ${job.job_number} created! Dispatching offers...`);
-      router.push('/admin/jobs');
+      router.push('/wegettinmoneynga/jobs');
     } catch (err: any) {
       toast.error(err.message);
     } finally {
@@ -189,7 +189,7 @@ export default function NewJobPage() {
     <div className="max-w-2xl mx-auto space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
-        <Link href="/admin/jobs">
+        <Link href="/wegettinmoneynga/jobs">
           <Button variant="ghost" size="sm"><ArrowLeft className="h-4 w-4 mr-1" />Back</Button>
         </Link>
         <div>

@@ -24,7 +24,7 @@ export default function ApplicationDetailPage() {
   useEffect(() => {
     async function fetchApp() {
       try {
-        const res = await fetch(`/api/admin/contractor-applications/${params.id}`);
+        const res = await fetch(`/api/wegettinmoneynga/contractor-applications/${params.id}`);
         const data = await res.json();
         if (res.ok) {
           setApp(data);
@@ -45,7 +45,7 @@ export default function ApplicationDetailPage() {
   const handleSaveReview = async () => {
     setIsSaving(true);
     try {
-      const res = await fetch(`/api/admin/contractor-applications/${params.id}`, {
+      const res = await fetch(`/api/wegettinmoneynga/contractor-applications/${params.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status, internal_notes: internalNotes }),
@@ -89,7 +89,7 @@ export default function ApplicationDetailPage() {
   return (
     <div className="space-y-6 max-w-5xl mx-auto pb-12">
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => router.push('/admin/contractors')} className="h-8 w-8">
+        <Button variant="ghost" size="icon" onClick={() => router.push('/wegettinmoneynga/contractors')} className="h-8 w-8">
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div>
@@ -330,7 +330,7 @@ export default function ApplicationDetailPage() {
                     <p className="text-xs text-muted-foreground mb-3 leading-tight">
                       This applicant has been approved. You can now invite them as a contractor.
                     </p>
-                    <Link href="/admin/contractors">
+                    <Link href="/wegettinmoneynga/contractors">
                       <Button variant="outline" className="w-full border-green-200 text-green-700 hover:bg-green-50">
                         Go to Add Contractor
                       </Button>

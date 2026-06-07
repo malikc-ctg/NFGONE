@@ -122,7 +122,7 @@ export default function DisputesPage() {
                   </td>
                   <td className="px-4 py-3.5 text-muted-foreground text-xs">{format(new Date(d.created_at), 'MMM d, yyyy')}</td>
                   <td className="px-4 py-3.5">
-                    <Link href={`/admin/disputes/${d.id}`} className="text-primary hover:underline flex items-center gap-0.5 text-xs">
+                    <Link href={`/wegettinmoneynga/disputes/${d.id}`} className="text-primary hover:underline flex items-center gap-0.5 text-xs">
                       Review <ChevronRight className="h-3 w-3" />
                     </Link>
                   </td>

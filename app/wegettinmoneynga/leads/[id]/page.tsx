@@ -70,7 +70,7 @@ export default function LeadDetailPage() {
       }
       const job = await res.json();
       toast.success('Lead converted to job');
-      router.push(`/admin/jobs/${job.id}`);
+      router.push(`/wegettinmoneynga/jobs/${job.id}`);
     } catch (err: unknown) {
       toast.error((err as Error).message);
     }
@@ -92,7 +92,7 @@ export default function LeadDetailPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
-        <Link href="/admin/leads"><Button variant="ghost" size="sm"><ArrowLeft className="h-4 w-4 mr-1" />Back</Button></Link>
+        <Link href="/wegettinmoneynga/leads"><Button variant="ghost" size="sm"><ArrowLeft className="h-4 w-4 mr-1" />Back</Button></Link>
         <h1 className="text-2xl font-bold">Lead: {lead.customer_name ?? 'Unknown'}</h1>
       </div>
 

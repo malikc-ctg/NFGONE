@@ -30,7 +30,7 @@ replaceInFile('components/admin/map/AdminMapDashboard.tsx', [
     { from: /supabase\.removeChannel/, to: "supabaseRef.current.removeChannel" }
 ]);
 
-replaceInFile('app/admin/settings/page.tsx', [
+replaceInFile('app/wegettinmoneynga/settings/page.tsx', [
     { from: /import \{ Plus, X \} from 'lucide-react';/, to: "import { Plus } from 'lucide-react';" },
     { from: 'const [zones, setZones] = useState<any[]>([]);', to: 'const [zones, setZones] = useState<Record<string, unknown>[]>([]);' }
 ]);
@@ -97,7 +97,7 @@ replaceInFile('lib/supabase/middleware.ts', [
     { from: '({ name, value, options })', to: '({ name, value })' }
 ]);
 
-replaceInFile('app/admin/leads/page.tsx', [
+replaceInFile('app/wegettinmoneynga/leads/page.tsx', [
     { from: /import \{ Card, CardContent, CardHeader, CardTitle \} from '@\/components\/ui\/card';/, to: "import { Card, CardContent } from '@/components/ui/card';" },
     { from: /import \{ MapPin, Phone, Mail \} from 'lucide-react';/, to: "import { MapPin } from 'lucide-react';" }
 ]);

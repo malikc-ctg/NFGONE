@@ -52,7 +52,7 @@ export default function CustomersPage() {
                   <TableCell className="text-xs">{c.phone}</TableCell>
                   <TableCell className="text-xs">{c.city ?? '—'}</TableCell>
                   <TableCell className="text-xs">{c.is_active ? '✓ Active' : 'Inactive'}</TableCell>
-                  <TableCell><Link href={`/admin/customers/${c.id}`}><Button variant="ghost" size="sm">View</Button></Link></TableCell>
+                  <TableCell><Link href={`/wegettinmoneynga/customers/${c.id}`}><Button variant="ghost" size="sm">View</Button></Link></TableCell>
                 </TableRow>
               ))}
             </TableBody>

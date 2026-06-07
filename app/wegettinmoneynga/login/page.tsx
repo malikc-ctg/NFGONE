@@ -25,7 +25,7 @@ function AdminLoginContent() {
       const supabase = createClient();
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
-      const redirect = searchParams.get('redirect') ?? '/admin';
+      const redirect = searchParams.get('redirect') ?? '/wegettinmoneynga';
       window.location.href = redirect;
     } catch (err: unknown) {
       console.error('Login error:', err);

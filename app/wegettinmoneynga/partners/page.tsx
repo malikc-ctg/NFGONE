@@ -141,7 +141,7 @@ export default function PartnersPage() {
                   </td>
                   <td className="px-4 py-3.5 text-muted-foreground text-xs">{format(new Date(p.created_at), 'MMM d, yyyy')}</td>
                   <td className="px-4 py-3.5">
-                    <Link href={`/admin/partners/${p.id}`} className="text-primary hover:underline flex items-center gap-1 text-xs">
+                    <Link href={`/wegettinmoneynga/partners/${p.id}`} className="text-primary hover:underline flex items-center gap-1 text-xs">
                       View <ExternalLink className="h-3 w-3" />
                     </Link>
                   </td>

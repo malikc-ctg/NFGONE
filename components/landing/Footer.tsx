@@ -129,11 +129,6 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/admin/login" className="hover:text-white transition-colors">
-                  Admin Portal
-                </Link>
-              </li>
-              <li>
                 <Link href="/partner" className="hover:text-white transition-colors">
                   Partner Portal
                 </Link>

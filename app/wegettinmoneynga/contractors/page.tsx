@@ -39,7 +39,7 @@ export default function ContractorsPage() {
   }
 
   async function fetchApplications() {
-    const res = await fetch('/api/admin/contractor-applications');
+    const res = await fetch('/api/wegettinmoneynga/contractor-applications');
     const data = await res.json();
     setApplications(Array.isArray(data) ? data : []);
     setLoadingApplications(false);
@@ -215,7 +215,7 @@ export default function ContractorsPage() {
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
-                            <Link href={`/admin/contractors/${c.id}`}>
+                            <Link href={`/wegettinmoneynga/contractors/${c.id}`}>
                               <Button variant="ghost" size="sm">View</Button>
                             </Link>
                             <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-700 hover:bg-red-50" onClick={() => handleDelete(c.id, c.full_name)}>
@@ -283,7 +283,7 @@ export default function ContractorsPage() {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <Link href={`/admin/contractors/applications/${app.id}`}>
+                        <Link href={`/wegettinmoneynga/contractors/applications/${app.id}`}>
                           <Button variant="ghost" size="sm" className="flex items-center gap-2">
                             <Eye className="h-4 w-4" /> View
                           </Button>

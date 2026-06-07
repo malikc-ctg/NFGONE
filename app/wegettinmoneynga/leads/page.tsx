@@ -274,7 +274,7 @@ export default function LeadsPage() {
                     </TableCell>
                     <TableCell className="text-xs">{lead.quoted_price ? `$${lead.quoted_price}` : '—'}</TableCell>
                     <TableCell>
-                      <Link href={`/admin/leads/${lead.id}`}>
+                      <Link href={`/wegettinmoneynga/leads/${lead.id}`}>
                         <Button variant="ghost" size="sm">View</Button>
                       </Link>
                     </TableCell>

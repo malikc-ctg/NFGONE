@@ -103,7 +103,7 @@ export default function ContractorDetailPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
-        <Link href="/admin/contractors"><Button variant="ghost" size="sm"><ArrowLeft className="h-4 w-4 mr-1" />Back</Button></Link>
+        <Link href="/wegettinmoneynga/contractors"><Button variant="ghost" size="sm"><ArrowLeft className="h-4 w-4 mr-1" />Back</Button></Link>
         <div>
           <h1 className="text-2xl font-bold">{contractor.full_name}</h1>
           <div className="flex gap-2 mt-1">

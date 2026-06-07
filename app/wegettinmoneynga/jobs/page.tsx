@@ -50,7 +50,7 @@ export default function JobsPage() {
           <h1 className="text-xl md:text-2xl font-bold tracking-tight">Jobs</h1>
           <p className="text-muted-foreground text-sm">{filtered.length} jobs</p>
         </div>
-        <Link href="/admin/jobs/new">
+        <Link href="/wegettinmoneynga/jobs/new">
           <Button><Plus className="h-4 w-4 mr-2" />Create Job</Button>
         </Link>
       </div>
@@ -104,7 +104,7 @@ export default function JobsPage() {
                     <TableCell className="text-xs font-medium">${job.quoted_price}</TableCell>
                     <TableCell className="text-xs hidden md:table-cell">{(job as any).contractor?.full_name ?? '—'}</TableCell>
                     <TableCell>
-                      <Link href={`/admin/jobs/${job.id}`}>
+                      <Link href={`/wegettinmoneynga/jobs/${job.id}`}>
                         <Button variant="ghost" size="sm">View</Button>
                       </Link>
                     </TableCell>

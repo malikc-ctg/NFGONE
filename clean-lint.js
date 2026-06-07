@@ -18,7 +18,7 @@ function replaceInFile(path, replacements) {
     }
 }
 
-replaceInFile('app/admin/jobs/[id]/page.tsx', [
+replaceInFile('app/wegettinmoneynga/jobs/[id]/page.tsx', [
     { from: /import \{ Badge \} from '@\/components\/ui\/badge';\n/, to: '' },
     { from: /import \{ Input \} from '@\/components\/ui\/input';\n/, to: '' },
     { from: /import \{ Label \} from '@\/components\/ui\/label';\n/, to: '' },
@@ -30,33 +30,33 @@ replaceInFile('app/admin/jobs/[id]/page.tsx', [
     { from: /import \{ Clock, CheckCircle2 \} from 'lucide-react';\n/, to: '' }
 ]);
 
-replaceInFile('app/admin/jobs/page.tsx', [
+replaceInFile('app/wegettinmoneynga/jobs/page.tsx', [
     { from: /import \{ Calendar, MapPin, Search, Filter, ChevronRight, Plus \} from 'lucide-react';/, to: "import { Calendar, MapPin, Search, Filter, ChevronRight } from 'lucide-react';" }
 ]);
 
-replaceInFile('app/admin/layout.tsx', [
+replaceInFile('app/wegettinmoneynga/layout.tsx', [
     { from: /import \{ Home, Users, Map, Briefcase, Settings, Target, BarChart3, LogOut, DollarSign, ListTodo, Package \} from 'lucide-react';/, to: "import { Home, Users, Map, Briefcase, Settings, Target, BarChart3, LogOut, ListTodo, Package } from 'lucide-react';" }
 ]);
 
-replaceInFile('app/admin/leads/[id]/page.tsx', [
+replaceInFile('app/wegettinmoneynga/leads/[id]/page.tsx', [
     { from: /import \{ Badge \} from '@\/components\/ui\/badge';\n/, to: '' }
 ]);
 
-replaceInFile('app/admin/leads/page.tsx', [
+replaceInFile('app/wegettinmoneynga/leads/page.tsx', [
     { from: /import \{ MapPin, Phone, Mail \} from 'lucide-react';/, to: "import { MapPin } from 'lucide-react';" },
     { from: /} catch \(err\) {/, to: "} catch { // err removed" }
 ]);
 
-replaceInFile('app/admin/payouts/page.tsx', [
+replaceInFile('app/wegettinmoneynga/payouts/page.tsx', [
     { from: /import \{ Button \} from '@\/components\/ui\/button';\n/, to: '' }
 ]);
 
-replaceInFile('app/admin/supply/page.tsx', [
+replaceInFile('app/wegettinmoneynga/supply/page.tsx', [
     { from: /const \[creating, setCreating\] = useState\(false\);\n/, to: '' },
     { from: /const \[creating, setCreating\] = useState\(false\);/, to: '' }
 ]);
 
-replaceInFile('app/admin/teams/page.tsx', [
+replaceInFile('app/wegettinmoneynga/teams/page.tsx', [
     { from: /const \[zones, setZones\] = useState<Zone\[\]>\(\[\]\);\n/, to: '' },
     { from: /fetch\('\/api\/zones'\)\.then\(r => r\.json\(\)\),/, to: '' },
     { from: /\]\)\.then\(\(\[teamsData, zonesData\]\) => \{/, to: "]).then(([teamsData]) => {" },
