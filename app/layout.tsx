@@ -49,7 +49,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${inter.variable} ${rustic.variable} ${brice.variable}`}>
       <body className="font-sans antialiased">
-        <LenisProvider startPaused>
+        <LenisProvider>
           {children}
         </LenisProvider>
         <Toaster position="top-right" richColors />
