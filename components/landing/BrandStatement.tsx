@@ -45,7 +45,7 @@ export function BrandStatement() {
         {/* Main kinetic statement */}
         <div
           ref={statementRef}
-          className="font-rustic text-white text-3xl md:text-5xl lg:text-6xl leading-snug max-w-4xl space-y-8"
+          className="font-rustic text-white text-xl md:text-2xl lg:text-3xl leading-relaxed max-w-4xl space-y-6"
         >
           <p>
             Sea of Blue is a private home services network currently accepting beta applications from cleaning professionals, cleaning teams, and cleaning companies.
