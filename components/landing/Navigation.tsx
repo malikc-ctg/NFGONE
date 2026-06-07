@@ -112,7 +112,7 @@ export function Navigation() {
               aria-current={activeSection === target ? 'true' : undefined}
             >
               {/* Doubled label swap */}
-              <span className="block relative">
+              <span className="block relative overflow-hidden">
                 <span className="block transition-transform duration-400 group-hover:-translate-y-full">
                   {label}
                 </span>

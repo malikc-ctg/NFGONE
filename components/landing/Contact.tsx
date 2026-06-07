@@ -64,7 +64,7 @@ export function Contact() {
                   href="/apply"
                   className="group relative overflow-hidden bg-white text-[#001a36] px-12 py-4 text-sm tracking-[0.25em] uppercase font-medium hover:bg-white/90 transition-colors focus:outline-none focus:ring-2 focus:ring-white/60 inline-block text-center w-full"
                 >
-                  <span className="block relative">
+                  <span className="block relative overflow-hidden">
                     <span className="block transition-transform duration-500 group-hover:-translate-y-full">
                       Apply Now
                     </span>
