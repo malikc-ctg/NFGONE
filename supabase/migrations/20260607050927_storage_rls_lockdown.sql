@@ -1,5 +1,7 @@
--- Enable RLS on storage objects
-ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
+-- Note: RLS on storage.objects is managed by Supabase internally.
+-- Do NOT run ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY — it will fail (42501).
+-- Policies below are applied directly and work because Supabase already has RLS enabled.
+
 
 -- Admins can do everything
 DROP POLICY IF EXISTS "Admins have full access to storage" ON storage.objects;
