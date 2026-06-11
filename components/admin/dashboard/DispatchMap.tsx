@@ -11,7 +11,6 @@ import {
 } from 'lucide-react';
 import type { Job, Contractor } from '@/types';
 
-mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || '';
 
 // ---------- Color config ----------
 const STATUS_COLORS: Record<string, string> = {
@@ -146,6 +145,13 @@ export default function DispatchMap() {
   // ---------- Initialize map ----------
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) return;
+
+    const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+    if (!token) {
+      console.error('Mapbox token is missing — check NEXT_PUBLIC_MAPBOX_TOKEN in .env.local');
+      return;
+    }
+    mapboxgl.accessToken = token;
 
     const map = new mapboxgl.Map({
       container: mapContainerRef.current,

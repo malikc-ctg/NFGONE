@@ -5,7 +5,6 @@ import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { Navigation, Route, Clock } from 'lucide-react';
 
-mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || '';
 
 interface ContractorJobMapProps {
   jobLat: number;
@@ -27,6 +26,13 @@ export default function ContractorJobMap({ jobLat, jobLng, jobAddress }: Contrac
 
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) return;
+
+    const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+    if (!token) {
+      console.error('Mapbox token is missing — check NEXT_PUBLIC_MAPBOX_TOKEN in .env.local');
+      return;
+    }
+    mapboxgl.accessToken = token;
 
     const map = new mapboxgl.Map({
       container: mapContainerRef.current,
