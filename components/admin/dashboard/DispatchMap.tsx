@@ -155,7 +155,7 @@ export default function DispatchMap() {
 
     const map = new mapboxgl.Map({
       container: mapContainerRef.current,
-      style: 'mapbox://styles/mapbox/dark-v11',
+      style: 'mapbox://styles/xmalikjc/cmq9vl0he000x01s49ram288d',
       center: [-79.3832, 43.6532],
       zoom: 10.5,
       pitch: 0,
