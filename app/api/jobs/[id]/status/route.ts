@@ -1,8 +1,8 @@
-import { createServiceClient } from '@/lib/supabase/server';
+import { createServiceClient, createClient } from '@/lib/supabase/server';
 import { isValidTransition } from '@/lib/job-state-machine';
 import { NextRequest, NextResponse } from 'next/server';
 import type { JobStatus } from '@/types';
-import { requireAuth } from '@/lib/api-auth';
+import { requireRole, requireAuth } from '@/lib/api-auth';
 
 export async function PATCH(
   request: NextRequest,
@@ -12,6 +12,18 @@ export async function PATCH(
   // Auth check
   const auth = await requireAuth();
   if (auth instanceof NextResponse) return auth;
+
+    const supabaseClient = await createClient();
+    const { data: { user } } = await supabaseClient.auth.getUser();
+    
+    // Get user role
+    const { data: profile } = await supabaseClient
+      .from('profiles')
+      .select('role')
+      .eq('id', user?.id)
+      .single();
+    
+    const isAdmin = profile?.role === 'admin';
 
     const supabase = await createServiceClient();
     const { id } = params;
@@ -26,6 +38,11 @@ export async function PATCH(
 
     if (fetchError || !job) {
       return NextResponse.json({ error: 'Job not found' }, { status: 404 });
+    }
+
+    // Security Check: Only admin or the assigned contractor can update this job
+    if (!isAdmin && job.assigned_contractor_id !== user?.id) {
+      return NextResponse.json({ error: 'Unauthorized to update this job' }, { status: 403 });
     }
 
     // Validate transition

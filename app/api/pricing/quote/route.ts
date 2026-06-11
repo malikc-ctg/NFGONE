@@ -1,4 +1,4 @@
-import { createServiceClient } from '@/lib/supabase/server';
+import { createServiceClient, createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { applyDynamicPricing } from '@/lib/dynamic-pricing';
 import { rateLimit } from '@/lib/rate-limit';
@@ -72,13 +72,19 @@ export async function POST(request: NextRequest) {
     const finalPrice = basePrice + addOnsPrice;
     const deposit = Math.round(finalPrice * 0.3 * 100) / 100;
 
-    // Get customer credit balance if customer_id provided
+    // Get customer credit balance ONLY if they are authenticated as the customer
     let customerCredit = 0;
-    if (customer_id) {
+    const authClient = await createClient();
+    const { data: { user } } = await authClient.auth.getUser();
+
+    // Use the authenticated user's ID, ignore any arbitrary customer_id sent in the payload
+    const authCustomerId = user?.id;
+
+    if (authCustomerId) {
       const { data: customer } = await supabase
         .from('customers')
         .select('credit_balance')
-        .eq('id', customer_id)
+        .eq('id', authCustomerId)
         .single();
       customerCredit = (customer?.credit_balance as number) ?? 0;
     }

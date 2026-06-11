@@ -1,8 +1,13 @@
 import { NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
+import { requireRole } from '@/lib/api-auth';
 
 export async function DELETE(request: Request, { params }: { params: { id: string } }) {
   try {
+    // Admin-only action
+    const auth = await requireRole(['admin']);
+    if (auth instanceof NextResponse) return auth;
+
     const { id } = params;
     const supabase = await createServiceClient();
 
@@ -17,7 +22,21 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
       return NextResponse.json({ error: 'Contractor not found' }, { status: 404 });
     }
 
-    // 2. Delete the contractor record from the contractors table first
+    // 2. Safety check: block deletion if contractor has active/in-progress jobs
+    const { count: activeJobCount } = await supabase
+      .from('jobs')
+      .select('id', { count: 'exact', head: true })
+      .eq('assigned_contractor_id', id)
+      .in('status', ['confirmed', 'assigned', 'on_the_way', 'in_progress']);
+
+    if (activeJobCount && activeJobCount > 0) {
+      return NextResponse.json(
+        { error: `Cannot delete contractor with ${activeJobCount} active job(s). Complete or reassign them first.` },
+        { status: 400 }
+      );
+    }
+
+    // 3. Delete the contractor record from the contractors table first
     const { error: deleteContractorError } = await supabase
       .from('contractors')
       .delete()
@@ -27,7 +46,7 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
       throw deleteContractorError;
     }
 
-    // 3. Completely delete the user from Auth (this cascades to profiles)
+    // 4. Completely delete the user from Auth (this cascades to profiles)
     // Only do this if they actually have an auth account attached
     if (contractor.profile_id) {
       const { error: deleteAuthError } = await supabase.auth.admin.deleteUser(contractor.profile_id);
@@ -43,3 +62,4 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
     return NextResponse.json({ error: err.message || 'Internal Server Error' }, { status: 500 });
   }
 }
+

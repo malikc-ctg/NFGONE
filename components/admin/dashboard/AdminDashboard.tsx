@@ -1,16 +1,29 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
+import dynamic from 'next/dynamic';
 import { createClient } from '@/lib/supabase/client';
 import { 
   Briefcase, Radio, AlertCircle, 
   Search, MapPin, Clock, 
   ArrowRight, CheckCircle2, Waves,
-  TrendingUp, Calendar, Globe
+  TrendingUp, Calendar, Globe, Map, List
 } from 'lucide-react';
 import { format } from 'date-fns';
 import Link from 'next/link';
 import type { Job, Contractor, Zone } from '@/types';
+
+const DispatchMap = dynamic(() => import('./DispatchMap'), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-[calc(100vh-64px)] bg-black/90 flex items-center justify-center">
+      <div className="flex flex-col items-center gap-3">
+        <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+        <p className="text-white/40 text-xs">Initializing dispatch map...</p>
+      </div>
+    </div>
+  ),
+});
 
 
 export function AdminDashboard() {
@@ -20,6 +33,7 @@ export function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [isClient, setIsClient] = useState(false);
+  const [view, setView] = useState<'list' | 'map'>('list');
   
   const supabase = createClient();
   const supabaseRef = useRef(supabase);
@@ -94,6 +108,24 @@ export function AdminDashboard() {
     );
   }
 
+  if (view === 'map') {
+    return (
+      <div className="relative">
+        {/* Map view header strip */}
+        <div className="absolute top-4 left-4 z-30 flex items-center gap-2">
+          <button
+            onClick={() => setView('list')}
+            className="flex items-center gap-2 px-3 py-2 bg-black/80 backdrop-blur border border-white/10 rounded-xl text-white/60 hover:text-white text-xs font-bold transition-colors"
+          >
+            <List className="h-3.5 w-3.5" />
+            List View
+          </button>
+        </div>
+        <DispatchMap />
+      </div>
+    );
+  }
+
   return (
     <div className="p-4 md:p-8 space-y-6 md:space-y-8 max-w-7xl mx-auto">
       {/* Header */}
@@ -105,11 +137,20 @@ export function AdminDashboard() {
           </div>
           <h1 className="text-2xl md:text-3xl font-black tracking-tight text-foreground">Dashboard</h1>
         </div>
-        <div className="sm:text-right">
-          <p className="text-sm font-medium text-foreground">
-            {isClient ? format(new Date(), 'EEEE, MMMM do') : '...'}
-          </p>
-          <p className="text-xs text-muted-foreground">Live updates enabled</p>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setView('map')}
+            className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-xl text-xs font-bold hover:opacity-90 transition-opacity"
+          >
+            <Map className="h-3.5 w-3.5" />
+            Operations Map
+          </button>
+          <div className="sm:text-right">
+            <p className="text-sm font-medium text-foreground">
+              {isClient ? format(new Date(), 'EEEE, MMMM do') : '...'}
+            </p>
+            <p className="text-xs text-muted-foreground">Live updates enabled</p>
+          </div>
         </div>
       </div>
 

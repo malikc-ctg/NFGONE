@@ -1,9 +1,14 @@
 import { NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
+import { requireRole } from '@/lib/api-auth';
 import { Resend } from 'resend';
 
 export async function POST(request: Request) {
   try {
+    // Admin-only action
+    const auth = await requireRole(['admin']);
+    if (auth instanceof NextResponse) return auth;
+
     if (!process.env.RESEND_API_KEY) {
       throw new Error('RESEND_API_KEY is not set in the environment variables');
     }
@@ -18,11 +23,14 @@ export async function POST(request: Request) {
 
     const supabase = await createServiceClient();
 
-    // 1. Check if user already exists
-    const { data: existingUser } = await supabase.auth.admin.listUsers();
-    const isExisting = existingUser?.users?.some(u => u.email === email);
+    // 1. Check if user already exists (efficient lookup via profiles table)
+    const { data: existingProfile } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('email', email)
+      .maybeSingle();
     
-    if (isExisting) {
+    if (existingProfile) {
         return NextResponse.json({ error: 'User with this email already exists' }, { status: 400 });
     }
 

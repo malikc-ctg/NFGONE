@@ -1,8 +1,13 @@
 import { createServiceClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
+import { requireRole } from '@/lib/api-auth';
 
 export async function GET(request: NextRequest) {
   try {
+    // Admin-only — exposes internal capacity data
+    const auth = await requireRole(['admin']);
+    if (auth instanceof NextResponse) return auth;
+
     const supabase = await createServiceClient();
     const { searchParams } = new URL(request.url);
     const zone_id = searchParams.get('zone_id');

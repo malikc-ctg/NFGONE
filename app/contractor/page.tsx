@@ -170,23 +170,17 @@ export default function ContractorDashboard() {
       // 2. Get public URL
       const { data: { publicUrl } } = supabase.storage.from('documents').getPublicUrl(fileName);
       
-      // 3. Update contractor JSON notes
-      const existingNotes = contractor.notes ? JSON.parse(contractor.notes) : {};
-      const updatedNotes = {
-          ...existingNotes,
-          insurance_details: {
-             ...existingNotes.insurance_details,
-             file_url: publicUrl,
-             uploaded_at: new Date().toISOString()
-          }
-      };
+      // 3. Save via secure backend endpoint
+      const response = await fetch('/api/contractors/me/insurance', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ file_url: publicUrl })
+      });
       
-      const { error: dbError } = await supabase
-        .from('contractors')
-        .update({ notes: JSON.stringify(updatedNotes) })
-        .eq('id', contractor.id);
-        
-      if (dbError) throw dbError;
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to save insurance document');
+      }
       
       toast.success('Insurance document uploaded successfully!');
       fetchData(); // Refresh data

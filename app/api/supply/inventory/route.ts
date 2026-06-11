@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getInventoryWithAlerts } from '@/lib/supply-management';
-import { requireAuth } from '@/lib/api-auth';
+import { requireRole } from '@/lib/api-auth';
 
 export async function GET(request: NextRequest) {
   try {
-  // Auth check
-  const auth = await requireAuth();
+  // Admin-only
+  const auth = await requireRole(['admin']);
   if (auth instanceof NextResponse) return auth;
 
     const { searchParams } = new URL(request.url);

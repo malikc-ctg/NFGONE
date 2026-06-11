@@ -1,11 +1,11 @@
 import { createServiceClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAuth } from '@/lib/api-auth';
+import { requireRole } from '@/lib/api-auth';
 
 export async function POST(request: NextRequest) {
   try {
-  // Auth check
-  const auth = await requireAuth();
+  // Admin-only
+  const auth = await requireRole(['admin']);
   if (auth instanceof NextResponse) return auth;
 
     const supabase = await createServiceClient();
@@ -36,8 +36,8 @@ export async function POST(request: NextRequest) {
 
 export async function GET() {
   try {
-  // Auth check
-  const auth = await requireAuth();
+  // Admin-only
+  const auth = await requireRole(['admin']);
   if (auth instanceof NextResponse) return auth;
 
     const supabase = await createServiceClient();

@@ -1,6 +1,6 @@
 import { createServiceClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAuth } from '@/lib/api-auth';
+import { requireRole } from '@/lib/api-auth';
 
 const POSTING_FEE_RATE = 0.05;   // 5% posting fee charged to partner
 const COMMISSION_RATE = 0.25;    // 25% commission earned by partner
@@ -11,7 +11,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const auth = await requireAuth();
+    const auth = await requireRole(['admin']);
     if (auth instanceof NextResponse) return auth;
 
     const supabase = await createServiceClient();

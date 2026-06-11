@@ -1,16 +1,39 @@
-import { createServiceClient } from '@/lib/supabase/server';
+import { createServiceClient, createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/api-auth';
 import { applyReferralCode, getCustomerReferrals, ensureCustomerReferralCode } from '@/lib/referral-engine';
 
 export async function GET(request: NextRequest) {
   // GET code for a customer, or apply code
   try {
+    const auth = await requireAuth();
+    if (auth instanceof NextResponse) return auth;
+
+    // Get the user's role and ID
+    const supabaseClient = await createClient();
+    const { data: { user } } = await supabaseClient.auth.getUser();
+    
+    let isAdmin = false;
+    if (user) {
+      const { data: profile } = await supabaseClient
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+      isAdmin = profile?.role === 'admin';
+    }
+
     const supabase = await createServiceClient();
     const { searchParams } = new URL(request.url);
     const customer_id = searchParams.get('customer_id');
     const action = searchParams.get('action');
 
     if (!customer_id) return NextResponse.json({ error: 'customer_id required' }, { status: 400 });
+
+    // Security Check: Only the customer or an admin can access this data
+    if (!isAdmin && user?.id !== customer_id) {
+      return NextResponse.json({ error: 'Unauthorized access to referral data' }, { status: 403 });
+    }
 
     if (action === 'history') {
       const referrals = await getCustomerReferrals(customer_id);

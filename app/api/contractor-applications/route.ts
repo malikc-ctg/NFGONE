@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
+import { rateLimit } from '@/lib/rate-limit';
 
 export async function POST(request: NextRequest) {
+  // Rate limit: 3 requests per minute per IP (public endpoint)
+  const limited = rateLimit(request, { maxRequests: 3, windowMs: 60_000 });
+  if (limited) return limited;
+
   try {
     const body = await request.json();
     

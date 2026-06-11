@@ -35,9 +35,20 @@ export async function updateSession(request: NextRequest) {
 
   // Refresh the session — this is critical for keeping cookies in sync
   // between the browser and the server.
-  await supabase.auth.getUser();
+  const { data: { user } } = await supabase.auth.getUser();
 
-  // Return the response with updated cookies — no redirects.
-  // Auth checks are handled by individual page components.
+  // Protect admin routes: redirect unauthenticated users to admin login
+  const pathname = request.nextUrl.pathname;
+  const isAdminRoute = pathname.startsWith('/wegettinmoneynga');
+  const isAdminLogin = pathname === '/wegettinmoneynga/login';
+  const isAdminApi = pathname.startsWith('/api/wegettinmoneynga');
+
+  if (isAdminRoute && !isAdminLogin && !isAdminApi && !user) {
+    const loginUrl = request.nextUrl.clone();
+    loginUrl.pathname = '/wegettinmoneynga/login';
+    loginUrl.searchParams.set('redirect', pathname);
+    return NextResponse.redirect(loginUrl);
+  }
+
   return supabaseResponse;
 }
