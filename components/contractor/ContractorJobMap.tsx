@@ -24,12 +24,16 @@ export default function ContractorJobMap({ jobLat, jobLng, jobAddress }: Contrac
   const [locating, setLocating] = useState(true);
   const [routeError, setRouteError] = useState(false);
   const [mapToken, setMapToken] = useState('');
+  const [mapStyle, setMapStyle] = useState('mapbox://styles/mapbox/dark-v11');
 
   // Fetch token from server at runtime
   useEffect(() => {
     fetch('/api/config')
       .then(r => r.json())
-      .then(cfg => { if (cfg.mapboxToken) setMapToken(cfg.mapboxToken); })
+      .then(cfg => { 
+        if (cfg.mapboxToken) setMapToken(cfg.mapboxToken); 
+        if (cfg.mapboxStyle) setMapStyle(cfg.mapboxStyle);
+      })
       .catch(() => {});
   }, []);
 
@@ -40,7 +44,7 @@ export default function ContractorJobMap({ jobLat, jobLng, jobAddress }: Contrac
 
     const map = new mapboxgl.Map({
       container: mapContainerRef.current,
-      style: 'mapbox://styles/xmalikjc/cmq9vl0he000x01s49ram288d',
+      style: mapStyle,
       center: [jobLng, jobLat],
       zoom: 12,
       interactive: true,
@@ -173,7 +177,7 @@ export default function ContractorJobMap({ jobLat, jobLng, jobAddress }: Contrac
     }
 
     return () => { map.remove(); mapRef.current = null; };
-  }, [jobLat, jobLng, jobAddress, mapToken]);
+  }, [jobLat, jobLng, jobAddress, mapToken, mapStyle]);
 
   return (
     <div className="space-y-2">

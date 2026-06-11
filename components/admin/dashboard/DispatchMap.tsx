@@ -101,6 +101,7 @@ export default function DispatchMap() {
   const [loading, setLoading] = useState(true);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
   const [mapToken, setMapToken] = useState<string>('');
+  const [mapStyle, setMapStyle] = useState<string>('mapbox://styles/mapbox/dark-v11');
   const [filters, setFilters] = useState<FilterState>({
     status: 'all',
     search: '',
@@ -131,11 +132,14 @@ export default function DispatchMap() {
     return () => clearInterval(interval);
   }, [fetchData]);
 
-  // ---------- Fetch Mapbox token ----------
+  // ---------- Fetch Mapbox token & style ----------
   useEffect(() => {
     fetch('/api/config')
       .then(r => r.json())
-      .then(cfg => { if (cfg.mapboxToken) setMapToken(cfg.mapboxToken); })
+      .then(cfg => { 
+        if (cfg.mapboxToken) setMapToken(cfg.mapboxToken); 
+        if (cfg.mapboxStyle) setMapStyle(cfg.mapboxStyle);
+      })
       .catch(() => {});
   }, []);
 
@@ -157,7 +161,7 @@ export default function DispatchMap() {
 
     const map = new mapboxgl.Map({
       container: mapContainerRef.current,
-      style: 'mapbox://styles/xmalikjc/cmq9vl0he000x01s49ram288d',
+      style: mapStyle,
       center: [-79.3832, 43.6532],
       zoom: 10.5,
       pitch: 0,
@@ -169,7 +173,7 @@ export default function DispatchMap() {
 
     map.on('load', () => setMapLoaded(true));
     return () => { map.remove(); mapRef.current = null; };
-  }, [mapToken]);
+  }, [mapToken, mapStyle]);
 
   // ---------- Render markers when data or filters change ----------
   useEffect(() => {

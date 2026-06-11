@@ -20,6 +20,6 @@ function getToken(): string {
 export async function GET() {
   return NextResponse.json({
     mapboxToken: getToken(),
-    mapboxStyle: process.env.NEXT_PUBLIC_MAPBOX_STYLE ?? 'mapbox://styles/xmalikjc/cmq9vl0he000x01s49ram288d',
+    mapboxStyle: process.env.NEXT_PUBLIC_MAPBOX_STYLE ?? 'mapbox://styles/mapbox/dark-v11',
   });
 }
