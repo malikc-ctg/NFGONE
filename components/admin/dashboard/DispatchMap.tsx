@@ -100,7 +100,7 @@ export default function DispatchMap() {
   const [mapData, setMapData] = useState<MapData>({ jobs: [], contractorLocations: [], zones: [] });
   const [loading, setLoading] = useState(true);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
-  const [selectedJob, setSelectedJob] = useState<any | null>(null);
+  const [mapToken, setMapToken] = useState<string>('');
   const [filters, setFilters] = useState<FilterState>({
     status: 'all',
     search: '',
@@ -131,7 +131,14 @@ export default function DispatchMap() {
     return () => clearInterval(interval);
   }, [fetchData]);
 
-  // ---------- Real-time contractor location updates ----------
+  // ---------- Fetch Mapbox token ----------
+  useEffect(() => {
+    fetch('/api/config')
+      .then(r => r.json())
+      .then(cfg => { if (cfg.mapboxToken) setMapToken(cfg.mapboxToken); })
+      .catch(() => {});
+  }, []);
+
   useEffect(() => {
     const channel = supabase
       .channel('contractor-locations-admin')
@@ -144,14 +151,9 @@ export default function DispatchMap() {
 
   // ---------- Initialize map ----------
   useEffect(() => {
-    if (!mapContainerRef.current || mapRef.current) return;
+    if (!mapContainerRef.current || mapRef.current || !mapToken) return;
 
-    const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
-    if (!token) {
-      console.error('Mapbox token is missing — check NEXT_PUBLIC_MAPBOX_TOKEN in .env.local');
-      return;
-    }
-    mapboxgl.accessToken = token;
+    mapboxgl.accessToken = mapToken;
 
     const map = new mapboxgl.Map({
       container: mapContainerRef.current,
@@ -167,7 +169,7 @@ export default function DispatchMap() {
 
     map.on('load', () => setMapLoaded(true));
     return () => { map.remove(); mapRef.current = null; };
-  }, []);
+  }, [mapToken]);
 
   // ---------- Render markers when data or filters change ----------
   useEffect(() => {

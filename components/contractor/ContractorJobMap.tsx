@@ -23,16 +23,20 @@ export default function ContractorJobMap({ jobLat, jobLng, jobAddress }: Contrac
   const [routeInfo, setRouteInfo] = useState<RouteInfo | null>(null);
   const [locating, setLocating] = useState(true);
   const [routeError, setRouteError] = useState(false);
+  const [mapToken, setMapToken] = useState('');
+
+  // Fetch token from server at runtime
+  useEffect(() => {
+    fetch('/api/config')
+      .then(r => r.json())
+      .then(cfg => { if (cfg.mapboxToken) setMapToken(cfg.mapboxToken); })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
-    if (!mapContainerRef.current || mapRef.current) return;
+    if (!mapContainerRef.current || mapRef.current || !mapToken) return;
 
-    const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
-    if (!token) {
-      console.error('Mapbox token is missing — check NEXT_PUBLIC_MAPBOX_TOKEN in .env.local');
-      return;
-    }
-    mapboxgl.accessToken = token;
+    mapboxgl.accessToken = mapToken;
 
     const map = new mapboxgl.Map({
       container: mapContainerRef.current,
@@ -169,7 +173,7 @@ export default function ContractorJobMap({ jobLat, jobLng, jobAddress }: Contrac
     }
 
     return () => { map.remove(); mapRef.current = null; };
-  }, [jobLat, jobLng, jobAddress]);
+  }, [jobLat, jobLng, jobAddress, mapToken]);
 
   return (
     <div className="space-y-2">
