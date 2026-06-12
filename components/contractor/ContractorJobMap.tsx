@@ -44,7 +44,7 @@ export default function ContractorJobMap({ jobLat, jobLng, jobAddress }: Contrac
 
     const map = new mapboxgl.Map({
       container: mapContainerRef.current,
-      style: mapStyle,
+      style: 'mapbox://styles/mapbox/dark-v11',
       center: [jobLng, jobLat],
       zoom: 12,
       interactive: true,
