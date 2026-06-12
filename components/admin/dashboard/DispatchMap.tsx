@@ -171,7 +171,16 @@ export default function DispatchMap() {
     map.addControl(new mapboxgl.ScaleControl({ unit: 'metric' }), 'bottom-left');
     mapRef.current = map;
 
-    map.on('load', () => setMapLoaded(true));
+    map.on('load', () => {
+      map.resize();
+      setMapLoaded(true);
+    });
+    map.on('style.load', () => map.resize());
+    map.on('error', (e) => console.error('Mapbox error:', e.error?.message || e));
+
+    // Force resize after a short delay to handle dynamic container sizing
+    setTimeout(() => map.resize(), 500);
+
     return () => { map.remove(); mapRef.current = null; };
   }, [mapToken, mapStyle]);
 
@@ -282,7 +291,7 @@ export default function DispatchMap() {
   return (
     <div className="relative w-full h-[calc(100vh-64px)] bg-black overflow-hidden">
       {/* Map canvas */}
-      <div ref={mapContainerRef} className="absolute inset-0" />
+      <div ref={mapContainerRef} className="absolute inset-0" style={{ width: '100%', height: '100%' }} />
 
       {/* Top toolbar */}
       <div className="absolute top-4 left-4 right-4 z-20 flex items-center gap-3 flex-wrap">
