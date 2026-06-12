@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import { Waves } from 'lucide-react';
 
 export default function CustomerSiteLayout({
   children,
@@ -7,81 +6,73 @@ export default function CustomerSiteLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="bg-[#f8fafc] min-h-screen text-slate-900 selection:bg-[#001a36]/20 selection:text-[#001a36] flex flex-col font-sans">
+    <div className="bg-[#001a36] min-h-screen text-white selection:bg-white/20 selection:text-white flex flex-col font-sans overflow-x-hidden">
       
-      {/* Customer Header */}
-      <header className="sticky top-0 z-50 w-full bg-white/80 backdrop-blur-md border-b border-slate-200">
-        <div className="container max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <Link href="/customer-site" className="flex items-center gap-2 group">
-            <Waves className="h-6 w-6 text-[#001a36] group-hover:text-blue-600 transition-colors" />
-            <span className="font-rustic text-xl font-bold tracking-wide text-[#001a36]">
-              SEA OF BLUE
-            </span>
+      {/* Immersive Header */}
+      <header className="fixed top-0 left-0 right-0 z-50 w-full bg-[#001a36]/80 backdrop-blur-md border-b border-white/5">
+        <div className="container max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+          <Link href="/customer-site" className="flex items-center group">
+            <img 
+              src="/nav-logo.png?v=2" 
+              alt="Sea of Blue" 
+              className="h-5 w-auto object-contain opacity-90 group-hover:opacity-100 transition-opacity"
+            />
           </Link>
-          <nav className="flex items-center gap-6 text-sm font-medium">
-            <Link href="/customer-site#services" className="text-slate-600 hover:text-[#001a36] transition-colors">
+          <nav className="hidden md:flex items-center gap-8 text-sm font-medium tracking-wide">
+            <Link href="/customer-site#services" className="text-white/60 hover:text-white transition-colors">
               Services
             </Link>
-            <Link href="/customer-site#smart-care" className="text-slate-600 hover:text-[#001a36] transition-colors">
-              Smart Care
+            <Link href="/customer-site#dispatch" className="text-white/60 hover:text-white transition-colors">
+              Dispatch Network
             </Link>
-            <Link href="/customer-site/login" className="text-slate-600 hover:text-[#001a36] transition-colors">
+            <Link href="/customer-site/login" className="text-white/60 hover:text-white transition-colors">
               Sign In
             </Link>
             <Link 
-              href="/customer-site#quote" 
-              className="bg-[#001a36] text-white px-5 py-2 rounded-full hover:bg-[#022850] transition-colors"
+              href="/customer-site/quote" 
+              className="bg-white text-[#001a36] px-6 py-2.5 rounded-full hover:bg-white/90 transition-colors font-semibold"
             >
               Get a Quote
             </Link>
           </nav>
+          
+          {/* Mobile menu placeholder */}
+          <button className="md:hidden text-white/80 p-2">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+          </button>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="flex-1">
+      <main className="flex-1 pt-20">
         {children}
       </main>
 
-      {/* Customer Footer */}
-      <footer className="bg-[#010A14] text-white/40 pt-16 pb-8 border-t border-[#021A35]">
+      {/* Minimal Footer */}
+      <footer className="bg-[#010A14] pt-20 pb-10 border-t border-white/5 text-sm">
         <div className="container max-w-7xl mx-auto px-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
-            <div className="col-span-1 md:col-span-2">
-              <div className="flex items-center gap-2 mb-4">
-                <Waves className="h-6 w-6 text-white/80" />
-                <span className="font-rustic text-xl tracking-wide text-white">SEA OF BLUE</span>
-              </div>
-              <p className="text-sm max-w-sm leading-relaxed">
-                Premium, technology-driven residential cleaning services across Ontario. 
-                Smarter maintenance for a healthier home.
-              </p>
-            </div>
-            <div>
-              <h4 className="text-white font-semibold text-sm uppercase tracking-wider mb-4">Services</h4>
-              <ul className="space-y-2 text-sm">
-                <li><Link href="#" className="hover:text-white transition-colors">Weekly Maintenance</Link></li>
-                <li><Link href="#" className="hover:text-white transition-colors">Chemical Balancing</Link></li>
-                <li><Link href="#" className="hover:text-white transition-colors">Equipment Diagnostics</Link></li>
-                <li><Link href="#" className="hover:text-white transition-colors">Openings & Closings</Link></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="text-white font-semibold text-sm uppercase tracking-wider mb-4">Company</h4>
-              <ul className="space-y-2 text-sm">
-                <li><Link href="#" className="hover:text-white transition-colors">About Us</Link></li>
-                <li><Link href="/contact" className="hover:text-white transition-colors">Contact</Link></li>
-                <li><Link href="/apply" className="hover:text-white transition-colors">Become a Provider</Link></li>
-              </ul>
-            </div>
+          <div className="flex flex-col md:flex-row items-center justify-between gap-8 mb-16">
+            <Link href="/customer-site">
+              <img 
+                src="/nav-logo.png?v=2" 
+                alt="Sea of Blue" 
+                className="h-4 w-auto object-contain opacity-50 hover:opacity-100 transition-opacity"
+              />
+            </Link>
+            <nav className="flex flex-wrap justify-center gap-x-8 gap-y-4 text-white/40">
+              <Link href="/customer-site" className="hover:text-white transition-colors">Home</Link>
+              <Link href="/customer-site#services" className="hover:text-white transition-colors">Services</Link>
+              <Link href="/customer-site#coverage" className="hover:text-white transition-colors">Coverage</Link>
+              <Link href="/contractors" className="hover:text-white transition-colors">Contractors</Link>
+              <Link href="/privacy" className="hover:text-white transition-colors">Privacy</Link>
+              <Link href="/terms" className="hover:text-white transition-colors">Terms</Link>
+              <Link href="/contact" className="hover:text-white transition-colors">Contact</Link>
+            </nav>
           </div>
           
-          <div className="pt-8 border-t border-white/10 flex flex-col md:flex-row justify-between items-center gap-4 text-xs">
-            <p>&copy; {new Date().getFullYear()} Sea of Blue Home Services. All rights reserved.</p>
-            <div className="flex gap-6">
-              <Link href="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link>
-              <Link href="/terms" className="hover:text-white transition-colors">Terms of Service</Link>
-            </div>
+          <div className="text-center text-white/20 text-xs">
+            <p className="mb-2">Sea of Blue &copy; {new Date().getFullYear()}. All rights reserved.</p>
+            <p>Home Services, Dispatched.</p>
           </div>
         </div>
       </footer>

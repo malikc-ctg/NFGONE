@@ -1,181 +1,223 @@
+'use client';
+
+import { useRef, useEffect } from 'react';
 import Link from 'next/link';
-import { ArrowRight, CheckCircle2, Shield, Smartphone, Zap } from 'lucide-react';
+import { useFadeIn, useLineReveal } from '@/lib/motion/hooks';
+import { gsap } from '@/lib/motion/index';
 
 export default function CustomerLandingPage() {
+  const heroRef = useRef<HTMLElement>(null);
+  const headlineRef = useRef<HTMLHeadingElement>(null);
+  const subRef = useRef<HTMLParagraphElement>(null);
+
+  useFadeIn(headlineRef, { delay: 0.2, duration: 1.2, y: 30 });
+  useLineReveal(subRef, { delay: 0.6, duration: 1.0 });
+
+  useEffect(() => {
+    // Basic reveal animations for all sections
+    const sections = document.querySelectorAll('.reveal-section');
+    sections.forEach((sec) => {
+      gsap.fromTo(
+        sec,
+        { opacity: 0, y: 50 },
+        {
+          opacity: 1,
+          y: 0,
+          duration: 1,
+          ease: 'power3.out',
+          scrollTrigger: {
+            trigger: sec,
+            start: 'top 85%',
+          },
+        }
+      );
+    });
+  }, []);
+
   return (
-    <div className="bg-white">
-      {/* Hero Section */}
-      <section className="relative min-h-[90vh] flex items-center pt-16 overflow-hidden">
-        {/* Subtle background element */}
-        <div className="absolute top-0 right-0 -translate-y-12 translate-x-1/3 w-[800px] h-[800px] bg-blue-50 rounded-full blur-3xl opacity-50 pointer-events-none" />
+    <div className="w-full">
+      
+      {/* SECTION 1: HERO */}
+      <section 
+        ref={heroRef}
+        className="relative min-h-[90vh] flex flex-col items-center justify-center pt-20 px-6 text-center"
+      >
+        <div className="absolute inset-0 bg-[#001a36] z-0">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,40,80,0.5)_0%,transparent_70%)]" />
+        </div>
         
-        <div className="container max-w-7xl mx-auto px-6 relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-          <div className="max-w-2xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-sm font-medium mb-6">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
-              </span>
-              Now accepting clients in Ontario
-            </div>
-            <h1 className="text-5xl md:text-7xl font-bold tracking-tight text-slate-900 mb-6 leading-[1.1]">
-              Luxury Home Care. <br/>
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#001a36] to-blue-600">
-                Automated.
-              </span>
-            </h1>
-            <p className="text-lg md:text-xl text-slate-600 mb-8 leading-relaxed max-w-xl">
-              We&apos;ve redesigned residential cleaning from the ground up. 
-              Track your service live, view cleaning reports, and manage everything from your phone.
-            </p>
-            
-            <div className="flex flex-col sm:flex-row gap-4">
-              <button className="bg-[#001a36] text-white px-8 py-4 rounded-xl font-semibold hover:bg-[#022850] transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-900/20 group">
-                Get an Instant Quote
-                <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
-              </button>
-              <Link 
-                href="/customer-site/login"
-                className="bg-white text-slate-900 border border-slate-200 px-8 py-4 rounded-xl font-semibold hover:bg-slate-50 transition-colors flex items-center justify-center"
-              >
-                Sign In
-              </Link>
-            </div>
-            
-            <div className="mt-10 flex items-center gap-6 text-sm text-slate-500 font-medium">
-              <div className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-green-500"/> Certified Pros</div>
-              <div className="flex items-center gap-2"><Shield className="h-4 w-4 text-blue-500"/> Fully Insured</div>
-            </div>
+        <div className="relative z-10 max-w-4xl mx-auto">
+          <h1 ref={headlineRef} className="font-rustic text-6xl md:text-8xl lg:text-9xl tracking-tight mb-8">
+            Home Services, <br />
+            <span className="text-white/80">Dispatched.</span>
+          </h1>
+          
+          <div ref={subRef} className="text-lg md:text-2xl text-white/60 font-light max-w-2xl mx-auto leading-relaxed mb-12">
+            <p>Sea of Blue connects homeowners with vetted local professionals through a modern dispatch platform built for speed, transparency, and quality.</p>
           </div>
           
-          <div className="relative hidden lg:block h-[600px] w-full rounded-3xl overflow-hidden shadow-2xl border border-slate-100 bg-slate-50">
-            {/* Simulated UI/App mockup graphic */}
-            <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-slate-100 flex items-center justify-center p-8">
-               <div className="w-full max-w-sm bg-white rounded-3xl shadow-xl overflow-hidden border border-slate-100 flex flex-col h-[500px]">
-                 <div className="bg-[#001a36] p-6 text-white pb-12">
-                   <div className="text-sm text-white/70 mb-1">Your Home Status</div>
-                   <div className="text-4xl font-bold">Pristine</div>
-                 </div>
-                 <div className="flex-1 bg-slate-50 p-6 -mt-6 rounded-t-3xl flex flex-col gap-4">
-                   <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
-                     <div className="flex justify-between items-center mb-2">
-                       <span className="font-semibold text-slate-900">Deep Clean</span>
-                       <span className="text-green-600 font-medium text-sm">Completed</span>
-                     </div>
-                     <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-                       <div className="h-full bg-green-500 w-[100%]" />
-                     </div>
-                   </div>
-                   <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex gap-4 items-center">
-                     <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center">
-                       <Shield className="h-6 w-6 text-blue-600" />
-                     </div>
-                     <div>
-                       <div className="font-semibold text-slate-900">Weekly Service</div>
-                       <div className="text-sm text-slate-500">Next visit: Tomorrow</div>
-                     </div>
-                   </div>
-                 </div>
-               </div>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-20 opacity-0 animate-[fadeIn_1s_ease-out_1s_forwards]">
+            <Link href="/customer-site/quote" className="w-full sm:w-auto bg-white text-[#001a36] px-8 py-4 rounded-full font-bold text-sm tracking-wide uppercase hover:bg-white/90 transition-transform hover:scale-105">
+              Get a Quote
+            </Link>
+            <Link href="/customer-site/quote" className="w-full sm:w-auto border border-white/20 text-white px-8 py-4 rounded-full font-bold text-sm tracking-wide uppercase hover:bg-white/5 transition-colors">
+              Book a Service
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8 border-t border-white/10 pt-10 text-left md:text-center opacity-0 animate-[fadeIn_1s_ease-out_1.5s_forwards]">
+            <div>
+              <div className="text-white font-bold text-lg">Vetted</div>
+              <div className="text-white/50 text-sm">Professionals</div>
+            </div>
+            <div>
+              <div className="text-white font-bold text-lg">Live</div>
+              <div className="text-white/50 text-sm">Dispatching</div>
+            </div>
+            <div>
+              <div className="text-white font-bold text-lg">Real-Time</div>
+              <div className="text-white/50 text-sm">Updates</div>
+            </div>
+            <div>
+              <div className="text-white font-bold text-lg">Ontario</div>
+              <div className="text-white/50 text-sm">Based</div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Smart Care Section */}
-      <section id="smart-care" className="py-24 bg-slate-50">
-        <div className="container max-w-7xl mx-auto px-6">
-          <div className="text-center max-w-3xl mx-auto mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-4">Not just another pool guy.</h2>
-            <p className="text-lg text-slate-600">
-              We leverage proprietary routing technology and a rigorous vetting process to deliver a consistent, luxury experience every single week.
-            </p>
-          </div>
+      {/* SECTION 2: HOW IT WORKS */}
+      <section className="reveal-section py-32 bg-[#010A14] border-t border-white/5 relative z-10">
+        <div className="container max-w-6xl mx-auto px-6">
+          <h2 className="font-rustic text-4xl md:text-6xl mb-20 text-center">A Better Way To Book Home Services</h2>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-100">
-              <div className="h-12 w-12 rounded-2xl bg-blue-50 flex items-center justify-center mb-6">
-                <Smartphone className="h-6 w-6 text-blue-600" />
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+            {[
+              { step: '01', title: 'Request Service', desc: 'Tell us what you need and when you need it.' },
+              { step: '02', title: 'We Dispatch', desc: 'Our system matches your job with qualified professionals in your area.' },
+              { step: '03', title: 'Track Progress', desc: 'Receive updates from booking through completion.' },
+              { step: '04', title: 'Job Complete', desc: 'The work gets done and you stay informed every step of the way.' }
+            ].map((item) => (
+              <div key={item.step} className="border border-white/10 p-8 rounded-2xl bg-white/5 hover:bg-white/10 transition-colors">
+                <div className="text-blue-500 font-rustic text-4xl mb-4">{item.step}</div>
+                <h3 className="text-xl font-bold mb-3">{item.title}</h3>
+                <p className="text-white/60 text-sm leading-relaxed">{item.desc}</p>
               </div>
-              <h3 className="text-xl font-bold text-slate-900 mb-3">Live Tracking</h3>
-              <p className="text-slate-600 leading-relaxed">
-                Know exactly when we arrive. Track your technician&apos;s ETA live on a map, just like a rideshare app. No more waiting around.
-              </p>
-            </div>
-            <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-100">
-              <div className="h-12 w-12 rounded-2xl bg-blue-50 flex items-center justify-center mb-6">
-                <Zap className="h-6 w-6 text-blue-600" />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* SECTION 3: THE DISPATCH DIFFERENCE */}
+      <section className="reveal-section py-32 bg-[#001a36] relative z-10">
+        <div className="container max-w-4xl mx-auto px-6 text-center">
+          <h2 className="font-rustic text-5xl md:text-7xl mb-12">Why Sea of Blue Exists</h2>
+          <div className="space-y-6 text-lg md:text-2xl text-white/70 font-light leading-relaxed">
+            <p>Most service platforms generate leads and leave the rest up to chance.</p>
+            <p className="text-white font-medium">Sea of Blue was built differently.</p>
+            <p>Every job enters a centralized dispatch system where professionals are matched, tracked, and managed through a dedicated operations platform.</p>
+            <p>That means faster response times, better communication, and greater accountability from start to finish.</p>
+          </div>
+        </div>
+      </section>
+
+      {/* SECTION 4: SERVICES */}
+      <section id="services" className="reveal-section py-32 bg-[#010A14] border-t border-white/5 relative z-10">
+        <div className="container max-w-6xl mx-auto px-6">
+          <h2 className="font-rustic text-4xl md:text-6xl mb-16">Services Available Through The Network</h2>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {['House Cleaning', 'Window Cleaning', 'Pressure Washing', 'Junk Removal', 'Lawn Care', 'Landscaping', 'Moving Services', 'Electrical', 'HVAC', 'Plumbing'].map((service) => (
+              <div key={service} className="p-6 border border-white/10 rounded-xl bg-white/5 flex items-center justify-center text-center hover:border-white/30 transition-colors">
+                <span className="font-medium text-white/90">{service}</span>
               </div>
-              <h3 className="text-xl font-bold text-slate-900 mb-3">Digital Logbooks</h3>
-              <p className="text-slate-600 leading-relaxed">
-                After every service, receive a detailed digital report showing exact cleaning details and before/after photos of your pristine home.
-              </p>
-            </div>
-            <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-100">
-              <div className="h-12 w-12 rounded-2xl bg-blue-50 flex items-center justify-center mb-6">
-                <Shield className="h-6 w-6 text-blue-600" />
-              </div>
-              <h3 className="text-xl font-bold text-slate-900 mb-3">Vetted Professionals</h3>
-              <p className="text-slate-600 leading-relaxed">
-                Only the top 5% of service companies make it onto the Sea of Blue network. Fully insured, background-checked, and highly rated.
-              </p>
+            ))}
+            <div className="p-6 border border-transparent rounded-xl flex items-center justify-center text-center">
+              <span className="font-medium text-white/40 italic">And More</span>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Pricing / Tiers */}
-      <section id="services" className="py-24 bg-white">
-        <div className="container max-w-7xl mx-auto px-6">
-          <div className="text-center max-w-3xl mx-auto mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-4">Simple, transparent pricing.</h2>
-            <p className="text-lg text-slate-600">
-              No hidden fees. No surprise charges. Just reliable, professional service.
-            </p>
+      {/* SECTION 5: REAL-TIME VISIBILITY */}
+      <section className="reveal-section py-32 bg-[#001a36] border-t border-white/5 relative z-10">
+        <div className="container max-w-6xl mx-auto px-6 grid md:grid-cols-2 gap-16 items-center">
+          <div>
+            <h2 className="font-rustic text-5xl md:text-6xl mb-8">Know What&apos;s Happening</h2>
+            <div className="space-y-4 text-xl text-white/70 mb-10">
+              <p>No wondering.</p>
+              <p>No chasing contractors.</p>
+              <p>No waiting for callbacks.</p>
+              <p className="text-white font-medium mt-8">Receive updates as your job progresses and stay informed from dispatch to completion.</p>
+            </div>
           </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-            {/* Standard Tier */}
-            <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm flex flex-col">
-              <h3 className="text-2xl font-bold text-slate-900 mb-2">Standard Care</h3>
-              <p className="text-slate-500 mb-6">Perfect for maintaining a clean, healthy home.</p>
-              <div className="mb-8">
-                <span className="text-4xl font-bold text-slate-900">Dynamic</span>
-                <span className="text-slate-500"> /quote</span>
-              </div>
-              <ul className="space-y-4 mb-8 flex-1">
-                <li className="flex gap-3"><CheckCircle2 className="h-5 w-5 text-blue-500 shrink-0"/> <span className="text-slate-600">Weekly vacuuming and dusting</span></li>
-                <li className="flex gap-3"><CheckCircle2 className="h-5 w-5 text-blue-500 shrink-0"/> <span className="text-slate-600">Kitchen & bathroom sanitization</span></li>
-                <li className="flex gap-3"><CheckCircle2 className="h-5 w-5 text-blue-500 shrink-0"/> <span className="text-slate-600">Floor mopping & surface wiping</span></li>
-                <li className="flex gap-3"><CheckCircle2 className="h-5 w-5 text-blue-500 shrink-0"/> <span className="text-slate-600">Digital service reports</span></li>
-              </ul>
-              <button className="w-full py-3 rounded-xl border-2 border-slate-200 text-slate-900 font-semibold hover:border-[#001a36] hover:bg-slate-50 transition-colors">
-                Get a Quote
-              </button>
-            </div>
-
-            {/* Premium Tier */}
-            <div className="bg-[#001a36] p-8 rounded-3xl border border-[#022850] shadow-xl relative overflow-hidden flex flex-col">
-              <div className="absolute top-0 right-0 bg-blue-500 text-white text-xs font-bold px-3 py-1 rounded-bl-lg uppercase tracking-wider">Most Popular</div>
-              <h3 className="text-2xl font-bold text-white mb-2">Resort Level</h3>
-              <p className="text-white/60 mb-6">The ultimate hands-off luxury experience.</p>
-              <div className="mb-8">
-                <span className="text-4xl font-bold text-white">Dynamic</span>
-                <span className="text-white/60"> /quote</span>
-              </div>
-              <ul className="space-y-4 mb-8 flex-1">
-                <li className="flex gap-3"><CheckCircle2 className="h-5 w-5 text-blue-400 shrink-0"/> <span className="text-white/90">Everything in Standard Care</span></li>
-                <li className="flex gap-3"><CheckCircle2 className="h-5 w-5 text-blue-400 shrink-0"/> <span className="text-white/90">Priority VIP routing (Morning slots)</span></li>
-                <li className="flex gap-3"><CheckCircle2 className="h-5 w-5 text-blue-400 shrink-0"/> <span className="text-white/90">Deep cleaning focus included</span></li>
-                <li className="flex gap-3"><CheckCircle2 className="h-5 w-5 text-blue-400 shrink-0"/> <span className="text-white/90">Carpet spot treatment</span></li>
-              </ul>
-              <button className="w-full py-3 rounded-xl bg-blue-500 text-white font-semibold hover:bg-blue-400 transition-colors">
-                Get a Quote
-              </button>
-            </div>
+          <div className="bg-[#010A14] p-10 rounded-3xl border border-white/10">
+            <ul className="space-y-6">
+              {[
+                'Booking Confirmations',
+                'Dispatch Updates',
+                'Arrival Notifications',
+                'Job Completion Updates'
+              ].map((bullet, i) => (
+                <li key={i} className="flex items-center gap-4 text-lg">
+                  <div className="h-2 w-2 rounded-full bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.8)]" />
+                  {bullet}
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
       </section>
+
+      {/* SECTION 6: QUALITY STANDARDS */}
+      <section className="reveal-section py-32 bg-[#010A14] relative z-10">
+        <div className="container max-w-6xl mx-auto px-6">
+          <div className="max-w-3xl mb-16">
+            <h2 className="font-rustic text-4xl md:text-6xl mb-8">Every Professional Must Meet Network Standards</h2>
+            <p className="text-xl text-white/70">Sea of Blue works with independent professionals and service companies that meet our onboarding requirements.</p>
+            <p className="text-lg text-white/50 mt-4">Standards may include:</p>
+          </div>
+          <div className="flex flex-wrap gap-4">
+            {['Business Verification', 'Insurance Verification', 'Service History Review', 'Identity Verification', 'Performance Monitoring'].map((std) => (
+              <div key={std} className="px-6 py-3 rounded-full border border-white/20 bg-white/5 text-sm font-medium tracking-wide">
+                {std}
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* SECTION 7: COVERAGE AREA */}
+      <section id="coverage" className="reveal-section py-32 bg-[#001a36] relative z-10 border-t border-white/5">
+        <div className="container max-w-4xl mx-auto px-6 text-center">
+          <h2 className="font-rustic text-4xl md:text-6xl mb-8">Currently Serving Ontario</h2>
+          <p className="text-xl text-white/70 mb-4">Sea of Blue is currently expanding across Ontario.</p>
+          <p className="text-lg text-white/50 mb-12">Service availability varies by location and category.</p>
+          <Link href="/customer-site/quote" className="inline-block border-2 border-white text-white px-8 py-4 rounded-full font-bold text-sm tracking-wide uppercase hover:bg-white hover:text-[#001a36] transition-colors">
+            Check Availability
+          </Link>
+        </div>
+      </section>
+
+      {/* SECTION 8: BETA BANNER */}
+      <section className="reveal-section py-16 bg-blue-600 relative z-10 text-center px-6">
+        <h3 className="font-bold tracking-widest uppercase text-sm mb-4 text-white/80">Currently In Private Beta</h3>
+        <p className="text-xl max-w-3xl mx-auto font-medium">Sea of Blue is currently operating in private beta while we expand our professional network and service coverage. Availability is limited and services may vary by region.</p>
+      </section>
+
+      {/* SECTION 9: FINAL CTA */}
+      <section className="reveal-section py-40 bg-[#010A14] relative z-10 text-center px-6">
+        <h2 className="font-rustic text-5xl md:text-7xl mb-8">Need Something Done?</h2>
+        <p className="text-xl text-white/60 mb-12 max-w-2xl mx-auto">Submit a request and we&apos;ll connect your job with professionals in your area.</p>
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+          <Link href="/customer-site/quote" className="w-full sm:w-auto bg-white text-[#010A14] px-10 py-5 rounded-full font-bold tracking-widest uppercase hover:scale-105 transition-transform shadow-xl">
+            Request Service
+          </Link>
+          <Link href="/customer-site/quote" className="w-full sm:w-auto border border-white/20 text-white px-10 py-5 rounded-full font-bold tracking-widest uppercase hover:bg-white/5 transition-colors">
+            Check Availability
+          </Link>
+        </div>
+      </section>
+
     </div>
   );
 }
