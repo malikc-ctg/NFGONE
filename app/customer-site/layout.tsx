@@ -11,7 +11,7 @@ export default function CustomerSiteLayout({
       {/* Immersive Header */}
       <header className="fixed top-0 left-0 right-0 z-50 w-full bg-[#001a36]/80 backdrop-blur-md border-b border-white/5">
         <div className="container max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-          <Link href="/customer-site" className="flex items-center group">
+          <Link href="/" className="flex items-center group">
             <img 
               src="/nav-logo.png?v=2" 
               alt="Sea of Blue" 
@@ -19,17 +19,17 @@ export default function CustomerSiteLayout({
             />
           </Link>
           <nav className="hidden md:flex items-center gap-8 text-sm font-medium tracking-wide">
-            <Link href="/customer-site#services" className="text-white/60 hover:text-white transition-colors">
+            <Link href="/#services" className="text-white/60 hover:text-white transition-colors">
               Services
             </Link>
-            <Link href="/customer-site#dispatch" className="text-white/60 hover:text-white transition-colors">
+            <Link href="/#dispatch" className="text-white/60 hover:text-white transition-colors">
               Dispatch Network
             </Link>
-            <Link href="/customer-site/login" className="text-white/60 hover:text-white transition-colors">
+            <Link href="/login" className="text-white/60 hover:text-white transition-colors">
               Sign In
             </Link>
             <Link 
-              href="/customer-site/quote" 
+              href="/quote" 
               className="bg-white text-[#001a36] px-6 py-2.5 rounded-full hover:bg-white/90 transition-colors font-semibold"
             >
               Get a Quote
@@ -52,7 +52,7 @@ export default function CustomerSiteLayout({
       <footer className="bg-[#010A14] pt-20 pb-10 border-t border-white/5 text-sm">
         <div className="container max-w-7xl mx-auto px-6">
           <div className="flex flex-col md:flex-row items-center justify-between gap-8 mb-16">
-            <Link href="/customer-site">
+            <Link href="/">
               <img 
                 src="/nav-logo.png?v=2" 
                 alt="Sea of Blue" 
@@ -60,9 +60,9 @@ export default function CustomerSiteLayout({
               />
             </Link>
             <nav className="flex flex-wrap justify-center gap-x-8 gap-y-4 text-white/40">
-              <Link href="/customer-site" className="hover:text-white transition-colors">Home</Link>
-              <Link href="/customer-site#services" className="hover:text-white transition-colors">Services</Link>
-              <Link href="/customer-site#coverage" className="hover:text-white transition-colors">Coverage</Link>
+              <Link href="/" className="hover:text-white transition-colors">Home</Link>
+              <Link href="/#services" className="hover:text-white transition-colors">Services</Link>
+              <Link href="/#coverage" className="hover:text-white transition-colors">Coverage</Link>
               <Link href="/contractors" className="hover:text-white transition-colors">Contractors</Link>
               <Link href="/privacy" className="hover:text-white transition-colors">Privacy</Link>
               <Link href="/terms" className="hover:text-white transition-colors">Terms</Link>

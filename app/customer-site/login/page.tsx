@@ -14,7 +14,7 @@ export default function CustomerLoginPage() {
       <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-[#001a36]/50 rounded-full blur-[100px] pointer-events-none -translate-x-1/3 translate-y-1/3" />
 
       <div className="w-full max-w-md relative z-10">
-        <Link href="/customer-site" className="flex justify-center mb-10">
+        <Link href="/" className="flex justify-center mb-10">
           <img 
             src="/nav-logo.png?v=2" 
             alt="Sea of Blue" 
@@ -61,7 +61,7 @@ export default function CustomerLoginPage() {
           </form>
 
           <div className="mt-8 text-center text-sm text-white/50">
-            Don&apos;t have an account? <Link href="/customer-site/quote" className="text-white hover:underline">Request a Service</Link>
+            Don&apos;t have an account? <Link href="/quote" className="text-white hover:underline">Request a Service</Link>
           </div>
         </div>
       </div>

@@ -9,7 +9,10 @@ export async function middleware(request: NextRequest) {
   // Also support localhost testing with a specific subdomain/host (e.g., customer.localhost:3000)
   if (hostname.includes('seaofblue.xyz') || hostname.includes('customer.localhost')) {
     // If they are visiting the root or any path, prefix it with /customer-site
-    url.pathname = `/customer-site${url.pathname === '/' ? '' : url.pathname}`;
+    // Avoid double prefixing if the path already starts with /customer-site
+    if (!url.pathname.startsWith('/customer-site')) {
+      url.pathname = `/customer-site${url.pathname === '/' ? '' : url.pathname}`;
+    }
     return NextResponse.rewrite(url);
   }
 

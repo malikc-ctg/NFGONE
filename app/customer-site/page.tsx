@@ -57,10 +57,10 @@ export default function CustomerLandingPage() {
           </div>
           
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-20 opacity-0 animate-[fadeIn_1s_ease-out_1s_forwards]">
-            <Link href="/customer-site/quote" className="w-full sm:w-auto bg-white text-[#001a36] px-8 py-4 rounded-full font-bold text-sm tracking-wide uppercase hover:bg-white/90 transition-transform hover:scale-105">
+            <Link href="/quote" className="w-full sm:w-auto bg-white text-[#001a36] px-8 py-4 rounded-full font-bold text-sm tracking-wide uppercase hover:bg-white/90 transition-transform hover:scale-105">
               Get a Quote
             </Link>
-            <Link href="/customer-site/quote" className="w-full sm:w-auto border border-white/20 text-white px-8 py-4 rounded-full font-bold text-sm tracking-wide uppercase hover:bg-white/5 transition-colors">
+            <Link href="/quote" className="w-full sm:w-auto border border-white/20 text-white px-8 py-4 rounded-full font-bold text-sm tracking-wide uppercase hover:bg-white/5 transition-colors">
               Book a Service
             </Link>
           </div>
@@ -192,7 +192,7 @@ export default function CustomerLandingPage() {
           <h2 className="font-rustic text-4xl md:text-6xl mb-8">Currently Serving Ontario</h2>
           <p className="text-xl text-white/70 mb-4">Sea of Blue is currently expanding across Ontario.</p>
           <p className="text-lg text-white/50 mb-12">Service availability varies by location and category.</p>
-          <Link href="/customer-site/quote" className="inline-block border-2 border-white text-white px-8 py-4 rounded-full font-bold text-sm tracking-wide uppercase hover:bg-white hover:text-[#001a36] transition-colors">
+          <Link href="/quote" className="inline-block border-2 border-white text-white px-8 py-4 rounded-full font-bold text-sm tracking-wide uppercase hover:bg-white hover:text-[#001a36] transition-colors">
             Check Availability
           </Link>
         </div>
@@ -209,10 +209,10 @@ export default function CustomerLandingPage() {
         <h2 className="font-rustic text-5xl md:text-7xl mb-8">Need Something Done?</h2>
         <p className="text-xl text-white/60 mb-12 max-w-2xl mx-auto">Submit a request and we&apos;ll connect your job with professionals in your area.</p>
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-          <Link href="/customer-site/quote" className="w-full sm:w-auto bg-white text-[#010A14] px-10 py-5 rounded-full font-bold tracking-widest uppercase hover:scale-105 transition-transform shadow-xl">
+          <Link href="/quote" className="w-full sm:w-auto bg-white text-[#010A14] px-10 py-5 rounded-full font-bold tracking-widest uppercase hover:scale-105 transition-transform shadow-xl">
             Request Service
           </Link>
-          <Link href="/customer-site/quote" className="w-full sm:w-auto border border-white/20 text-white px-10 py-5 rounded-full font-bold tracking-widest uppercase hover:bg-white/5 transition-colors">
+          <Link href="/quote" className="w-full sm:w-auto border border-white/20 text-white px-10 py-5 rounded-full font-bold tracking-widest uppercase hover:bg-white/5 transition-colors">
             Check Availability
           </Link>
         </div>

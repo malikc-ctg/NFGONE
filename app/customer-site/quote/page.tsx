@@ -62,7 +62,7 @@ export default function QuotePage() {
             Your request has been successfully dispatched to our network. You will receive an update shortly.
           </p>
           <Link 
-            href="/customer-site"
+            href="/"
             className="inline-block bg-white text-[#010A14] px-8 py-3 rounded-full font-bold tracking-widest uppercase hover:scale-105 transition-transform"
           >
             Return Home
@@ -78,7 +78,7 @@ export default function QuotePage() {
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-blue-500/10 rounded-full blur-[120px] pointer-events-none" />
 
       <div className="w-full max-w-3xl bg-[#001a36]/50 backdrop-blur-xl border border-white/10 rounded-3xl p-8 md:p-12 relative z-10 shadow-2xl">
-        <Link href="/customer-site" className="text-white/50 hover:text-white text-sm font-medium tracking-wide flex items-center gap-2 mb-8 transition-colors">
+        <Link href="/" className="text-white/50 hover:text-white text-sm font-medium tracking-wide flex items-center gap-2 mb-8 transition-colors">
           &larr; Back to Home
         </Link>
         
