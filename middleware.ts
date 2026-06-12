@@ -1,7 +1,19 @@
 import { updateSession } from '@/lib/supabase/middleware';
-import { type NextRequest } from 'next/server';
+import { type NextRequest, NextResponse } from 'next/server';
 
 export async function middleware(request: NextRequest) {
+  const url = request.nextUrl;
+  const hostname = request.headers.get('host') || '';
+
+  // Rewrite seaofblue.xyz requests to the /customer-site folder
+  // Also support localhost testing with a specific subdomain/host (e.g., customer.localhost:3000)
+  if (hostname.includes('seaofblue.xyz') || hostname.includes('customer.localhost')) {
+    // If they are visiting the root or any path, prefix it with /customer-site
+    url.pathname = `/customer-site${url.pathname === '/' ? '' : url.pathname}`;
+    return NextResponse.rewrite(url);
+  }
+
+  // Otherwise, default to standard app routing (seaofblue.app) and update session
   return await updateSession(request);
 }
 
