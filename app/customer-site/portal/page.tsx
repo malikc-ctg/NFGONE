@@ -49,10 +49,10 @@ export default function CustomerPortalPage() {
               </button>
             </div>
 
-            {/* Pool Health Score */}
+            {/* Home Status Score */}
             <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
               <div className="flex justify-between items-center mb-6">
-                <h3 className="text-lg font-bold text-slate-900">Pool Health Score</h3>
+                <h3 className="text-lg font-bold text-slate-900">Home Cleanliness Score</h3>
                 <span className="text-sm text-slate-500">Last updated: Aug 12, 2026</span>
               </div>
               
@@ -72,27 +72,27 @@ export default function CustomerPortalPage() {
                 
                 <div className="col-span-2 grid grid-cols-2 gap-4">
                   <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
-                    <div className="text-sm text-slate-500 mb-1">pH Level</div>
+                     <div className="text-sm text-slate-500 mb-1">Kitchen & Baths</div>
                     <div className="text-xl font-bold text-slate-900 flex items-baseline gap-2">
-                      7.4 <span className="text-sm font-medium text-green-500">Optimal</span>
+                      Deep Clean <span className="text-sm font-medium text-green-500">Done</span>
                     </div>
                   </div>
                   <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
-                    <div className="text-sm text-slate-500 mb-1">Chlorine</div>
+                    <div className="text-sm text-slate-500 mb-1">Living Areas</div>
                     <div className="text-xl font-bold text-slate-900 flex items-baseline gap-2">
-                      3.0 <span className="text-sm font-medium text-green-500">Optimal</span>
+                      Dusted <span className="text-sm font-medium text-green-500">Done</span>
                     </div>
                   </div>
                   <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
-                    <div className="text-sm text-slate-500 mb-1">Alkalinity</div>
+                    <div className="text-sm text-slate-500 mb-1">Floors</div>
                     <div className="text-xl font-bold text-slate-900 flex items-baseline gap-2">
-                      100 <span className="text-sm font-medium text-green-500">Optimal</span>
+                      Mopped <span className="text-sm font-medium text-green-500">Done</span>
                     </div>
                   </div>
                   <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
-                    <div className="text-sm text-slate-500 mb-1">Calcium</div>
+                    <div className="text-sm text-slate-500 mb-1">Bedrooms</div>
                     <div className="text-xl font-bold text-slate-900 flex items-baseline gap-2">
-                      250 <span className="text-sm font-medium text-green-500">Optimal</span>
+                      Tidied <span className="text-sm font-medium text-green-500">Done</span>
                     </div>
                   </div>
                 </div>
@@ -121,7 +121,7 @@ export default function CustomerPortalPage() {
                       <span className="bg-green-50 text-green-700 px-2.5 py-1 rounded-md text-xs font-semibold">Completed</span>
                     </div>
                     <p className="text-slate-600 text-sm mb-4 leading-relaxed">
-                      Vacuumed pool floor, skimmed surface, emptied all baskets. Added 1 gal liquid chlorine and 1 qt acid to balance pH. Filter pressure is normal at 15 PSI.
+                      Completed full deep clean of kitchen including oven and fridge. Sanitized all 3 bathrooms. Vacuumed and steam mopped all hardwood floors. Master bedroom organized.
                     </p>
                     <div className="flex gap-2">
                       <div className="h-20 w-32 bg-slate-200 rounded-lg overflow-hidden relative">

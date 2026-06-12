@@ -53,8 +53,8 @@ export default function CustomerSiteLayout({
                 <span className="font-rustic text-xl tracking-wide text-white">SEA OF BLUE</span>
               </div>
               <p className="text-sm max-w-sm leading-relaxed">
-                Premium, technology-driven residential pool and spa care across Ontario. 
-                Smarter maintenance for a healthier pool.
+                Premium, technology-driven residential cleaning services across Ontario. 
+                Smarter maintenance for a healthier home.
               </p>
             </div>
             <div>
