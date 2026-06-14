@@ -3,7 +3,14 @@ import { isValidTransition } from '@/lib/job-state-machine';
 import { NextRequest, NextResponse } from 'next/server';
 import type { JobStatus } from '@/types';
 import { requireRole, requireAuth } from '@/lib/api-auth';
-
+import { sendEmail } from '@/lib/resend';
+import ContractorAssigned from '@/emails/customer/ContractorAssigned';
+import JobAssigned from '@/emails/contractor/JobAssigned';
+import ContractorEnRoute from '@/emails/customer/ContractorEnRoute';
+import ServiceStarted from '@/emails/customer/ServiceStarted';
+import ServiceCompleted from '@/emails/customer/ServiceCompleted';
+import ReviewRequest from '@/emails/customer/ReviewRequest';
+import React from 'react';
 export async function PATCH(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -88,6 +95,72 @@ export async function PATCH(
       .single();
 
     if (error) throw error;
+
+    // ----- EMAIL DISPATCH LOGIC -----
+    try {
+      const cName = data.customer?.full_name || 'Customer';
+      const cEmail = data.customer?.email;
+      const contName = data.contractor?.full_name || 'Contractor';
+      const contEmail = data.contractor?.email;
+      const date = data.scheduled_date || 'TBD';
+      const time = data.scheduled_window || 'TBD';
+      
+      // 1. If a contractor was just assigned
+      if (extraFields.assigned_contractor_id && job.assigned_contractor_id !== extraFields.assigned_contractor_id) {
+         if (cEmail) {
+           await sendEmail({
+             to: cEmail,
+             subject: `Your Cleaner is Set for ${date}`,
+             react: React.createElement(ContractorAssigned, { customerName: cName, date, timeWindow: time })
+           });
+         }
+         if (contEmail) {
+           await sendEmail({
+             to: contEmail,
+             subject: 'New Job Assigned',
+             react: React.createElement(JobAssigned, {
+               contractorName: contName,
+               date,
+               timeWindow: time,
+               location: `${data.address_line1}, ${data.city}`,
+               jobDetails: data.service_type || 'Standard Clean',
+               dashboardLink: 'https://seaofblue.app/contractor'
+             })
+           });
+         }
+      }
+
+      // 2. If job status progressed
+      if (newStatus && newStatus !== job.status) {
+        if (newStatus === 'en_route' && cEmail) {
+           await sendEmail({
+             to: cEmail,
+             subject: 'Your Cleaner is On the Way',
+             react: React.createElement(ContractorEnRoute, { customerName: cName, arrivalTime: 'shortly' })
+           });
+        } else if (newStatus === 'in_progress' && cEmail) {
+           await sendEmail({
+             to: cEmail,
+             subject: 'Service Started',
+             react: React.createElement(ServiceStarted, { customerName: cName, startTime: 'now' })
+           });
+        } else if (newStatus === 'completed' && cEmail) {
+           await sendEmail({
+             to: cEmail,
+             subject: 'All Done!',
+             react: React.createElement(ServiceCompleted, { customerName: cName, completionTime: 'now' })
+           });
+           await sendEmail({
+             to: cEmail,
+             subject: 'How did we do?',
+             react: React.createElement(ReviewRequest, { customerName: cName, date, reviewLink: 'https://seaofblue.app/reviews' })
+           });
+        }
+      }
+    } catch (emailError) {
+      console.error('Failed to send status update emails:', emailError);
+    }
+    // --------------------------------
 
     return NextResponse.json(data);
   } catch (err: unknown) {

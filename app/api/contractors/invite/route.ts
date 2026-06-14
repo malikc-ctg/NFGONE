@@ -94,7 +94,7 @@ export async function POST(request: Request) {
     });
 
     if (!success) {
-      throw new Error(`Failed to send email: ${emailError?.message || 'Unknown error'}`);
+      throw new Error(`Failed to send email: ${(emailError as any)?.message || 'Unknown error'}`);
     }
 
     return NextResponse.json({ success: true });
