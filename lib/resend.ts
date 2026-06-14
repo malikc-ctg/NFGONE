@@ -29,7 +29,7 @@ export async function sendEmail({
   }
 
   try {
-    const html = render(react);
+    const html = await render(react);
     
     const { data, error } = await resend.emails.send({
       from: 'Sea of Blue <support@seaofblue.app>',
