@@ -1,18 +1,15 @@
 import { NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
 import { requireRole } from '@/lib/api-auth';
-import { Resend } from 'resend';
+import { sendEmail } from '@/lib/resend';
+import ContractorInvite from '@/emails/contractor/ContractorInvite';
+import React from 'react';
 
 export async function POST(request: Request) {
   try {
     // Admin-only action
     const auth = await requireRole(['admin']);
     if (auth instanceof NextResponse) return auth;
-
-    if (!process.env.RESEND_API_KEY) {
-      throw new Error('RESEND_API_KEY is not set in the environment variables');
-    }
-    const resend = new Resend(process.env.RESEND_API_KEY);
 
     const body = await request.json();
     const { full_name, email, phone, zone_id, tier, payout_rate, brings_own_supplies, has_vehicle, max_jobs_per_day } = body;
@@ -87,38 +84,17 @@ export async function POST(request: Request) {
       throw new Error(`Failed to create contractor record: ${contractorError.message}`);
     }
 
-    // 5. Send Email via Resend
-    // Wait, the action link returned by generateLink already includes the token and redirects them.
-    // The link from Supabase is: inviteData.properties.action_link
-    // BUT we want to ensure they go to our onboarding page.
-    // By default, the invite link redirects to the Site URL (or NEXT_PUBLIC_SITE_URL).
-    // Let's use the raw action_link from Supabase, but add a redirectTo parameter if needed.
+    // 5. Send Email via React Email
     const actionLink = inviteData.properties.action_link;
 
-    const emailHtml = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-        <h2 style="color: #1d4ed8;">Welcome to Sea of Blue!</h2>
-        <p>Hi ${full_name.split(' ')[0]},</p>
-        <p>You have been invited to join the Sea of Blue platform as a contractor.</p>
-        <p>To get started, please click the button below to complete your onboarding profile and set your password.</p>
-        <div style="text-align: center; margin: 30px 0;">
-          <a href="${actionLink}" style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Complete Onboarding</a>
-        </div>
-        <p>If the button doesn't work, copy and paste this link into your browser:</p>
-        <p style="word-break: break-all; color: #6b7280; font-size: 14px;">${actionLink}</p>
-        <p>Best regards,<br>The Sea of Blue Team</p>
-      </div>
-    `;
-
-    const { error: emailError } = await resend.emails.send({
-      from: 'Sea of Blue <onboarding@seaofblue.app>',
+    const { success, error: emailError } = await sendEmail({
       to: email,
-      subject: 'You are invited to join Sea of Blue',
-      html: emailHtml,
+      subject: 'You have been invited to Sea of Blue',
+      react: React.createElement(ContractorInvite, { fullName: full_name, inviteLink: actionLink })
     });
 
-    if (emailError) {
-      throw new Error(`Failed to send email: ${emailError.message}`);
+    if (!success) {
+      throw new Error(`Failed to send email: ${emailError?.message || 'Unknown error'}`);
     }
 
     return NextResponse.json({ success: true });

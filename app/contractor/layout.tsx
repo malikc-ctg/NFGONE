@@ -20,8 +20,8 @@ export default function ContractorLayout({
 }) {
   const pathname = usePathname();
 
-  // Don't show layout on login page
-  if (pathname === '/contractor/login') {
+  // Don't show layout on login or onboarding pages
+  if (pathname === '/contractor/login' || pathname === '/contractor/onboarding') {
     return <>{children}</>;
   }
 

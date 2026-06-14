@@ -55,10 +55,14 @@ export default function OnboardingPage() {
           setContractor(contractorData);
         }
 
-        // Get all zones
-        const res = await fetch('/api/zones');
-        const allZones = await res.json();
-        setZones(Array.isArray(allZones) ? allZones : []);
+        try {
+          // Get all zones directly via supabase client to avoid cookie race conditions
+          const { data: allZones } = await supabase.from('zones').select('*').order('name');
+          setZones(allZones || []);
+        } catch (e) {
+          console.error("Error fetching zones", e);
+          setZones([]);
+        }
         
         setLoading(false);
       } else if (event === 'INITIAL_SESSION' && !session) {
