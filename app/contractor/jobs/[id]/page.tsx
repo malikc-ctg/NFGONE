@@ -101,6 +101,15 @@ export default function ContractorJobDetailPage() {
   async function handleStatusUpdate(newStatus: string) {
     setSubmitting(true);
     try {
+      if (newStatus === 'completed' && checklist) {
+        const checkRes = await fetch(`/api/jobs/${params.id}/checklist`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(checklist),
+        });
+        if (!checkRes.ok) throw new Error('Failed to save checklist');
+      }
+
       const res = await fetch(`/api/jobs/${params.id}/status`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
