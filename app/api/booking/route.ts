@@ -6,7 +6,7 @@ import { rateLimit } from '@/lib/rate-limit';
 // Creates a lead record from the customer booking wizard
 export async function POST(request: NextRequest) {
   // Rate limit: 5 requests per minute per IP
-  const limited = rateLimit(request, { maxRequests: 5, windowMs: 60_000 });
+  const limited = await rateLimit(request, { maxRequests: 5, windowMs: 60_000 });
   if (limited) return limited;
 
   try {

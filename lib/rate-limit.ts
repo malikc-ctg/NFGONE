@@ -1,13 +1,14 @@
 import { NextResponse } from 'next/server';
+import { Ratelimit } from '@upstash/ratelimit';
+import { Redis } from '@upstash/redis';
 
 /**
- * Simple in-memory rate limiter for API routes.
- * Note: This resets on server restart and is per-instance (not shared across
- * Vercel serverless functions). For production-grade rate limiting, use
- * Vercel's WAF or Upstash Redis.
+ * Rate limiter for API routes.
+ * Uses Upstash Redis for global rate limiting across all edge nodes if configured.
+ * Automatically falls back to an in-memory Map if Redis environment variables are missing.
  *
  * Usage:
- *   const limited = rateLimit(request, { maxRequests: 20, windowMs: 60_000 });
+ *   const limited = await rateLimit(request, { maxRequests: 20, windowMs: 60_000 });
  *   if (limited) return limited;
  */
 
@@ -21,10 +22,10 @@ interface RateLimitEntry {
   resetAt: number;
 }
 
-// In-memory store keyed by IP
+// In-memory store fallback keyed by IP
 const store = new Map<string, RateLimitEntry>();
 
-// Cleanup stale entries every 5 minutes
+// Cleanup stale entries every 5 minutes (for in-memory fallback)
 setInterval(() => {
   const now = Date.now();
   Array.from(store.entries()).forEach(([key, entry]) => {
@@ -32,23 +33,82 @@ setInterval(() => {
   });
 }, 5 * 60_000);
 
-export function rateLimit(
+// Initialize Upstash Redis & Ratelimit conditionally
+let redis: Redis | null = null;
+if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
+  try {
+    redis = new Redis({
+      url: process.env.UPSTASH_REDIS_REST_URL,
+      token: process.env.UPSTASH_REDIS_REST_TOKEN,
+    });
+  } catch (error) {
+    console.warn('Failed to initialize Upstash Redis, falling back to in-memory rate limiting', error);
+  }
+}
+
+// Cache of Upstash Ratelimit instances keyed by window configuration
+const ratelimiters = new Map<string, Ratelimit>();
+
+export async function rateLimit(
   request: Request,
   options: RateLimitOptions = {}
-): NextResponse | null {
+): Promise<NextResponse | null> {
   const { maxRequests = 30, windowMs = 60_000 } = options;
 
   // Extract IP from headers (Vercel sets x-forwarded-for)
   const forwarded = request.headers.get('x-forwarded-for');
   const ip = forwarded?.split(',')[0]?.trim() || 'unknown';
-  const key = `${ip}:${new URL(request.url).pathname}`;
+  const route = new URL(request.url).pathname;
+  
+  const identifier = `${ip}:${route}`;
 
+  // If Redis is configured, use Upstash Ratelimit
+  if (redis) {
+    const configKey = `${maxRequests}:${windowMs}`;
+    let ratelimit = ratelimiters.get(configKey);
+    
+    if (!ratelimit) {
+      ratelimit = new Ratelimit({
+        redis,
+        limiter: Ratelimit.slidingWindow(maxRequests, `${Math.ceil(windowMs / 1000)} s`),
+        analytics: true,
+        prefix: '@upstash/ratelimit',
+      });
+      ratelimiters.set(configKey, ratelimit);
+    }
+
+    try {
+      const { success, limit, remaining, reset } = await ratelimit.limit(identifier);
+      
+      if (!success) {
+        const retryAfterSec = Math.ceil((reset - Date.now()) / 1000);
+        return NextResponse.json(
+          { error: 'Too many requests. Please try again later.' },
+          {
+            status: 429,
+            headers: {
+              'Retry-After': String(retryAfterSec),
+              'X-RateLimit-Limit': String(limit),
+              'X-RateLimit-Remaining': String(remaining),
+              'X-RateLimit-Reset': String(Math.ceil(reset / 1000)),
+            },
+          }
+        );
+      }
+      return null;
+    } catch (error) {
+      console.warn('Upstash RateLimit failed, falling back to memory limit', error);
+      // Fall through to memory store if Redis request fails
+    }
+  }
+
+  // --- Fallback In-Memory Rate Limiting ---
   const now = Date.now();
-  const entry = store.get(key);
+  const entry = store.get(identifier);
 
   if (!entry || now > entry.resetAt) {
     // New window
-    store.set(key, { count: 1, resetAt: now + windowMs });
+    store.set(identifier, { count: 1, resetAt: now + windowMs });
     return null;
   }
 

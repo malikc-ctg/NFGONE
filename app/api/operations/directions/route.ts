@@ -8,7 +8,7 @@ import { rateLimit } from '@/lib/rate-limit';
  * GET /api/operations/directions?start_lng=...&start_lat=...&end_lng=...&end_lat=...
  */
 export async function GET(request: NextRequest) {
-  const limited = rateLimit(request, { maxRequests: 30, windowMs: 60_000 });
+  const limited = await rateLimit(request, { maxRequests: 30, windowMs: 60_000 });
   if (limited) return limited;
 
   const auth = await requireAuth();

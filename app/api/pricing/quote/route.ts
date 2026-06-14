@@ -6,7 +6,7 @@ import type { ServiceType, TimeWindow } from '@/types';
 
 export async function POST(request: NextRequest) {
   // Rate limit: 20 requests per minute per IP (public endpoint)
-  const limited = rateLimit(request, { maxRequests: 20, windowMs: 60_000 });
+  const limited = await rateLimit(request, { maxRequests: 20, windowMs: 60_000 });
   if (limited) return limited;
 
   try {
