@@ -115,7 +115,9 @@ function createHQMarkerEl(): HTMLElement {
 export default function DispatchMap() {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
-  const markersRef = useRef<mapboxgl.Marker[]>([]);
+  const jobMarkersRef = useRef<{ [key: string]: mapboxgl.Marker }>({});
+  const locMarkersRef = useRef<{ [key: string]: mapboxgl.Marker }>({});
+  const hqMarkersRef = useRef<{ [key: string]: mapboxgl.Marker }>({});
   const [mapLoaded, setMapLoaded] = useState(false);
   const [mapData, setMapData] = useState<MapData>({ jobs: [], contractorLocations: [], zones: [] });
   const [loading, setLoading] = useState(true);
@@ -209,10 +211,6 @@ export default function DispatchMap() {
     const map = mapRef.current;
     if (!map || !mapLoaded) return;
 
-    // Clear old markers
-    markersRef.current.forEach(m => m.remove());
-    markersRef.current = [];
-
     const { jobs, contractorLocations, contractorHQs = [] } = mapData;
 
     // Filter jobs
@@ -227,89 +225,119 @@ export default function DispatchMap() {
       return true;
     });
 
-    // Job markers
+    // --- JOBS ---
+    const currentJobIds = new Set(filteredJobs.map(j => j.id));
+    Object.keys(jobMarkersRef.current).forEach(id => {
+      if (!currentJobIds.has(id) || !filters.showJobs) {
+        jobMarkersRef.current[id].remove();
+        delete jobMarkersRef.current[id];
+      }
+    });
+
     if (filters.showJobs) {
       filteredJobs.forEach(job => {
         if (!job.longitude || !job.latitude) return;
-        const el = createJobMarkerEl(job.status);
-        const popup = new mapboxgl.Popup({ offset: 14, closeButton: true, maxWidth: '280px' })
-          .setHTML(`
-            <div style="font-family: sans-serif; padding: 2px;">
-              <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
-                <span style="background:${STATUS_COLORS[job.status] ?? STATUS_COLORS.default}; color:white; padding:2px 8px; border-radius:999px; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.05em;">
-                  ${STATUS_LABELS[job.status] ?? job.status}
-                </span>
-                <span style="font-size:10px; color:#888;">${job.job_number}</span>
+        if (!jobMarkersRef.current[job.id]) {
+          const el = createJobMarkerEl(job.status);
+          const popup = new mapboxgl.Popup({ offset: 14, closeButton: true, maxWidth: '280px' })
+            .setHTML(`
+              <div style="font-family: sans-serif; padding: 2px;">
+                <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+                  <span style="background:${STATUS_COLORS[job.status] ?? STATUS_COLORS.default}; color:white; padding:2px 8px; border-radius:999px; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.05em;">
+                    ${STATUS_LABELS[job.status] ?? job.status}
+                  </span>
+                  <span style="font-size:10px; color:#888;">${job.job_number}</span>
+                </div>
+                <p style="font-weight:700; font-size:13px; margin:0 0 2px;">${job.customer?.full_name ?? 'Unknown Customer'}</p>
+                <p style="font-size:11px; color:#999; margin:0 0 8px;">${job.address_line1}, ${job.city}</p>
+                <div style="display:flex; justify-content:space-between; font-size:11px; background:#111; padding:6px 8px; border-radius:8px;">
+                  <span style="color:#888;">${job.service_type?.replace(/_/g, ' ')}</span>
+                  <span style="font-weight:700; color:#22c55e;">$${job.quoted_price?.toFixed(0)}</span>
+                </div>
+                ${job.contractor ? `<p style="font-size:10px; color:#666; margin-top:6px;">Assigned: ${job.contractor.full_name}</p>` : ''}
               </div>
-              <p style="font-weight:700; font-size:13px; margin:0 0 2px;">${job.customer?.full_name ?? 'Unknown Customer'}</p>
-              <p style="font-size:11px; color:#999; margin:0 0 8px;">${job.address_line1}, ${job.city}</p>
-              <div style="display:flex; justify-content:space-between; font-size:11px; background:#111; padding:6px 8px; border-radius:8px;">
-                <span style="color:#888;">${job.service_type?.replace(/_/g, ' ')}</span>
-                <span style="font-weight:700; color:#22c55e;">$${job.quoted_price?.toFixed(0)}</span>
-              </div>
-              ${job.contractor ? `<p style="font-size:10px; color:#666; margin-top:6px;">Assigned: ${job.contractor.full_name}</p>` : ''}
-            </div>
-          `);
+            `);
 
-        const marker = new mapboxgl.Marker({ element: el })
-          .setLngLat([job.longitude, job.latitude])
-          .setPopup(popup)
-          .addTo(map);
-
-        markersRef.current.push(marker);
+          jobMarkersRef.current[job.id] = new mapboxgl.Marker({ element: el })
+            .setLngLat([job.longitude, job.latitude])
+            .setPopup(popup)
+            .addTo(map);
+        } else {
+          jobMarkersRef.current[job.id].setLngLat([job.longitude, job.latitude]);
+        }
       });
     }
 
-    // Contractor location markers
+    // --- CONTRACTOR LOCATIONS ---
+    const currentLocIds = new Set(contractorLocations.map(l => l.id));
+    Object.keys(locMarkersRef.current).forEach(id => {
+      if (!currentLocIds.has(id) || !filters.showContractors) {
+        locMarkersRef.current[id].remove();
+        delete locMarkersRef.current[id];
+      }
+    });
+
     if (filters.showContractors) {
       contractorLocations.forEach(loc => {
         if (!loc.longitude || !loc.latitude) return;
-        const c = loc.contractor;
-        const el = createContractorMarkerEl();
-        const popup = new mapboxgl.Popup({ offset: 18, closeButton: true, maxWidth: '240px' })
-          .setHTML(`
-            <div style="font-family: sans-serif; padding: 2px;">
-              <p style="font-weight:700; font-size:13px; margin:0 0 2px;">${c?.full_name ?? 'Contractor'}</p>
-              <p style="font-size:10px; color:#999; margin:0 0 6px; text-transform:capitalize;">${c?.tier ?? ''} Tier</p>
-              <div style="display:flex; align-items:center; gap:4px;">
-                <div style="width:6px;height:6px;background:#22c55e;border-radius:50%;"></div>
-                <span style="font-size:10px; color:#22c55e; font-weight:700;">ONLINE</span>
+        if (!locMarkersRef.current[loc.id]) {
+          const c = loc.contractor;
+          const el = createContractorMarkerEl();
+          const popup = new mapboxgl.Popup({ offset: 18, closeButton: true, maxWidth: '240px' })
+            .setHTML(`
+              <div style="font-family: sans-serif; padding: 2px;">
+                <p style="font-weight:700; font-size:13px; margin:0 0 2px;">${c?.full_name ?? 'Contractor'}</p>
+                <p style="font-size:10px; color:#999; margin:0 0 6px; text-transform:capitalize;">${c?.tier ?? ''} Tier</p>
+                <div style="display:flex; align-items:center; gap:4px;">
+                  <div style="width:6px;height:6px;background:#22c55e;border-radius:50%;"></div>
+                  <span style="font-size:10px; color:#22c55e; font-weight:700;">ONLINE</span>
+                </div>
+                <p style="font-size:10px; color:#666; margin-top:4px;">${c?.phone ?? ''}</p>
               </div>
-              <p style="font-size:10px; color:#666; margin-top:4px;">${c?.phone ?? ''}</p>
-            </div>
-          `);
+            `);
 
-        const marker = new mapboxgl.Marker({ element: el })
-          .setLngLat([loc.longitude, loc.latitude])
-          .setPopup(popup)
-          .addTo(map);
-
-        markersRef.current.push(marker);
+          locMarkersRef.current[loc.id] = new mapboxgl.Marker({ element: el })
+            .setLngLat([loc.longitude, loc.latitude])
+            .setPopup(popup)
+            .addTo(map);
+        } else {
+          locMarkersRef.current[loc.id].setLngLat([loc.longitude, loc.latitude]);
+        }
       });
     }
 
-    // Contractor HQ markers (always shown)
+    // --- CONTRACTOR HQS ---
+    const currentHqIds = new Set(contractorHQs.map(hq => hq.id));
+    Object.keys(hqMarkersRef.current).forEach(id => {
+      if (!currentHqIds.has(id)) {
+        hqMarkersRef.current[id].remove();
+        delete hqMarkersRef.current[id];
+      }
+    });
+
     contractorHQs.forEach(hq => {
       if (!hq.longitude || !hq.latitude) return;
-      const el = createHQMarkerEl();
-      const popup = new mapboxgl.Popup({ offset: 18, closeButton: true, maxWidth: '240px' })
-        .setHTML(`
-          <div style="font-family: sans-serif; padding: 2px;">
-            <p style="font-weight:700; font-size:13px; margin:0 0 2px;">${hq.full_name} HQ</p>
-            <div style="display:flex; align-items:center; gap:4px; margin-top: 4px;">
-              <div style="width:6px;height:6px;background:#1e3a8a;border-radius:50%;"></div>
-              <span style="font-size:10px; color:#1e3a8a; font-weight:700;">HEADQUARTERS</span>
+      if (!hqMarkersRef.current[hq.id]) {
+        const el = createHQMarkerEl();
+        const popup = new mapboxgl.Popup({ offset: 18, closeButton: true, maxWidth: '240px' })
+          .setHTML(`
+            <div style="font-family: sans-serif; padding: 2px;">
+              <p style="font-weight:700; font-size:13px; margin:0 0 2px;">${hq.full_name} HQ</p>
+              <div style="display:flex; align-items:center; gap:4px; margin-top: 4px;">
+                <div style="width:6px;height:6px;background:#1e3a8a;border-radius:50%;"></div>
+                <span style="font-size:10px; color:#1e3a8a; font-weight:700;">HEADQUARTERS</span>
+              </div>
+              <p style="font-size:10px; color:#666; margin-top:4px;">${hq.phone ?? ''}</p>
             </div>
-            <p style="font-size:10px; color:#666; margin-top:4px;">${hq.phone ?? ''}</p>
-          </div>
-        `);
+          `);
 
-      const marker = new mapboxgl.Marker({ element: el })
-        .setLngLat([hq.longitude, hq.latitude])
-        .setPopup(popup)
-        .addTo(map);
-
-      markersRef.current.push(marker);
+        hqMarkersRef.current[hq.id] = new mapboxgl.Marker({ element: el })
+          .setLngLat([hq.longitude, hq.latitude])
+          .setPopup(popup)
+          .addTo(map);
+      } else {
+        hqMarkersRef.current[hq.id].setLngLat([hq.longitude, hq.latitude]);
+      }
     });
 
   }, [mapLoaded, mapData, filters]);
