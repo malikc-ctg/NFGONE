@@ -61,17 +61,32 @@ export async function PATCH(request: Request) {
     }
 
     const body = await request.json();
-    const { full_name, phone, zone_ids } = body;
+    const { full_name, phone, zone_ids, max_radius } = body;
 
     // Use service client to bypass RLS recursion issues
     const serviceClient = await createServiceClient();
 
-    // 1. Update basic contractor info
+    // First fetch current contractor to get notes
+    const { data: currentContractor, error: fetchError } = await serviceClient
+      .from('contractors')
+      .select('id, notes')
+      .eq('profile_id', user.id)
+      .single();
+
+    if (fetchError) throw fetchError;
+
+    const existingNotes = currentContractor.notes ? JSON.parse(currentContractor.notes) : {};
+    if (max_radius !== undefined) {
+      existingNotes.max_radius = max_radius;
+    }
+
+    // 1. Update basic contractor info and notes
     const { data: contractor, error: contractorError } = await serviceClient
       .from('contractors')
       .update({
         full_name,
         phone,
+        notes: JSON.stringify(existingNotes),
         updated_at: new Date().toISOString()
       })
       .eq('profile_id', user.id)

@@ -12,7 +12,7 @@ import {
   MapPin, Briefcase, DollarSign, Star, TrendingUp,
   Clock, CheckCircle2, ArrowRight, CalendarDays,
   Sparkles, Bath, BedDouble, ChevronRight, Timer, Package, Key, Info,
-  AlertTriangle, UploadCloud, FileText
+  AlertTriangle, UploadCloud, FileText, Loader2
 } from 'lucide-react';
 import { createBrowserClient } from '@supabase/ssr';
 import { SERVICE_TYPE_LABELS, TIME_WINDOW_LABELS } from '@/types';
@@ -196,21 +196,37 @@ export default function ContractorDashboard() {
   return (
     <div className="space-y-5">
       {/* ── Hero Header ── */}
-      <Card className="bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 text-white border-0 overflow-hidden relative">
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-0 right-0 w-40 h-40 bg-white rounded-full -translate-y-1/2 translate-x-1/2" />
-          <div className="absolute bottom-0 left-0 w-24 h-24 bg-white rounded-full translate-y-1/2 -translate-x-1/2" />
+      <Card className="bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-800 text-white border-0 shadow-lg shadow-indigo-500/20 overflow-hidden relative group">
+        {/* Animated Background Elements */}
+        <div className="absolute inset-0 opacity-20 transition-transform duration-700 group-hover:scale-110">
+          <div className="absolute -top-10 -right-10 w-48 h-48 bg-white blur-3xl rounded-full" />
+          <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-blue-300 blur-2xl rounded-full" />
         </div>
-        <CardContent className="p-5 relative">
-          <p className="text-blue-200 text-xs font-medium">{isClient ? format(new Date(), 'EEEE, MMMM d') : '...'}</p>
-          <h1 className="text-xl font-bold mt-1">
+        
+        {/* Glassmorphism Overlay */}
+        <div className="absolute inset-0 bg-white/5 backdrop-blur-[1px]" />
+        
+        <CardContent className="p-6 relative z-10">
+          <div className="flex items-center justify-between mb-4">
+            <Badge variant="secondary" className="bg-white/20 hover:bg-white/30 text-white border-0 shadow-sm backdrop-blur-md transition-colors">
+              <Sparkles className="w-3 h-3 mr-1" /> Contractor Portal
+            </Badge>
+            <p className="text-indigo-100 text-[10px] font-bold uppercase tracking-wider bg-black/10 px-2 py-1 rounded-full backdrop-blur-sm">
+              {isClient ? format(new Date(), 'EEEE, MMM d') : '...'}
+            </p>
+          </div>
+          
+          <h1 className="text-2xl font-black tracking-tight drop-shadow-sm">
             Welcome back, {contractor?.full_name?.split(' ')[0] || ''}
           </h1>
+          
           {stats && (
-            <p className="text-blue-200 text-xs mt-1">
-              {stats.week_jobs > 0
-                ? `${stats.week_jobs} job${stats.week_jobs > 1 ? 's' : ''} completed this week`
-                : 'No jobs completed yet this week'}
+            <p className="text-indigo-100/90 text-xs mt-1.5 font-medium flex items-center gap-1.5">
+              {stats.week_jobs > 0 ? (
+                <><CheckCircle2 className="w-3.5 h-3.5 text-green-300" /> {stats.week_jobs} job{stats.week_jobs > 1 ? 's' : ''} completed this week</>
+              ) : (
+                <><TrendingUp className="w-3.5 h-3.5 text-indigo-300" /> No jobs completed yet this week</>
+              )}
             </p>
           )}
         </CardContent>
@@ -218,33 +234,33 @@ export default function ContractorDashboard() {
 
       {/* ── Insurance Reminder ── */}
       {!loading && !hasInsurance && (
-        <Card className="border-red-200 bg-red-50 dark:bg-red-950/20">
+        <Card className="border-amber-200/50 bg-amber-50/80 dark:bg-amber-950/20 shadow-sm relative overflow-hidden">
+          <div className="absolute left-0 top-0 bottom-0 w-1 bg-amber-500" />
           <CardContent className="p-4 flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
             <div className="flex gap-3">
-              <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center shrink-0">
-                <AlertTriangle className="h-5 w-5 text-red-600" />
+              <div className="w-10 h-10 rounded-full bg-amber-100/80 dark:bg-amber-900/40 flex items-center justify-center shrink-0 shadow-inner">
+                <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-500" />
               </div>
               <div>
-                <h3 className="font-semibold text-red-900 dark:text-red-400">Action Required: Upload Insurance</h3>
-                <p className="text-sm text-red-700 dark:text-red-300 mt-1">
-                  You must provide proof of liability insurance before you can accept any jobs on the platform.
+                <h3 className="font-bold text-amber-900 dark:text-amber-400 tracking-tight">Action Required: Liability Insurance</h3>
+                <p className="text-xs text-amber-800/80 dark:text-amber-300/80 mt-0.5 max-w-sm">
+                  Please upload your liability insurance slip to start accepting jobs.
                 </p>
               </div>
             </div>
-            <div className="shrink-0 relative">
+            <div className="shrink-0 relative w-full md:w-auto">
               <Input 
                 type="file" 
                 accept="image/*,.pdf" 
-                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" 
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" 
                 onChange={handleInsuranceUpload}
                 disabled={isUploading}
               />
-              <Button variant="destructive" disabled={isUploading}>
-                {isUploading ? 'Uploading...' : (
-                  <>
-                    <UploadCloud className="h-4 w-4 mr-2" />
-                    Upload PDF / Image
-                  </>
+              <Button variant="outline" className="w-full md:w-auto bg-white/60 dark:bg-black/40 hover:bg-white dark:hover:bg-black border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400 font-semibold shadow-sm transition-all" disabled={isUploading}>
+                {isUploading ? (
+                  <span className="flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" /> Uploading...</span>
+                ) : (
+                  <><UploadCloud className="h-4 w-4 mr-2" /> Upload Slip</>
                 )}
               </Button>
             </div>
@@ -254,26 +270,32 @@ export default function ContractorDashboard() {
 
       {/* ── Stats Row ── */}
       {stats && (
-        <div className="grid grid-cols-3 gap-2">
-          <Card className="bg-gradient-to-b from-green-50 to-white dark:from-green-950/30 dark:to-card border-green-100 dark:border-green-900/50">
-            <CardContent className="p-3 text-center">
-              <DollarSign className="h-4 w-4 text-green-500 mx-auto mb-1" />
-              <p className="text-lg font-black text-green-700 dark:text-green-400">${stats.week_earnings}</p>
-              <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-tighter">This Week</p>
+        <div className="grid grid-cols-3 gap-3">
+          <Card className="bg-gradient-to-b from-emerald-50/50 to-white dark:from-emerald-950/20 dark:to-card border-emerald-100/50 dark:border-emerald-900/30 hover:shadow-md hover:shadow-emerald-500/10 transition-all hover:-translate-y-0.5">
+            <CardContent className="p-4 text-center">
+              <div className="mx-auto w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center mb-2 shadow-inner">
+                <DollarSign className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+              </div>
+              <p className="text-xl font-black text-emerald-700 dark:text-emerald-400 tracking-tight">${stats.week_earnings}</p>
+              <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest mt-0.5">This Week</p>
             </CardContent>
           </Card>
-          <Card className="bg-gradient-to-b from-amber-50 to-white dark:from-amber-950/30 dark:to-card border-amber-100 dark:border-amber-900/50">
-            <CardContent className="p-3 text-center">
-              <TrendingUp className="h-4 w-4 text-amber-500 mx-auto mb-1" />
-              <p className="text-lg font-black text-amber-700 dark:text-amber-400">${stats.pending_payout}</p>
-              <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-tighter">Pending</p>
+          <Card className="bg-gradient-to-b from-amber-50/50 to-white dark:from-amber-950/20 dark:to-card border-amber-100/50 dark:border-amber-900/30 hover:shadow-md hover:shadow-amber-500/10 transition-all hover:-translate-y-0.5">
+            <CardContent className="p-4 text-center">
+              <div className="mx-auto w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center mb-2 shadow-inner">
+                <TrendingUp className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+              </div>
+              <p className="text-xl font-black text-amber-700 dark:text-amber-400 tracking-tight">${stats.pending_payout}</p>
+              <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest mt-0.5">Pending</p>
             </CardContent>
           </Card>
-          <Card className="bg-gradient-to-b from-blue-50 to-white dark:from-blue-950/30 dark:to-card border-blue-100 dark:border-blue-900/50">
-            <CardContent className="p-3 text-center">
-              <Star className="h-4 w-4 text-blue-500 mx-auto mb-1" />
-              <p className="text-lg font-black text-blue-700 dark:text-blue-400">{stats.score}</p>
-              <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-tighter">Rating</p>
+          <Card className="bg-gradient-to-b from-blue-50/50 to-white dark:from-blue-950/20 dark:to-card border-blue-100/50 dark:border-blue-900/30 hover:shadow-md hover:shadow-blue-500/10 transition-all hover:-translate-y-0.5">
+            <CardContent className="p-4 text-center">
+              <div className="mx-auto w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center mb-2 shadow-inner">
+                <Star className="h-4 w-4 text-blue-600 dark:text-blue-400 fill-blue-600/20" />
+              </div>
+              <p className="text-xl font-black text-blue-700 dark:text-blue-400 tracking-tight">{stats.score.toFixed(1)}</p>
+              <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest mt-0.5">Rating</p>
             </CardContent>
           </Card>
         </div>

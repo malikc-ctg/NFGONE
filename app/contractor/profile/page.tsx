@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,6 +22,17 @@ interface ReviewData {
   public_comment: string | null;
   created_at: string;
   job?: { job_number: string; service_type: string; scheduled_date: string };
+}
+
+function getDistanceFromLatLonInKm(lat1: number, lon1: number, lat2: number, lon2: number) {
+  const R = 6371; // Radius of the earth in km
+  const dLat = (lat2 - lat1) * (Math.PI / 180);
+  const dLon = (lon2 - lon1) * (Math.PI / 180);
+  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
 }
 
 function getBadges(contractor: Contractor, totalCompleted: number, reviews: ReviewData[]): { label: string; icon: React.ReactNode; color: string }[] {
@@ -48,7 +59,9 @@ export default function ContractorProfilePage() {
     full_name: '',
     phone: '',
     zone_ids: [] as string[],
+    max_radius: 30,
   });
+  const [hqCoords, setHqCoords] = useState<{lat: number, lng: number} | null>(null);
 
   useEffect(() => {
     async function fetchData() {
@@ -63,11 +76,16 @@ export default function ContractorProfilePage() {
         if (!meRes.ok) throw new Error('Could not fetch profile');
         const meData = await meRes.json();
         setContractor(meData);
+        const parsedNotes = meData.notes ? JSON.parse(meData.notes) : {};
         setFormData({
           full_name: meData.full_name || '',
           phone: meData.phone || '',
           zone_ids: meData.selected_zone_ids || [],
+          max_radius: parsedNotes.max_radius || 30,
         });
+        if (parsedNotes.hq_coords) {
+          setHqCoords(parsedNotes.hq_coords);
+        }
 
         const zonesData = await zonesRes.json();
         setZones(Array.isArray(zonesData) ? zonesData : []);
@@ -91,28 +109,29 @@ export default function ContractorProfilePage() {
     fetchData();
   }, []);
 
+  const eligibleZones = useMemo(() => {
+    if (!hqCoords || zones.length === 0) return [];
+    const distances = zones.map(zone => {
+      if (!zone.latitude || !zone.longitude) return { zone, distance: Infinity };
+      return { zone, distance: getDistanceFromLatLonInKm(hqCoords.lat, hqCoords.lng, zone.latitude, zone.longitude) };
+    });
+    return distances.filter(d => d.distance <= formData.max_radius).sort((a, b) => a.distance - b.distance);
+  }, [hqCoords, zones, formData.max_radius]);
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
+    const finalZoneIds = eligibleZones.map(z => z.zone.id);
     try {
       const res = await fetch('/api/contractors/me', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({ ...formData, zone_ids: finalZoneIds }),
       });
       if (!res.ok) throw new Error('Failed to update profile');
       toast.success('Profile updated successfully');
     } catch (err: any) { toast.error(err.message); }
     finally { setSaving(false); }
-  }
-
-  function toggleZone(zoneId: string) {
-    setFormData(prev => ({
-      ...prev,
-      zone_ids: prev.zone_ids.includes(zoneId)
-        ? prev.zone_ids.filter(id => id !== zoneId)
-        : [...prev.zone_ids, zoneId]
-    }));
   }
 
   if (loading) return <div className="p-4 text-muted-foreground">Loading profile...</div>;
@@ -121,35 +140,45 @@ export default function ContractorProfilePage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-2 mb-2">
-        <User className="h-5 w-5 text-blue-600" />
-        <h1 className="text-xl font-bold">My Profile</h1>
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center">
+            <User className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+          </div>
+          <h1 className="text-2xl font-black tracking-tight">My Profile</h1>
+        </div>
       </div>
 
       {/* Performance Card */}
-      <Card className="bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-950/30 dark:to-purple-950/20 border-indigo-100 dark:border-indigo-900/50 overflow-hidden">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-            <TrendingUp className="h-4 w-4" /> Performance
+      <Card className="bg-gradient-to-br from-indigo-600 via-violet-600 to-purple-700 text-white border-0 shadow-lg shadow-indigo-500/20 overflow-hidden relative">
+        <div className="absolute inset-0 opacity-20">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-white blur-3xl rounded-full -translate-y-1/2 translate-x-1/2" />
+          <div className="absolute bottom-0 left-0 w-24 h-24 bg-white blur-2xl rounded-full translate-y-1/2 -translate-x-1/2" />
+        </div>
+        <div className="absolute inset-0 bg-black/5 backdrop-blur-[1px]" />
+        
+        <CardHeader className="pb-2 relative z-10">
+          <CardTitle className="text-xs font-bold text-indigo-100 uppercase tracking-widest flex items-center gap-2 drop-shadow-sm">
+            <TrendingUp className="h-3.5 w-3.5" /> Performance metrics
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 relative z-10">
           {/* Stats Row */}
           <div className="grid grid-cols-3 gap-3">
-            <div className="text-center">
+            <div className="text-center bg-white/10 rounded-xl p-3 backdrop-blur-md border border-white/10 shadow-inner">
               <div className="flex items-center justify-center gap-0.5">
-                <Star className="h-4 w-4 text-amber-500 fill-amber-500" />
-                <span className="text-xl font-black">{contractor?.score || '5.0'}</span>
+                <Star className="h-4 w-4 text-amber-300 fill-amber-300 drop-shadow-sm" />
+                <span className="text-2xl font-black">{contractor?.score?.toFixed(1) || '5.0'}</span>
               </div>
-              <p className="text-[9px] text-muted-foreground font-bold uppercase">Rating</p>
+              <p className="text-[9px] text-indigo-200 font-bold uppercase tracking-widest mt-1">Rating</p>
             </div>
-            <div className="text-center">
-              <p className="text-xl font-black">{totalCompleted}</p>
-              <p className="text-[9px] text-muted-foreground font-bold uppercase">Completed</p>
+            <div className="text-center bg-white/10 rounded-xl p-3 backdrop-blur-md border border-white/10 shadow-inner">
+              <p className="text-2xl font-black">{totalCompleted}</p>
+              <p className="text-[9px] text-indigo-200 font-bold uppercase tracking-widest mt-1">Completed</p>
             </div>
-            <div className="text-center">
-              <p className="text-xl font-black capitalize">{contractor?.tier || 'Basic'}</p>
-              <p className="text-[9px] text-muted-foreground font-bold uppercase">Tier</p>
+            <div className="text-center bg-white/10 rounded-xl p-3 backdrop-blur-md border border-white/10 shadow-inner">
+              <p className="text-xl font-black capitalize mt-0.5">{contractor?.tier || 'Basic'}</p>
+              <p className="text-[9px] text-indigo-200 font-bold uppercase tracking-widest mt-1">Tier</p>
             </div>
           </div>
 
@@ -240,38 +269,54 @@ export default function ContractorProfilePage() {
           <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
             <MapPin className="h-4 w-4" /> Service Coverage
           </h2>
-          <p className="text-xs text-muted-foreground">Select all regions where you are available to work.</p>
-          <div className="grid gap-3">
-            {zones.map((zone) => {
-              const isSelected = formData.zone_ids.includes(zone.id);
-              return (
-                <Card key={zone.id} className={`transition-all cursor-pointer border-l-4 ${isSelected ? 'border-l-blue-600 bg-blue-50/30 dark:bg-blue-900/10' : 'border-l-transparent hover:border-l-muted'}`} onClick={() => toggleZone(zone.id)}>
-                  <CardContent className="p-4 flex items-start gap-4">
-                    <div onClick={(e) => e.stopPropagation()}>
-                      <Checkbox checked={isSelected} onCheckedChange={() => toggleZone(zone.id)} className="mt-1" />
-                    </div>
-                    <div className="space-y-1 flex-1">
-                      <div className="flex justify-between items-center">
-                        <p className="font-bold text-sm">{zone.name}</p>
-                        {isSelected && <CheckCircle2 className="h-4 w-4 text-blue-600" />}
-                      </div>
-                      <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-tighter">{zone.city}</p>
-                      <div className="flex flex-wrap gap-1 mt-2">
-                        {Array.isArray(zone.areas) && zone.areas.map(area => (
-                          <span key={`${zone.id}-${area}`} className="text-[9px] bg-muted px-1.5 py-0.5 rounded text-muted-foreground border border-border/50">{area}</span>
-                        ))}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
+          <Card>
+            <CardContent className="p-4 space-y-4">
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <Label>Max Travel Radius</Label>
+                  <span className="font-bold text-blue-600 bg-blue-50 dark:bg-blue-900/20 px-2 py-0.5 rounded text-sm">
+                    {formData.max_radius} km
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min="5"
+                  max="100"
+                  step="5"
+                  value={formData.max_radius}
+                  onChange={(e) => setFormData({ ...formData, max_radius: parseInt(e.target.value) })}
+                  className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-blue-600"
+                />
+                <p className="text-xs text-muted-foreground">Adjust the slider to automatically determine which zones you can cover.</p>
+              </div>
+
+              {hqCoords ? (
+                <div className="pt-2 border-t">
+                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-tighter mb-2 flex items-center gap-1">
+                    <CheckCircle2 className="h-3 w-3 text-green-500" /> Eligible Zones ({eligibleZones.length})
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {eligibleZones.length > 0 ? (
+                      eligibleZones.map(({ zone, distance }) => (
+                        <Badge key={zone.id} variant="secondary" className="text-[10px] py-0.5 bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                          {zone.name} ({distance.toFixed(1)}km)
+                        </Badge>
+                      ))
+                    ) : (
+                      <p className="text-xs text-muted-foreground italic">No zones found within this radius.</p>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <p className="text-xs text-amber-600 italic">Headquarters address not found. Please contact support.</p>
+              )}
+            </CardContent>
+          </Card>
         </div>
 
         <div className="sticky bottom-4 pt-4 bg-background/80 backdrop-blur-sm z-10">
           <Button type="submit" className="w-full h-14 text-base font-bold shadow-lg shadow-blue-500/20" disabled={saving}>
-            {saving ? 'Saving Changes...' : `Save ${formData.zone_ids.length} Zones`}
+            {saving ? 'Saving Changes...' : 'Save Profile & Coverage'}
           </Button>
         </div>
       </form>

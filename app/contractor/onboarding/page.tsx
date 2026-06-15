@@ -267,11 +267,12 @@ export default function OnboardingPage() {
         const fileExt = insuranceFile.name.split('.').pop();
         const fileName = `${contractor.id}-${Date.now()}.${fileExt}`;
         const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('contractor_documents')
+          .from('documents')
           .upload(fileName, insuranceFile);
           
         if (!uploadError && uploadData) {
-          finalFileUrl = uploadData.path;
+          const { data: { publicUrl } } = supabase.storage.from('documents').getPublicUrl(fileName);
+          finalFileUrl = publicUrl;
         } else {
           console.warn("Could not upload file to storage, continuing anyway.", uploadError);
         }
