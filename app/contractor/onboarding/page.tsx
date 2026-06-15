@@ -93,12 +93,9 @@ export default function OnboardingPage() {
         }
       }
 
-      // Get all zones via API to bypass strict RLS on the browser client
-      const zonesRes = await fetch('/api/zones');
-      if (zonesRes.ok) {
-        const allZones = await zonesRes.json();
-        setZones(allZones || []);
-      }
+      // Get all zones (table is publicly readable or uses session token)
+      const { data: allZones } = await supabase.from('zones').select('*').order('name');
+      setZones(allZones || []);
     } catch (e) {
       console.error("Error loading contractor data", e);
     } finally {
