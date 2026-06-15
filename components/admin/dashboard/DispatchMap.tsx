@@ -58,58 +58,70 @@ interface FilterState {
 }
 
 function createJobMarkerEl(status: string): HTMLElement {
-  const el = document.createElement('div');
+  const container = document.createElement('div');
+  container.style.cssText = 'width: 18px; height: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center;';
+  
+  const inner = document.createElement('div');
   const color = STATUS_COLORS[status] ?? STATUS_COLORS.default;
-  el.style.cssText = `
-    width: 18px; height: 18px;
+  inner.style.cssText = `
+    width: 100%; height: 100%;
     background: ${color};
     border: 2.5px solid rgba(255,255,255,0.9);
     border-radius: 50%;
     box-shadow: 0 2px 8px rgba(0,0,0,0.5);
-    cursor: pointer;
-    transition: scale 0.15s ease;
+    transition: transform 0.15s ease;
   `;
-  el.addEventListener('mouseenter', () => { el.style.scale = '1.4'; });
-  el.addEventListener('mouseleave', () => { el.style.scale = '1'; });
-  return el;
+  
+  container.appendChild(inner);
+  container.addEventListener('mouseenter', () => { inner.style.transform = 'scale(1.4)'; });
+  container.addEventListener('mouseleave', () => { inner.style.transform = 'scale(1)'; });
+  return container;
 }
 
 function createContractorMarkerEl(): HTMLElement {
-  const el = document.createElement('div');
-  el.style.cssText = `
-    width: 30px; height: 30px;
+  const container = document.createElement('div');
+  container.style.cssText = 'width: 30px; height: 30px; cursor: pointer; display: flex; align-items: center; justify-content: center;';
+  
+  const inner = document.createElement('div');
+  inner.style.cssText = `
+    width: 100%; height: 100%;
     background: #0a0a0a;
     border: 2.5px solid rgba(255,255,255,0.85);
     border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
     box-shadow: 0 2px 12px rgba(0,0,0,0.7);
-    cursor: pointer;
-    transition: scale 0.15s ease;
+    transition: transform 0.15s ease;
     font-size: 13px;
   `;
-  el.innerText = '👤';
-  el.addEventListener('mouseenter', () => { el.style.scale = '1.3'; });
-  el.addEventListener('mouseleave', () => { el.style.scale = '1'; });
-  return el;
+  inner.innerText = '👤';
+  
+  container.appendChild(inner);
+  container.addEventListener('mouseenter', () => { inner.style.transform = 'scale(1.3)'; });
+  container.addEventListener('mouseleave', () => { inner.style.transform = 'scale(1)'; });
+  return container;
 }
 
 function createHQMarkerEl(): HTMLElement {
-  const el = document.createElement('div');
-  el.style.cssText = `
-    width: 32px; height: 32px;
+  const container = document.createElement('div');
+  container.style.cssText = 'width: 32px; height: 32px; cursor: pointer; display: flex; align-items: center; justify-content: center;';
+  
+  const inner = document.createElement('div');
+  inner.style.cssText = `
+    width: 100%; height: 100%;
     background: #1e3a8a; /* dark blue */
     border: 2.5px solid rgba(255,255,255,0.9);
     border-radius: 8px; /* square to distinguish from location pins */
     display: flex; align-items: center; justify-content: center;
     box-shadow: 0 2px 12px rgba(0,0,0,0.7);
-    cursor: pointer;
-    transition: scale 0.15s ease;
+    transition: transform 0.15s ease;
     font-size: 15px;
   `;
-  el.innerText = '🏠';
-  el.addEventListener('mouseenter', () => { el.style.scale = '1.3'; });
-  el.addEventListener('mouseleave', () => { el.style.scale = '1'; });
-  return el;
+  inner.innerText = '🏠';
+  
+  container.appendChild(inner);
+  container.addEventListener('mouseenter', () => { inner.style.transform = 'scale(1.3)'; });
+  container.addEventListener('mouseleave', () => { inner.style.transform = 'scale(1)'; });
+  return container;
 }
 
 export default function DispatchMap() {
