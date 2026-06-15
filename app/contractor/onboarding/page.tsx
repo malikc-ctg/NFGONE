@@ -54,8 +54,9 @@ export default function OnboardingPage() {
   const [hasVehicle, setHasVehicle] = useState(true);
   
   // Insurance and Password state
-  const [insurance, setInsurance] = useState({ provider: '', policy_number: '', coverage_amount: '', file_url: '' });
   const [insuranceFile, setInsuranceFile] = useState<File | null>(null);
+  const [infoAccurate, setInfoAccurate] = useState(false);
+  const [agreeTerms, setAgreeTerms] = useState(false);
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   
@@ -244,6 +245,16 @@ export default function OnboardingPage() {
       return;
     }
 
+    if (!insuranceFile) {
+      toast.error('Please upload your insurance slip.');
+      return;
+    }
+
+    if (!infoAccurate || !agreeTerms) {
+      toast.error('Please confirm the mandatory checkboxes to proceed.');
+      return;
+    }
+
     setSubmitting(true);
     try {
       // 1. Update password
@@ -287,8 +298,7 @@ export default function OnboardingPage() {
           hq_coords: hqCoords,
           max_radius: maxRadius,
           insurance_details: {
-            ...insurance,
-            file_url: finalFileUrl || insurance.file_url
+            file_url: finalFileUrl || existingNotes.insurance_details?.file_url
           }
       };
 
@@ -502,43 +512,44 @@ export default function OnboardingPage() {
               </div>
             </div>
 
-            {/* Insurance */}
-            <div className="p-6 border-b space-y-4">
-              <h2 className="text-sm font-bold uppercase tracking-wider text-slate-500">Insurance Details</h2>
-              <p className="text-sm text-muted-foreground">Please provide your liability insurance information and upload your slip.</p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label>Insurance Provider</Label>
-                  <Input 
-                    placeholder="e.g. Intact Insurance" 
-                    value={insurance.provider}
-                    onChange={e => setInsurance({...insurance, provider: e.target.value})}
+            {/* Insurance & Legal */}
+            <div className="p-6 border-b space-y-6">
+              <div>
+                <h2 className="text-sm font-bold uppercase tracking-wider text-slate-500">Insurance & Legal</h2>
+                <p className="text-sm text-muted-foreground">Upload your liability insurance slip and confirm your details.</p>
+              </div>
+              
+              <div>
+                <Label className="mb-2 block">Upload Insurance Slip (Required)</Label>
+                <Input 
+                  type="file" 
+                  accept="image/*,.pdf"
+                  onChange={handleFileChange}
+                  className="cursor-pointer"
+                  required
+                />
+              </div>
+
+              <div className="flex flex-col gap-4 mt-4 bg-slate-50 p-4 rounded-lg border border-slate-100">
+                <div className="flex items-start space-x-3 mt-2">
+                  <Checkbox 
+                    id="infoAccurate" 
+                    checked={infoAccurate} 
+                    onCheckedChange={(checked) => setInfoAccurate(checked as boolean)} 
                   />
+                  <label htmlFor="infoAccurate" className="text-sm font-medium leading-tight peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                    I confirm that all information provided is accurate and true to the best of my knowledge.
+                  </label>
                 </div>
-                <div>
-                  <Label>Policy Number</Label>
-                  <Input 
-                    placeholder="e.g. POL-123456789" 
-                    value={insurance.policy_number}
-                    onChange={e => setInsurance({...insurance, policy_number: e.target.value})}
+                <div className="flex items-start space-x-3">
+                  <Checkbox 
+                    id="agreeTerms" 
+                    checked={agreeTerms} 
+                    onCheckedChange={(checked) => setAgreeTerms(checked as boolean)} 
                   />
-                </div>
-                <div>
-                  <Label>Coverage Amount</Label>
-                  <Input 
-                    placeholder="e.g. $2,000,000" 
-                    value={insurance.coverage_amount}
-                    onChange={e => setInsurance({...insurance, coverage_amount: e.target.value})}
-                  />
-                </div>
-                <div>
-                  <Label>Upload Insurance Slip</Label>
-                  <Input 
-                    type="file" 
-                    accept="image/*,.pdf"
-                    onChange={handleFileChange}
-                    className="cursor-pointer"
-                  />
+                  <label htmlFor="agreeTerms" className="text-sm font-medium leading-tight peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                    I agree to the Sea of Blue Contractor Terms of Service and Privacy Policy.
+                  </label>
                 </div>
               </div>
             </div>
