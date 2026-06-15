@@ -17,12 +17,12 @@ export default function AuthInterceptor() {
     if (hash && hash.includes('type=invite')) {
       // It's a contractor invite! Route them to onboarding, preserving the hash so Supabase can consume it.
       if (!window.location.pathname.includes('/contractor/onboarding')) {
-        router.push(`/contractor/onboarding${hash}`);
+        window.location.href = `/contractor/onboarding${hash}`;
       }
     } else if (search && search.includes('type=invite') && search.includes('token_hash=')) {
       // PKCE flow invite! Route them to onboarding, preserving the search params.
       if (!window.location.pathname.includes('/contractor/onboarding')) {
-        router.push(`/contractor/onboarding${search}`);
+        window.location.href = `/contractor/onboarding${search}`;
       }
     }
   }, [router]);
