@@ -20,7 +20,7 @@ export async function GET() {
     const serviceClient = await createServiceClient();
     const { data: contractor, error: dbError } = await serviceClient
       .from('contractors')
-      .select('*, zone:zones(*), selected_zones:contractor_zones(zone:zones(*))')
+      .select('*, zone:zones!contractors_zone_id_fkey(*), selected_zones:contractor_zones(zone:zones(*))')
       .eq('profile_id', user.id)
       .single();
 

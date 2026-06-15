@@ -77,7 +77,7 @@ export default function OnboardingPage() {
         if (sessionData.session?.user) {
           const { data: contractorData, error } = await supabase
             .from('contractors')
-            .select(`*, zone:zones(*)`)
+            .select(`*, zone:zones!contractors_zone_id_fkey(*)`)
             .eq('profile_id', sessionData.session.user.id)
             .single();
             
