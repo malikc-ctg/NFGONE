@@ -39,13 +39,35 @@ export async function updateSession(request: NextRequest) {
 
   // Protect admin routes: redirect unauthenticated users to admin login
   const pathname = request.nextUrl.pathname;
+  
   const isAdminRoute = pathname.startsWith('/wegettinmoneynga');
   const isAdminLogin = pathname === '/wegettinmoneynga/login';
   const isAdminApi = pathname.startsWith('/api/wegettinmoneynga');
 
+  const isContractorRoute = pathname.startsWith('/contractor');
+  const isContractorLogin = pathname === '/contractor/login';
+  const isContractorOnboarding = pathname === '/contractor/onboarding';
+
+  const isPartnerRoute = pathname.startsWith('/partner');
+  const isPartnerLogin = pathname === '/partner/login'; // assuming this exists or will exist
+
   if (isAdminRoute && !isAdminLogin && !isAdminApi && !user) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = '/wegettinmoneynga/login';
+    loginUrl.searchParams.set('redirect', pathname);
+    return NextResponse.redirect(loginUrl);
+  }
+
+  if (isContractorRoute && !isContractorLogin && !isContractorOnboarding && !user) {
+    const loginUrl = request.nextUrl.clone();
+    loginUrl.pathname = '/contractor/login';
+    loginUrl.searchParams.set('redirect', pathname);
+    return NextResponse.redirect(loginUrl);
+  }
+
+  if (isPartnerRoute && !isPartnerLogin && !user) {
+    const loginUrl = request.nextUrl.clone();
+    loginUrl.pathname = '/partner/login';
     loginUrl.searchParams.set('redirect', pathname);
     return NextResponse.redirect(loginUrl);
   }
