@@ -28,6 +28,8 @@ export default function ContractorDetailPage() {
   const params = useParams();
   const [contractor, setContractor] = useState<Contractor | null>(null);
   const [insurance, setInsurance] = useState<InsuranceDetails | null>(null);
+  const [hqAddress, setHqAddress] = useState<string | null>(null);
+  const [maxRadius, setMaxRadius] = useState<number | null>(null);
   const [isVerifying, setIsVerifying] = useState(false);
   const [rejectionNote, setRejectionNote] = useState('');
   const [showRejectInput, setShowRejectInput] = useState(false);
@@ -41,8 +43,12 @@ export default function ContractorDetailPage() {
       try {
         const notes = found.notes ? JSON.parse(found.notes) : {};
         setInsurance(notes.insurance_details ?? null);
+        setHqAddress(notes.hq_address ?? null);
+        setMaxRadius(notes.max_radius ?? null);
       } catch {
         setInsurance(null);
+        setHqAddress(null);
+        setMaxRadius(null);
       }
     }
   }
@@ -120,7 +126,9 @@ export default function ContractorDetailPage() {
           <CardContent className="space-y-3 text-sm">
             <div className="flex justify-between"><span className="text-muted-foreground">Email</span><span>{contractor.email}</span></div>
             <div className="flex justify-between"><span className="text-muted-foreground">Phone</span><span>{contractor.phone}</span></div>
-            <div className="flex justify-between"><span className="text-muted-foreground">Primary Zone</span><span>{(contractor as any).zone?.name ?? '—'}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">HQ Address</span><span className="text-right max-w-[200px] truncate" title={hqAddress || '—'}>{hqAddress || '—'}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Operating Radius</span><span>{maxRadius ? `${maxRadius} km` : '—'}</span></div>
+            <div className="flex justify-between pt-2 border-t"><span className="text-muted-foreground">Primary Zone</span><span>{(contractor as any).zone?.name ?? '—'}</span></div>
             <div className="space-y-2">
               <span className="text-muted-foreground block">Additional Zones</span>
               <div className="flex flex-wrap gap-1">
