@@ -39,7 +39,7 @@ export type RecurringFrequency = 'weekly' | 'biweekly' | 'monthly';
 
 export type ContractorTier = 'basic' | 'pro' | 'team';
 
-export type ContractorStatus = 'active' | 'probation' | 'suspended' | 'inactive';
+export type ContractorStatus = 'invited' | 'active' | 'probation' | 'suspended' | 'inactive';
 
 export type LeadStatus = 'new' | 'contacted' | 'quoted' | 'converted' | 'lost';
 

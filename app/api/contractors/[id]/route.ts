@@ -63,3 +63,29 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
   }
 }
 
+export async function PATCH(request: Request, { params }: { params: { id: string } }) {
+  try {
+    const auth = await requireRole(['admin']);
+    if (auth instanceof NextResponse) return auth;
+
+    const { id } = params;
+    const body = await request.json();
+    
+    const supabase = await createServiceClient();
+    
+    const { data, error } = await supabase
+      .from('contractors')
+      .update(body)
+      .eq('id', id)
+      .select()
+      .single();
+      
+    if (error) throw error;
+    
+    return NextResponse.json(data);
+  } catch (err: any) {
+    console.error('Error updating contractor:', err);
+    return NextResponse.json({ error: err.message || 'Internal Server Error' }, { status: 500 });
+  }
+}
+

@@ -11,7 +11,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Star, Trash2, ShieldCheck, ShieldAlert, ShieldX, Eye } from 'lucide-react';
+import { Plus, Star, Trash2, ShieldCheck, ShieldAlert, ShieldX, Eye, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Contractor } from '@/types';
 import Link from 'next/link';
@@ -97,6 +97,24 @@ export default function ContractorsPage() {
       toast.error('Failed to delete contractor');
     }
   }
+
+  async function handleActivate(id: string, name: string) {
+    if (!confirm(`Are you sure you want to activate "${name}"? They will be able to receive and accept jobs.`)) return;
+    
+    try {
+      const res = await fetch(`/api/contractors/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'active' })
+      });
+      if (!res.ok) throw new Error('Failed to activate');
+      toast.success('Contractor activated successfully');
+      fetchContractors();
+    } catch {
+      toast.error('Failed to activate contractor');
+    }
+  }
+
 
   const getStatusBadgeVariant = (status: string) => {
     switch(status) {
@@ -215,6 +233,11 @@ export default function ContractorsPage() {
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
+                            {c.status === 'invited' && insuranceStatus === 'verified' && (
+                              <Button variant="ghost" size="sm" className="text-green-600 hover:text-green-700 hover:bg-green-50" onClick={() => handleActivate(c.id, c.full_name)}>
+                                <Check className="h-4 w-4 mr-1" /> Activate
+                              </Button>
+                            )}
                             <Link href={`/wegettinmoneynga/contractors/${c.id}`}>
                               <Button variant="ghost" size="sm">View</Button>
                             </Link>
