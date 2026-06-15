@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import type { Contractor, Zone } from '@/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import dynamic_import from 'next/dynamic';
 
 const AddressAutofill = dynamic_import(
@@ -49,6 +50,8 @@ export default function OnboardingPage() {
   const [hqAddress, setHqAddress] = useState('');
   const [hqCoords, setHqCoords] = useState<{lat: number, lng: number} | null>(null);
   const [maxRadius, setMaxRadius] = useState<number>(20); // Default 20km
+  const [bringsOwnSupplies, setBringsOwnSupplies] = useState(false);
+  const [hasVehicle, setHasVehicle] = useState(true);
   
   // Insurance and Password state
   const [insurance, setInsurance] = useState({ provider: '', policy_number: '', coverage_amount: '', file_url: '' });
@@ -87,6 +90,8 @@ export default function OnboardingPage() {
         setHqAddress(existingNotes.hq_address || '');
         if (existingNotes.hq_coords) setHqCoords(existingNotes.hq_coords);
         if (existingNotes.max_radius) setMaxRadius(existingNotes.max_radius);
+        setBringsOwnSupplies(data.brings_own_supplies || false);
+        setHasVehicle(data.has_vehicle ?? true);
       } else {
         const { data: sessionData } = await supabase.auth.getSession();
         
@@ -294,6 +299,8 @@ export default function OnboardingPage() {
             email: email,
             phone: phone,
             zone_id: primaryZoneId,
+            brings_own_supplies: bringsOwnSupplies,
+            has_vehicle: hasVehicle,
             status: 'active',
             notes: JSON.stringify(updatedNotes)
         })
@@ -464,6 +471,34 @@ export default function OnboardingPage() {
                     {hqCoords ? 'No zones found within this radius. Try increasing distance.' : 'Select your HQ address above to see your zones.'}
                   </p>
                 )}
+              </div>
+            </div>
+
+            {/* Equipment & Vehicle */}
+            <div className="p-6 border-b space-y-4">
+              <h2 className="text-sm font-bold uppercase tracking-wider text-slate-500">Equipment & Vehicle</h2>
+              <p className="text-sm text-muted-foreground">Confirm your operational readiness to accept jobs.</p>
+              <div className="flex flex-col gap-4 mt-4">
+                <div className="flex items-center space-x-3">
+                  <Checkbox 
+                    id="supplies" 
+                    checked={bringsOwnSupplies} 
+                    onCheckedChange={(checked) => setBringsOwnSupplies(checked as boolean)} 
+                  />
+                  <label htmlFor="supplies" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                    I bring my own cleaning supplies and equipment
+                  </label>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <Checkbox 
+                    id="vehicle" 
+                    checked={hasVehicle} 
+                    onCheckedChange={(checked) => setHasVehicle(checked as boolean)} 
+                  />
+                  <label htmlFor="vehicle" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                    I have access to a reliable vehicle
+                  </label>
+                </div>
               </div>
             </div>
 

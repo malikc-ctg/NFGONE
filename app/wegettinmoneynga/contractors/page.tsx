@@ -24,9 +24,8 @@ export default function ContractorsPage() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [zones, setZones] = useState<any[]>([]);
   const [form, setForm] = useState({
-    full_name: '', email: '', phone: '', zone_id: '',
-    tier: 'basic', payout_rate: '0.700',
-    brings_own_supplies: false, has_vehicle: true, max_jobs_per_day: '2',
+    full_name: '', email: '', phone: '',
+    tier: 'basic', payout_rate: '0.700', max_jobs_per_day: '2',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [statusFilter, setStatusFilter] = useState('All');
@@ -61,7 +60,6 @@ export default function ContractorsPage() {
           ...form,
           payout_rate: parseFloat(form.payout_rate),
           max_jobs_per_day: parseInt(form.max_jobs_per_day),
-          zone_id: form.zone_id || null,
         }),
       });
       
@@ -71,9 +69,8 @@ export default function ContractorsPage() {
       toast.success('Contractor invited! Email sent.');
       setDrawerOpen(false);
       setForm({
-        full_name: '', email: '', phone: '', zone_id: '',
-        tier: 'basic', payout_rate: '0.700',
-        brings_own_supplies: false, has_vehicle: true, max_jobs_per_day: '2',
+        full_name: '', email: '', phone: '',
+        tier: 'basic', payout_rate: '0.700', max_jobs_per_day: '2',
       });
       fetchContractors();
     } catch (err: any) { 
@@ -146,12 +143,6 @@ export default function ContractorsPage() {
               <div><Label>Full Name</Label><Input value={form.full_name} onChange={e => setForm({ ...form, full_name: e.target.value })} /></div>
               <div><Label>Email</Label><Input type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} /></div>
               <div><Label>Phone</Label><Input value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} /></div>
-              <div><Label>Zone</Label>
-                <Select value={form.zone_id} onValueChange={v => setForm({ ...form, zone_id: v })}>
-                  <SelectTrigger><SelectValue placeholder="Select zone" /></SelectTrigger>
-                  <SelectContent>{zones.map(z => <SelectItem key={z.id} value={z.id}>{z.name}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
               <div><Label>Tier</Label>
                 <Select value={form.tier} onValueChange={v => setForm({ ...form, tier: v })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
@@ -163,8 +154,6 @@ export default function ContractorsPage() {
                 </Select>
               </div>
               <div><Label>Payout Rate (%)</Label><Input value={form.payout_rate} onChange={e => setForm({ ...form, payout_rate: e.target.value })} /></div>
-              <div className="flex items-center gap-2"><Checkbox checked={form.brings_own_supplies} onCheckedChange={c => setForm({ ...form, brings_own_supplies: !!c })} /><Label>Brings Own Supplies</Label></div>
-              <div className="flex items-center gap-2"><Checkbox checked={form.has_vehicle} onCheckedChange={c => setForm({ ...form, has_vehicle: !!c })} /><Label>Has Vehicle</Label></div>
               <Button onClick={handleSubmit} disabled={isSubmitting} className="w-full">
                 {isSubmitting ? 'Sending Invite...' : 'Send Invite'}
               </Button>
