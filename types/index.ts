@@ -132,6 +132,8 @@ export interface Zone {
   is_active: boolean;
   areas: string[];
   notes: string | null;
+  latitude?: number;
+  longitude?: number;
   created_at: string;
 }
 

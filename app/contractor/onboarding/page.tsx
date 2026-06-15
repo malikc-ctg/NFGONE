@@ -2,7 +2,7 @@
 
 export const dynamic = 'force-dynamic';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { createBrowserClient } from '@supabase/ssr';
 import { Card, CardContent } from '@/components/ui/card';
@@ -11,14 +11,30 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import type { Contractor, Zone } from '@/types';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
 import dynamic_import from 'next/dynamic';
 
 const AddressAutofill = dynamic_import(
   () => import('@mapbox/search-js-react').then((mod) => mod.AddressAutofill),
   { ssr: false }
 );
+
+function getDistanceFromLatLonInKm(lat1: number, lon1: number, lat2: number, lon2: number) {
+  const R = 6371; // Radius of the earth in km
+  const dLat = deg2rad(lat2 - lat1);
+  const dLon = deg2rad(lon2 - lon1);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+function deg2rad(deg: number) {
+  return deg * (Math.PI / 180);
+}
 
 export default function OnboardingPage() {
   const router = useRouter();
@@ -29,11 +45,11 @@ export default function OnboardingPage() {
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
-  const [primaryZoneId, setPrimaryZoneId] = useState('');
   const [hqAddress, setHqAddress] = useState('');
+  const [hqCoords, setHqCoords] = useState<{lat: number, lng: number} | null>(null);
+  const [maxRadius, setMaxRadius] = useState<number>(20); // Default 20km
   
-  // Additional Form state
-  const [additionalZones, setAdditionalZones] = useState<string[]>([]);
+  // Insurance and Password state
   const [insurance, setInsurance] = useState({ provider: '', policy_number: '', coverage_amount: '', file_url: '' });
   const [insuranceFile, setInsuranceFile] = useState<File | null>(null);
   const [password, setPassword] = useState('');
@@ -54,7 +70,6 @@ export default function OnboardingPage() {
 
   const loadContractorData = async () => {
     try {
-      // Use the secure me endpoint to get the contractor details
       const meRes = await fetch('/api/contractors/me');
       if (meRes.ok) {
         const data = await meRes.json();
@@ -66,16 +81,15 @@ export default function OnboardingPage() {
         setFullName(data.full_name || '');
         setEmail(data.email || '');
         setPhone(data.phone || '');
-        setPrimaryZoneId(data.zone_id || '');
-        setAdditionalZones(data.selected_zone_ids || []);
         
         const existingNotes = data.notes ? JSON.parse(data.notes) : {};
         setHqAddress(existingNotes.hq_address || '');
+        if (existingNotes.hq_coords) setHqCoords(existingNotes.hq_coords);
+        if (existingNotes.max_radius) setMaxRadius(existingNotes.max_radius);
       } else {
-        // Fallback: If /me fails (due to status or whatever), fetch directly
         const { data: sessionData } = await supabase.auth.getSession();
         if (sessionData.session?.user) {
-          const { data: contractorData, error } = await supabase
+          const { data: contractorData } = await supabase
             .from('contractors')
             .select(`*, zone:zones!contractors_zone_id_fkey(*)`)
             .eq('profile_id', sessionData.session.user.id)
@@ -86,14 +100,14 @@ export default function OnboardingPage() {
             setFullName(contractorData.full_name || '');
             setEmail(contractorData.email || '');
             setPhone(contractorData.phone || '');
-            setPrimaryZoneId(contractorData.zone_id || '');
             const existingNotes = contractorData.notes ? JSON.parse(contractorData.notes) : {};
             setHqAddress(existingNotes.hq_address || '');
+            if (existingNotes.hq_coords) setHqCoords(existingNotes.hq_coords);
+            if (existingNotes.max_radius) setMaxRadius(existingNotes.max_radius);
           }
         }
       }
 
-      // Get all zones (table is publicly readable or uses session token)
       const { data: allZones } = await supabase.from('zones').select('*').order('name');
       setZones(allZones || []);
     } catch (e) {
@@ -120,7 +134,6 @@ export default function OnboardingPage() {
         const type = searchParams.get('type') as any;
 
         if (hash && hash.includes('access_token=')) {
-          // Implicit grant (hash fragment)
           const hashParams = new URLSearchParams(hash.substring(1));
           const access_token = hashParams.get('access_token');
           const refresh_token = hashParams.get('refresh_token');
@@ -128,7 +141,7 @@ export default function OnboardingPage() {
           if (access_token && refresh_token) {
             supabase.auth.setSession({ access_token, refresh_token }).then(({ data, error }) => {
               if (error || !data.session) {
-                toast.error('Invalid or expired invite link. Please request a new one.');
+                toast.error('Invalid or expired invite link.');
                 router.push('/contractor/login');
               } else {
                 window.history.replaceState({}, document.title, window.location.pathname);
@@ -136,10 +149,9 @@ export default function OnboardingPage() {
             });
           }
         } else if (token_hash && type) {
-          // PKCE grant (search query)
           supabase.auth.verifyOtp({ token_hash, type }).then(({ error }) => {
             if (error) {
-              toast.error('Invalid or expired invite link. Please request a new one.');
+              toast.error('Invalid or expired invite link.');
               router.push('/contractor/login');
             } else {
               window.history.replaceState({}, document.title, window.location.pathname);
@@ -151,7 +163,6 @@ export default function OnboardingPage() {
       }
     });
     
-    // Fallback timer: If stuck in loading, unlock screen and attempt fetch
     const fallbackTimer = setTimeout(async () => {
       if (!isHandled) {
         isHandled = true;
@@ -170,11 +181,23 @@ export default function OnboardingPage() {
     };
   }, [router, supabase]);
 
-  const toggleZone = (zoneId: string) => {
-    setAdditionalZones(prev => 
-      prev.includes(zoneId) ? prev.filter(id => id !== zoneId) : [...prev, zoneId]
-    );
-  };
+  // Radius Calculations
+  const calculatedZones = useMemo(() => {
+    if (!hqCoords || zones.length === 0) return [];
+    
+    const distances = zones.map(zone => {
+      if (!zone.latitude || !zone.longitude) return { zone, distance: Infinity };
+      const dist = getDistanceFromLatLonInKm(hqCoords.lat, hqCoords.lng, zone.latitude, zone.longitude);
+      return { zone, distance: dist };
+    });
+
+    // Filter within radius and sort by distance
+    const eligible = distances
+      .filter(d => d.distance <= maxRadius)
+      .sort((a, b) => a.distance - b.distance);
+      
+    return eligible;
+  }, [hqCoords, zones, maxRadius]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -195,6 +218,16 @@ export default function OnboardingPage() {
       return;
     }
 
+    if (!hqCoords) {
+      toast.error('Please select a valid address from the autocomplete dropdown.');
+      return;
+    }
+
+    if (calculatedZones.length === 0) {
+      toast.error('No operating zones found within your radius. Try increasing the distance or updating your address.');
+      return;
+    }
+
     setSubmitting(true);
     try {
       // 1. Update password
@@ -206,8 +239,6 @@ export default function OnboardingPage() {
       if (insuranceFile && contractor) {
         const fileExt = insuranceFile.name.split('.').pop();
         const fileName = `${contractor.id}-${Date.now()}.${fileExt}`;
-        
-        // Ensure bucket exists, if not, skip gracefully
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from('contractor_documents')
           .upload(fileName, insuranceFile);
@@ -219,10 +250,13 @@ export default function OnboardingPage() {
         }
       }
 
-      // 3. Add extra zones
-      if (additionalZones.length > 0) {
+      // 3. Set Primary and Additional Zones
+      const primaryZoneId = calculatedZones[0].zone.id; // Closest is primary
+      const additionalZoneIds = calculatedZones.slice(1).map(z => z.zone.id);
+
+      if (additionalZoneIds.length > 0) {
         await supabase.from('contractor_zones').delete().eq('contractor_id', contractor?.id);
-        const zoneInserts = additionalZones.map(zId => ({
+        const zoneInserts = additionalZoneIds.map(zId => ({
           contractor_id: contractor?.id,
           zone_id: zId
         }));
@@ -234,6 +268,8 @@ export default function OnboardingPage() {
       const updatedNotes = {
           ...existingNotes,
           hq_address: hqAddress,
+          hq_coords: hqCoords,
+          max_radius: maxRadius,
           insurance_details: {
             ...insurance,
             file_url: finalFileUrl || insurance.file_url
@@ -246,7 +282,7 @@ export default function OnboardingPage() {
             full_name: fullName,
             email: email,
             phone: phone,
-            zone_id: primaryZoneId || null,
+            zone_id: primaryZoneId,
             status: 'active',
             notes: JSON.stringify(updatedNotes)
         })
@@ -254,7 +290,6 @@ export default function OnboardingPage() {
         
       if (updateError) throw updateError;
 
-      // Also update the profile email and full name to stay in sync
       await supabase.from('profiles').update({ full_name: fullName, phone: phone }).eq('id', contractor?.profile_id);
 
       toast.success('Onboarding complete! Welcome to Sea of Blue.');
@@ -309,7 +344,7 @@ export default function OnboardingPage() {
                     required
                   />
                 </div>
-                <div>
+                <div className="md:col-span-2">
                   <Label>Phone Number</Label>
                   <Input 
                     value={phone} 
@@ -317,29 +352,40 @@ export default function OnboardingPage() {
                     required
                   />
                 </div>
-                <div>
-                  <Label>Primary Operating Zone</Label>
-                  <Select value={primaryZoneId} onValueChange={setPrimaryZoneId}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select primary zone" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {zones.map((zone) => (
-                        <SelectItem key={zone.id} value={zone.id}>
-                          {zone.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+              </div>
+            </div>
+
+            {/* Coverage Area Section */}
+            <div className="p-6 border-b space-y-6">
+              <div>
+                <h2 className="text-sm font-bold uppercase tracking-wider text-slate-500 mb-1">Coverage Area</h2>
+                <p className="text-sm text-muted-foreground mb-4">Enter your HQ and choose how far you are willing to travel. We will automatically assign you to the operating zones within this radius.</p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="md:col-span-2">
                   <Label>HQ Address (Home or Office)</Label>
                   {isMounted ? (
-                    <AddressAutofill accessToken={process.env.NEXT_PUBLIC_MAPBOX_TOKEN!}>
+                    <AddressAutofill 
+                      accessToken={process.env.NEXT_PUBLIC_MAPBOX_TOKEN!}
+                      onRetrieve={(res) => {
+                        const feature = res.features[0];
+                        if (feature && feature.geometry) {
+                          setHqCoords({
+                            lng: feature.geometry.coordinates[0],
+                            lat: feature.geometry.coordinates[1]
+                          });
+                        }
+                      }}
+                    >
                       <Input 
                         placeholder="e.g. 123 Main St, Toronto, ON"
                         value={hqAddress} 
-                        onChange={e => setHqAddress(e.target.value)} 
+                        onChange={e => {
+                          setHqAddress(e.target.value);
+                          // Clear coords if they edit the address manually to force re-selection
+                          setHqCoords(null);
+                        }} 
                         autoComplete="address-line1"
                         required
                       />
@@ -352,28 +398,46 @@ export default function OnboardingPage() {
                       required
                     />
                   )}
-                  <p className="text-xs text-muted-foreground mt-1">This address is used to calculate travel routes and dispatch jobs near you.</p>
+                  {!hqCoords && hqAddress.length > 5 && (
+                    <p className="text-xs text-amber-600 mt-1">Please select an address from the dropdown to calculate zones.</p>
+                  )}
+                </div>
+
+                <div>
+                  <Label>Max Travel Distance</Label>
+                  <Select value={maxRadius.toString()} onValueChange={(val) => setMaxRadius(Number(val))}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select distance" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="10">10 km</SelectItem>
+                      <SelectItem value="20">20 km</SelectItem>
+                      <SelectItem value="30">30 km</SelectItem>
+                      <SelectItem value="40">40 km</SelectItem>
+                      <SelectItem value="50">50 km</SelectItem>
+                      <SelectItem value="100">100 km</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
-            </div>
 
-            {/* Additional Zones */}
-            <div className="p-6 border-b space-y-4">
-              <h2 className="text-sm font-bold uppercase tracking-wider text-slate-500">Additional Zones</h2>
-              <p className="text-sm text-muted-foreground">Select any other zones where you are willing to accept jobs.</p>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                {zones.filter(z => z.id !== primaryZoneId).map((zone) => (
-                  <div key={zone.id} className="flex items-center space-x-2 border rounded-md p-3 hover:bg-slate-50 transition-colors">
-                    <Checkbox 
-                      id={zone.id} 
-                      checked={additionalZones.includes(zone.id)}
-                      onCheckedChange={() => toggleZone(zone.id)}
-                    />
-                    <label htmlFor={zone.id} className="text-sm font-medium leading-none cursor-pointer">
-                      {zone.name}
-                    </label>
+              {/* Calculated Zones Display */}
+              <div className="bg-blue-50/50 p-4 rounded-xl border border-blue-100">
+                <Label className="text-blue-900 mb-2 block">Your Operating Zones ({calculatedZones.length})</Label>
+                {calculatedZones.length > 0 ? (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {calculatedZones.map((z, idx) => (
+                      <Badge key={z.zone.id} variant={idx === 0 ? "default" : "secondary"} className="text-xs py-1">
+                        {z.zone.name} ({Math.round(z.distance)}km)
+                        {idx === 0 && " • Primary"}
+                      </Badge>
+                    ))}
                   </div>
-                ))}
+                ) : (
+                  <p className="text-sm text-blue-600/70 italic mt-2">
+                    {hqCoords ? 'No zones found within this radius. Try increasing distance.' : 'Select your HQ address above to see your zones.'}
+                  </p>
+                )}
               </div>
             </div>
 
@@ -419,7 +483,7 @@ export default function OnboardingPage() {
             </div>
 
             {/* Password Setup */}
-            <div className="p-6 space-y-4 bg-blue-50/50">
+            <div className="p-6 space-y-4 bg-slate-50">
               <h2 className="text-sm font-bold uppercase tracking-wider text-slate-500">Set Your Password</h2>
               <p className="text-sm text-muted-foreground">Create a secure password to log in to your account moving forward.</p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -444,7 +508,7 @@ export default function OnboardingPage() {
               </div>
             </div>
 
-            <div className="p-6 pt-0 bg-blue-50/50">
+            <div className="p-6 pt-0 bg-slate-50">
               <Button type="submit" className="w-full h-12 text-lg font-bold" disabled={submitting}>
                 {submitting ? 'Setting up your profile...' : 'Complete Onboarding & Start'}
               </Button>
