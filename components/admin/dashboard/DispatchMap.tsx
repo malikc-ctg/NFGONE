@@ -46,6 +46,7 @@ interface MapData {
   jobs: any[];
   contractorLocations: any[];
   zones: any[];
+  contractorHQs?: any[];
 }
 
 interface FilterState {
@@ -87,6 +88,25 @@ function createContractorMarkerEl(): HTMLElement {
     font-size: 13px;
   `;
   el.innerText = '👤';
+  el.addEventListener('mouseenter', () => { el.style.transform = 'scale(1.3)'; });
+  el.addEventListener('mouseleave', () => { el.style.transform = 'scale(1)'; });
+  return el;
+}
+
+function createHQMarkerEl(): HTMLElement {
+  const el = document.createElement('div');
+  el.style.cssText = `
+    width: 32px; height: 32px;
+    background: #1e3a8a; /* dark blue */
+    border: 2.5px solid rgba(255,255,255,0.9);
+    border-radius: 8px; /* square to distinguish from location pins */
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.7);
+    cursor: pointer;
+    transition: transform 0.15s ease;
+    font-size: 15px;
+  `;
+  el.innerText = '🏠';
   el.addEventListener('mouseenter', () => { el.style.transform = 'scale(1.3)'; });
   el.addEventListener('mouseleave', () => { el.style.transform = 'scale(1)'; });
   return el;
@@ -193,7 +213,7 @@ export default function DispatchMap() {
     markersRef.current.forEach(m => m.remove());
     markersRef.current = [];
 
-    const { jobs, contractorLocations } = mapData;
+    const { jobs, contractorLocations, contractorHQs = [] } = mapData;
 
     // Filter jobs
     const filteredJobs = jobs.filter(job => {
@@ -267,6 +287,31 @@ export default function DispatchMap() {
         markersRef.current.push(marker);
       });
     }
+
+    // Contractor HQ markers (always shown)
+    contractorHQs.forEach(hq => {
+      if (!hq.longitude || !hq.latitude) return;
+      const el = createHQMarkerEl();
+      const popup = new mapboxgl.Popup({ offset: 18, closeButton: true, maxWidth: '240px' })
+        .setHTML(`
+          <div style="font-family: sans-serif; padding: 2px;">
+            <p style="font-weight:700; font-size:13px; margin:0 0 2px;">${hq.full_name} HQ</p>
+            <div style="display:flex; align-items:center; gap:4px; margin-top: 4px;">
+              <div style="width:6px;height:6px;background:#1e3a8a;border-radius:50%;"></div>
+              <span style="font-size:10px; color:#1e3a8a; font-weight:700;">HEADQUARTERS</span>
+            </div>
+            <p style="font-size:10px; color:#666; margin-top:4px;">${hq.phone ?? ''}</p>
+          </div>
+        `);
+
+      const marker = new mapboxgl.Marker({ element: el })
+        .setLngLat([hq.longitude, hq.latitude])
+        .setPopup(popup)
+        .addTo(map);
+
+      markersRef.current.push(marker);
+    });
+
   }, [mapLoaded, mapData, filters]);
 
   // ---------- Derived metrics ----------
