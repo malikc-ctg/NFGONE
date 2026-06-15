@@ -67,10 +67,10 @@ function createJobMarkerEl(status: string): HTMLElement {
     border-radius: 50%;
     box-shadow: 0 2px 8px rgba(0,0,0,0.5);
     cursor: pointer;
-    transition: transform 0.15s ease;
+    transition: scale 0.15s ease;
   `;
-  el.addEventListener('mouseenter', () => { el.style.transform = 'scale(1.4)'; });
-  el.addEventListener('mouseleave', () => { el.style.transform = 'scale(1)'; });
+  el.addEventListener('mouseenter', () => { el.style.scale = '1.4'; });
+  el.addEventListener('mouseleave', () => { el.style.scale = '1'; });
   return el;
 }
 
@@ -84,12 +84,12 @@ function createContractorMarkerEl(): HTMLElement {
     display: flex; align-items: center; justify-content: center;
     box-shadow: 0 2px 12px rgba(0,0,0,0.7);
     cursor: pointer;
-    transition: transform 0.15s ease;
+    transition: scale 0.15s ease;
     font-size: 13px;
   `;
   el.innerText = '👤';
-  el.addEventListener('mouseenter', () => { el.style.transform = 'scale(1.3)'; });
-  el.addEventListener('mouseleave', () => { el.style.transform = 'scale(1)'; });
+  el.addEventListener('mouseenter', () => { el.style.scale = '1.3'; });
+  el.addEventListener('mouseleave', () => { el.style.scale = '1'; });
   return el;
 }
 
@@ -103,12 +103,12 @@ function createHQMarkerEl(): HTMLElement {
     display: flex; align-items: center; justify-content: center;
     box-shadow: 0 2px 12px rgba(0,0,0,0.7);
     cursor: pointer;
-    transition: transform 0.15s ease;
+    transition: scale 0.15s ease;
     font-size: 15px;
   `;
   el.innerText = '🏠';
-  el.addEventListener('mouseenter', () => { el.style.transform = 'scale(1.3)'; });
-  el.addEventListener('mouseleave', () => { el.style.transform = 'scale(1)'; });
+  el.addEventListener('mouseenter', () => { el.style.scale = '1.3'; });
+  el.addEventListener('mouseleave', () => { el.style.scale = '1'; });
   return el;
 }
 
