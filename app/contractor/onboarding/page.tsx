@@ -2,7 +2,7 @@
 
 export const dynamic = 'force-dynamic';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { createBrowserClient } from '@supabase/ssr';
 import { Card, CardContent } from '@/components/ui/card';
@@ -40,6 +40,7 @@ export default function OnboardingPage() {
   const router = useRouter();
   const [contractor, setContractor] = useState<Contractor | null>(null);
   const [zones, setZones] = useState<Zone[]>([]);
+  const isSelectingAddress = useRef(false);
   
   // Editable form state
   const [fullName, setFullName] = useState('');
@@ -371,10 +372,14 @@ export default function OnboardingPage() {
                       onRetrieve={(res) => {
                         const feature = res.features[0];
                         if (feature && feature.geometry) {
+                          isSelectingAddress.current = true;
                           setHqCoords({
                             lng: feature.geometry.coordinates[0],
                             lat: feature.geometry.coordinates[1]
                           });
+                          setTimeout(() => {
+                            isSelectingAddress.current = false;
+                          }, 100);
                         }
                       }}
                     >
@@ -384,7 +389,10 @@ export default function OnboardingPage() {
                         onChange={e => {
                           setHqAddress(e.target.value);
                           // Clear coords if they edit the address manually to force re-selection
-                          setHqCoords(null);
+                          // but only if it wasn't triggered by Mapbox Autofill
+                          if (!isSelectingAddress.current) {
+                            setHqCoords(null);
+                          }
                         }} 
                         autoComplete="address-line1"
                         required
