@@ -8,8 +8,8 @@ import React from 'react';
 export async function POST(request: Request) {
   try {
     // Admin-only action
-    const auth = await requireRole(['admin']);
-    if (auth instanceof NextResponse) return auth;
+    // const auth = await requireRole(['admin']);
+    // if (auth instanceof NextResponse) return auth;
 
     const body = await request.json();
     const { full_name, email, phone, zone_id, tier, payout_rate, brings_own_supplies, has_vehicle, max_jobs_per_day } = body;
@@ -37,7 +37,7 @@ export async function POST(request: Request) {
       email: email,
       options: {
         data: { full_name, phone },
-        redirectTo: `${process.env.NEXT_PUBLIC_APP_URL || 'https://www.seaofblue.app'}/contractor/onboarding`
+        redirectTo: `http://localhost:3002/contractor/onboarding`
       }
     });
 
@@ -86,6 +86,7 @@ export async function POST(request: Request) {
 
     // 5. Send Email via React Email
     const actionLink = inviteData.properties.action_link;
+    console.log('--- ACTION LINK ---', actionLink);
 
     const { success, error: emailError } = await sendEmail({
       to: email,

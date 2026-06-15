@@ -95,7 +95,29 @@ export default function OnboardingPage() {
       }
     });
     
+    // Fallback: If we're stuck in loading state for more than 5 seconds, 
+    // try fetching the session manually or just unlock the screen to show any errors.
+    const fallbackTimer = setTimeout(async () => {
+      const { data } = await supabase.auth.getSession();
+      if (data.session) {
+        setLoading(false);
+        // We could also manually fetch profile here if it missed the event
+      } else {
+        const hasAuthTokens = window.location.hash.includes('access_token') || 
+                              window.location.search.includes('token_hash') ||
+                              window.location.search.includes('code');
+        if (!hasAuthTokens) {
+           router.push('/contractor/login');
+        } else {
+           // We have tokens but session failed to establish after 5s. 
+           // Unlock the screen anyway so it's not a white screen of death.
+           setLoading(false);
+        }
+      }
+    }, 5000);
+    
     return () => {
+      clearTimeout(fallbackTimer);
       authListener.subscription.unsubscribe();
     };
   }, [router, supabase]);

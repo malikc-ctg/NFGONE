@@ -6,6 +6,7 @@ import { Toaster } from '@/components/ui/sonner';
 
 import localFont from 'next/font/local';
 import { LenisProvider } from '@/lib/motion/LenisProvider';
+import AuthInterceptor from '@/components/shared/AuthInterceptor';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 
@@ -49,6 +50,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${inter.variable} ${rustic.variable} ${brice.variable}`}>
       <body className="font-sans antialiased">
+        <AuthInterceptor />
         <LenisProvider>
           {children}
         </LenisProvider>
