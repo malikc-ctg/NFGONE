@@ -1,12 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
+import { Loader2, Trash2, Calendar } from 'lucide-react';
 import type { DayOfWeek, TimeWindow } from '@/types';
 
 const DAYS: DayOfWeek[] = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
@@ -17,6 +18,13 @@ const DAY_LABELS: Record<DayOfWeek, string> = {
   thursday: 'Thu', friday: 'Fri', saturday: 'Sat', sunday: 'Sun',
 };
 
+interface AvailabilityBlock {
+  id: string;
+  date: string;
+  window: TimeWindow;
+  reason: string;
+}
+
 export default function AvailabilityPage() {
   const [grid, setGrid] = useState<Record<string, boolean>>(() => {
     const initial: Record<string, boolean> = {};
@@ -26,18 +34,87 @@ export default function AvailabilityPage() {
   const [blockDate, setBlockDate] = useState('');
   const [blockWindow, setBlockWindow] = useState<TimeWindow>('morning');
   const [blockReason, setBlockReason] = useState('');
+  const [blocks, setBlocks] = useState<AvailabilityBlock[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
-  function toggleCell(day: DayOfWeek, window: TimeWindow) {
+  const fetchAvailability = useCallback(async () => {
+    try {
+      const res = await fetch('/api/contractors/me/availability');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.weekly_grid) setGrid(data.weekly_grid);
+        if (data.blocks) setBlocks(data.blocks);
+      }
+    } catch (err) {
+      console.error('Failed to load availability:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchAvailability(); }, [fetchAvailability]);
+
+  async function toggleCell(day: DayOfWeek, window: TimeWindow) {
     const key = `${day}-${window}`;
-    setGrid(g => ({ ...g, [key]: !g[key] }));
-    toast.success(`${DAY_LABELS[day]} ${WINDOW_LABELS[window]} ${grid[`${day}-${window}`] ? 'blocked' : 'available'}`);
+    const newGrid = { ...grid, [key]: !grid[key] };
+    setGrid(newGrid);
+
+    // Persist immediately
+    try {
+      const res = await fetch('/api/contractors/me/availability', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ weekly_grid: newGrid }),
+      });
+      if (!res.ok) throw new Error('Save failed');
+      toast.success(`${DAY_LABELS[day]} ${WINDOW_LABELS[window]} ${grid[key] ? 'blocked' : 'available'}`);
+    } catch {
+      // Revert on failure
+      setGrid(grid);
+      toast.error('Failed to save change');
+    }
   }
 
-  function addBlock() {
+  async function addBlock() {
     if (!blockDate) { toast.error('Select a date'); return; }
-    toast.success(`Blocked ${blockDate} ${WINDOW_LABELS[blockWindow]}`);
-    setBlockDate('');
-    setBlockReason('');
+    setSaving(true);
+    try {
+      const res = await fetch('/api/contractors/me/availability/blocks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ date: blockDate, window: blockWindow, reason: blockReason }),
+      });
+      if (!res.ok) throw new Error('Save failed');
+      const newBlock = await res.json();
+      setBlocks(prev => [newBlock, ...prev]);
+      toast.success(`Blocked ${blockDate} ${WINDOW_LABELS[blockWindow]}`);
+      setBlockDate('');
+      setBlockReason('');
+    } catch {
+      toast.error('Failed to add block');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function removeBlock(id: string) {
+    try {
+      const res = await fetch(`/api/contractors/me/availability/blocks?id=${id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Delete failed');
+      setBlocks(prev => prev.filter(b => b.id !== id));
+      toast.success('Block removed');
+    } catch {
+      toast.error('Failed to remove block');
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex h-40 items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
   }
 
   return (
@@ -101,9 +178,35 @@ export default function AvailabilityPage() {
             </Select>
           </div>
           <div><Label>Reason (optional)</Label><Input value={blockReason} onChange={e => setBlockReason(e.target.value)} className="h-12" placeholder="e.g. Doctor's appointment" /></div>
-          <Button onClick={addBlock} className="w-full h-12">Block Date</Button>
+          <Button onClick={addBlock} className="w-full h-12" disabled={saving}>
+            {saving ? 'Saving...' : 'Block Date'}
+          </Button>
         </CardContent>
       </Card>
+
+      {/* Active Blocks */}
+      {blocks.length > 0 && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Calendar className="h-4 w-4" /> Blocked Dates
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {blocks.map(block => (
+              <div key={block.id} className="flex items-center justify-between bg-red-50 dark:bg-red-900/20 rounded-lg px-3 py-2">
+                <div>
+                  <p className="text-sm font-medium">{new Date(block.date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</p>
+                  <p className="text-xs text-muted-foreground">{WINDOW_LABELS[block.window]}{block.reason ? ` — ${block.reason}` : ''}</p>
+                </div>
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:text-red-700" onClick={() => removeBlock(block.id)}>
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

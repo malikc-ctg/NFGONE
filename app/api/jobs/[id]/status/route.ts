@@ -132,7 +132,7 @@ export async function PATCH(
 
       // 2. If job status progressed
       if (newStatus && newStatus !== job.status) {
-        if (newStatus === 'en_route' && cEmail) {
+        if (newStatus === 'on_the_way' && cEmail) {
            await sendEmail({
              to: cEmail,
              subject: 'Your Cleaner is On the Way',
