@@ -387,6 +387,14 @@ export default function OnboardingPage() {
                             lng: feature.geometry.coordinates[0],
                             lat: feature.geometry.coordinates[1]
                           });
+                          
+                          // Also update the input text to match the full selected address
+                          if (feature.properties.full_address) {
+                            setHqAddress(feature.properties.full_address);
+                          } else if (feature.properties.place_name) {
+                            setHqAddress(feature.properties.place_name);
+                          }
+                          
                           setTimeout(() => {
                             isSelectingAddress.current = false;
                           }, 100);
