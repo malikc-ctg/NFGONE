@@ -114,15 +114,32 @@ export default function OnboardingPage() {
         const hasAuthTokens = window.location.hash.includes('access_token') || 
                               window.location.search.includes('token_hash') ||
                               window.location.search.includes('code');
-                              
-        const params = new URLSearchParams(window.location.search);
-        const token_hash = params.get('token_hash');
-        const type = params.get('type') as any;
+        const hash = window.location.hash;
+        const searchParams = new URLSearchParams(window.location.search);
+        const token_hash = searchParams.get('token_hash');
+        const type = searchParams.get('type') as any;
 
-        if (token_hash && type) {
+        if (hash && hash.includes('access_token=')) {
+          // Implicit grant (hash fragment)
+          const hashParams = new URLSearchParams(hash.substring(1));
+          const access_token = hashParams.get('access_token');
+          const refresh_token = hashParams.get('refresh_token');
+          
+          if (access_token && refresh_token) {
+            supabase.auth.setSession({ access_token, refresh_token }).then(({ data, error }) => {
+              if (error || !data.session) {
+                toast.error('Invalid or expired invite link. Please request a new one.');
+                router.push('/contractor/login');
+              } else {
+                window.history.replaceState({}, document.title, window.location.pathname);
+              }
+            });
+          }
+        } else if (token_hash && type) {
+          // PKCE grant (search query)
           supabase.auth.verifyOtp({ token_hash, type }).then(({ error }) => {
             if (error) {
-              toast.error('Invalid or expired invite link.');
+              toast.error('Invalid or expired invite link. Please request a new one.');
               router.push('/contractor/login');
             } else {
               window.history.replaceState({}, document.title, window.location.pathname);
