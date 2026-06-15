@@ -73,7 +73,23 @@ export default function OnboardingPage() {
                               window.location.search.includes('token_hash') ||
                               window.location.search.includes('code');
                               
-        if (!hasAuthTokens) {
+        const params = new URLSearchParams(window.location.search);
+        const token_hash = params.get('token_hash');
+        const type = params.get('type') as any;
+
+        if (token_hash && type) {
+          // Manual PKCE verification for invite links
+          supabase.auth.verifyOtp({ token_hash, type }).then(({ error }) => {
+            if (error) {
+              console.error('Error verifying OTP:', error);
+              toast.error('Invalid or expired invite link.');
+              router.push('/contractor/login');
+            } else {
+              // Clean up URL
+              window.history.replaceState({}, document.title, window.location.pathname);
+            }
+          });
+        } else if (!hasAuthTokens) {
           router.push('/contractor/login');
         }
       }
