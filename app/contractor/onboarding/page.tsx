@@ -89,6 +89,16 @@ export default function OnboardingPage() {
         if (existingNotes.max_radius) setMaxRadius(existingNotes.max_radius);
       } else {
         const { data: sessionData } = await supabase.auth.getSession();
+        
+        // Verify the user actually exists in the database still (catches "User from sub claim in JWT does not exist" errors)
+        const { data: userData, error: userError } = await supabase.auth.getUser();
+        if (userError || !userData?.user) {
+          console.warn("Stale JWT detected. Logging out.");
+          await supabase.auth.signOut();
+          router.push('/contractor/login');
+          return;
+        }
+
         if (sessionData.session?.user) {
           const { data: contractorData } = await supabase
             .from('contractors')
