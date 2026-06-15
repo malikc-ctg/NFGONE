@@ -13,6 +13,12 @@ import { toast } from 'sonner';
 import type { Contractor, Zone } from '@/types';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import dynamic_import from 'next/dynamic';
+
+const AddressAutofill = dynamic_import(
+  () => import('@mapbox/search-js-react').then((mod) => mod.AddressAutofill),
+  { ssr: false }
+);
 
 export default function OnboardingPage() {
   const router = useRouter();
@@ -35,6 +41,11 @@ export default function OnboardingPage() {
   
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -66,7 +77,7 @@ export default function OnboardingPage() {
         if (sessionData.session?.user) {
           const { data: contractorData, error } = await supabase
             .from('contractors')
-            .select(`*, zone:zones!contractors_zone_id_fkey(*)`)
+            .select(`*, zone:zones(*)`)
             .eq('profile_id', sessionData.session.user.id)
             .single();
             
@@ -82,9 +93,12 @@ export default function OnboardingPage() {
         }
       }
 
-      // Get all zones
-      const { data: allZones } = await supabase.from('zones').select('*').order('name');
-      setZones(allZones || []);
+      // Get all zones via API to bypass strict RLS on the browser client
+      const zonesRes = await fetch('/api/zones');
+      if (zonesRes.ok) {
+        const allZones = await zonesRes.json();
+        setZones(allZones || []);
+      }
     } catch (e) {
       console.error("Error loading contractor data", e);
     } finally {
@@ -306,12 +320,24 @@ export default function OnboardingPage() {
                 </div>
                 <div className="md:col-span-2">
                   <Label>HQ Address (Home or Office)</Label>
-                  <Input 
-                    placeholder="e.g. 123 Main St, Toronto, ON"
-                    value={hqAddress} 
-                    onChange={e => setHqAddress(e.target.value)} 
-                    required
-                  />
+                  {isMounted ? (
+                    <AddressAutofill accessToken={process.env.NEXT_PUBLIC_MAPBOX_TOKEN!}>
+                      <Input 
+                        placeholder="e.g. 123 Main St, Toronto, ON"
+                        value={hqAddress} 
+                        onChange={e => setHqAddress(e.target.value)} 
+                        autoComplete="address-line1"
+                        required
+                      />
+                    </AddressAutofill>
+                  ) : (
+                    <Input 
+                      placeholder="e.g. 123 Main St, Toronto, ON"
+                      value={hqAddress} 
+                      onChange={e => setHqAddress(e.target.value)} 
+                      required
+                    />
+                  )}
                   <p className="text-xs text-muted-foreground mt-1">This address is used to calculate travel routes and dispatch jobs near you.</p>
                 </div>
               </div>
