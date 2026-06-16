@@ -47,7 +47,6 @@ function buildScopeSummary(job: Job): string[] {
 export default function ContractorDashboard() {
   const router = useRouter();
   const [todaysJobs, setTodaysJobs] = useState<Job[]>([]);
-  const [upcomingJobs, setUpcomingJobs] = useState<Job[]>([]);
   const [pendingOffers, setPendingOffers] = useState<JobOffer[]>([]);
   const [contractor, setContractor] = useState<Contractor | null>(null);
   const [stats, setStats] = useState<DashboardStats | null>(null);
@@ -78,21 +77,12 @@ export default function ContractorDashboard() {
       const jobsData = await jobsRes.json();
       setTodaysJobs(Array.isArray(jobsData) ? jobsData : []);
 
-      // 3. Get upcoming jobs (next 7 days)
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      const nextWeek = new Date();
-      nextWeek.setDate(nextWeek.getDate() + 7);
-      const upcomingRes = await fetch(`/api/jobs?start_date=${format(tomorrow, 'yyyy-MM-dd')}&end_date=${format(nextWeek, 'yyyy-MM-dd')}&contractor_id=${meData.id}`);
-      const upcomingData = await upcomingRes.json();
-      setUpcomingJobs(Array.isArray(upcomingData) ? upcomingData : []);
-
-      // 4. Get pending offers
+      // 3. Get pending offers
       const offersRes = await fetch('/api/offers');
       const offersData = await offersRes.json();
       setPendingOffers(Array.isArray(offersData) ? offersData : []);
 
-      // 5. Get stats
+      // 4. Get stats
       const statsRes = await fetch('/api/contractors/me/stats');
       if (statsRes.ok) {
         const statsData = await statsRes.json();
@@ -378,7 +368,7 @@ export default function ContractorDashboard() {
           <Card className="bg-gradient-to-b from-amber-50/50 to-white dark:from-amber-950/20 dark:to-card border-amber-100/50 dark:border-amber-900/30 hover:shadow-md hover:shadow-amber-500/10 transition-all hover:-translate-y-0.5">
             <CardContent className="p-4 text-center">
               <div className="mx-auto w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center mb-2 shadow-inner">
-                <TrendingUp className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                <TrendingUp className="h-4 w-4 text-amber-600 dark:amber-400" />
               </div>
               <p className="text-xl font-black text-amber-700 dark:text-amber-400 tracking-tight">${stats.pending_payout}</p>
               <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest mt-0.5">Pending</p>
@@ -658,50 +648,6 @@ export default function ContractorDashboard() {
           })
         )}
       </div>
-      )}
-
-      {/* ── Upcoming Jobs ── */}
-      {isEligible && upcomingJobs.length > 0 && (
-        <div className="space-y-3">
-          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-            <CalendarDays className="h-4 w-4" /> Upcoming
-          </h2>
-          {upcomingJobs.map((job) => {
-            const scope = buildScopeSummary(job);
-            return (
-              <Link key={job.id} href={`/contractor/jobs/${job.id}`}>
-                <Card className="hover:bg-muted/50 transition-colors cursor-pointer">
-                  <CardContent className="p-3">
-                    <div className="flex justify-between items-start mb-2">
-                      <div>
-                        <p className="font-semibold text-sm">{SERVICE_TYPE_LABELS[job.service_type]}</p>
-                        <p className="text-[10px] text-muted-foreground">
-                          {format(new Date(job.scheduled_date + 'T12:00:00'), 'EEE, MMM d')} · {TIME_WINDOW_LABELS[job.scheduled_window]}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-1 text-muted-foreground">
-                        <span className="text-sm font-bold">${(job.quoted_price * 0.7).toFixed(0)}</span>
-                        <ChevronRight className="h-4 w-4" />
-                      </div>
-                    </div>
-                    <div className="flex flex-wrap gap-1">
-                      {scope.slice(0, 4).map((item, i) => (
-                        <span key={i} className="text-[9px] bg-muted px-1.5 py-0.5 rounded text-muted-foreground">
-                          {item}
-                        </span>
-                      ))}
-                      {scope.length > 4 && (
-                        <span className="text-[9px] bg-muted px-1.5 py-0.5 rounded text-muted-foreground">
-                          +{scope.length - 4} more
-                        </span>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              </Link>
-            );
-          })}
-        </div>
       )}
     </div>
   );

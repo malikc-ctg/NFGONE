@@ -13,6 +13,7 @@ import {
   Star, TrendingUp, Award, Shield, Zap, Clock,
 } from 'lucide-react';
 import type { Contractor, Zone, ContractorScoreHistory } from '@/types';
+import { AvailabilityModal } from '@/components/contractor/AvailabilityModal';
 
 interface ReviewData {
   id: string;
@@ -233,6 +234,11 @@ export default function ContractorProfilePage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Availability Settings Modal */}
+      <div className="py-2">
+        <AvailabilityModal />
+      </div>
 
       {/* Profile Form */}
       <form onSubmit={handleSubmit} className="space-y-4 pb-10">

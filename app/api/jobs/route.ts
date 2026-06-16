@@ -1,7 +1,7 @@
 import { createServiceClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { geocodeAddress } from '@/lib/geocode';
-import { requireRole } from '@/lib/api-auth';
+import { requireRole, requireAuth } from '@/lib/api-auth';
 import { rateLimit } from '@/lib/rate-limit';
 
 export async function POST(request: NextRequest) {
@@ -97,11 +97,20 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-  // Admin-only
-  const auth = await requireRole(['admin']);
-  if (auth instanceof NextResponse) return auth;
+    const auth = await requireAuth();
+    if (auth instanceof NextResponse) return auth;
 
     const supabase = await createServiceClient();
+    
+    // Get user role
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', auth.id)
+      .single();
+
+    const isAdmin = profile?.role === 'admin';
+
     const { searchParams } = new URL(request.url);
 
     let query = supabase
@@ -120,6 +129,19 @@ export async function GET(request: NextRequest) {
 
     const contractor_id = searchParams.get('contractor_id');
     if (contractor_id) query = query.eq('assigned_contractor_id', contractor_id);
+    
+    // Security check for non-admins
+    if (!isAdmin) {
+      if (profile?.role === 'contractor') {
+        // Contractors can only fetch their own jobs
+        query = query.eq('assigned_contractor_id', auth.id);
+      } else if (profile?.role === 'customer') {
+        // Customers can only fetch their own jobs
+        query = query.eq('customer_id', auth.id);
+      } else {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      }
+    }
 
     const limit = searchParams.get('limit');
     if (limit) query = query.limit(parseInt(limit));

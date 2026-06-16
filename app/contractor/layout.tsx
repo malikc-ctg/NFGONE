@@ -2,11 +2,11 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { CalendarDays, Clock, DollarSign, Waves, User, ReceiptText } from 'lucide-react';
+import { CalendarDays, Clock, DollarSign, Waves, User, ReceiptText, Briefcase } from 'lucide-react';
 
 const navItems = [
-  { href: '/contractor', label: 'Today', icon: CalendarDays },
-  { href: '/contractor/availability', label: 'Availability', icon: Clock },
+  { href: '/contractor', label: 'Dashboard', icon: CalendarDays },
+  { href: '/contractor/jobs', label: 'Jobs', icon: Briefcase },
   { href: '/contractor/earnings', label: 'Earnings', icon: DollarSign },
   { href: '/contractor/expenses', label: 'Expenses', icon: ReceiptText },
   { href: '/contractor/profile', label: 'Profile', icon: User },
