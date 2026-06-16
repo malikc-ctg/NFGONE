@@ -3,9 +3,49 @@
 import Link from 'next/link';
 import { useState } from 'react';
 
+import { useRouter } from 'next/navigation';
+import { createBrowserClient } from '@supabase/ssr';
+import { toast } from 'sonner';
+import { Loader2 } from 'lucide-react';
+
 export default function CustomerLoginPage() {
+  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY! || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
+  );
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      const { error: authError } = await supabase.auth.signInWithPassword({ email, password });
+      if (authError) throw authError;
+
+      // Check onboarding status
+      const res = await fetch('/api/customers/me');
+      if (res.ok) {
+        const customer = await res.json();
+        const notes = customer.notes ? JSON.parse(customer.notes) : {};
+        if (notes.is_onboarded) {
+          router.push('/customer-site/portal');
+        } else {
+          router.push('/customer-site/onboarding');
+        }
+      } else {
+        router.push('/customer-site/onboarding');
+      }
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#010A14] flex flex-col justify-center items-center py-20 px-6 relative overflow-hidden">
@@ -26,7 +66,7 @@ export default function CustomerLoginPage() {
           <h1 className="font-rustic text-3xl text-white mb-2 text-center">Welcome Back</h1>
           <p className="text-white/50 text-sm text-center mb-8">Sign in to track your active dispatch.</p>
 
-          <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
+          <form className="space-y-6" onSubmit={handleLogin}>
             <div>
               <label className="block text-white/70 text-sm mb-2 font-medium">Email Address</label>
               <input 
@@ -35,6 +75,7 @@ export default function CustomerLoginPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full bg-black/20 border border-white/10 rounded-xl p-3.5 text-white placeholder:text-white/20 focus:outline-none focus:border-blue-500 transition-colors"
                 placeholder="you@example.com"
+                required
               />
             </div>
             
@@ -49,14 +90,16 @@ export default function CustomerLoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full bg-black/20 border border-white/10 rounded-xl p-3.5 text-white placeholder:text-white/20 focus:outline-none focus:border-blue-500 transition-colors"
                 placeholder="••••••••"
+                required
               />
             </div>
 
             <button 
               type="submit"
-              className="w-full bg-white text-[#010A14] py-3.5 rounded-full font-bold tracking-widest uppercase hover:bg-white/90 transition-colors mt-4"
+              disabled={loading}
+              className="w-full bg-white text-[#010A14] py-3.5 rounded-full font-bold tracking-widest uppercase hover:bg-white/90 transition-colors mt-4 flex justify-center items-center h-[52px]"
             >
-              Sign In
+              {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Sign In'}
             </button>
           </form>
 

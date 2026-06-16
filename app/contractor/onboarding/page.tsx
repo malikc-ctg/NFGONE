@@ -55,6 +55,7 @@ export default function OnboardingPage() {
   
   // Insurance and Password state
   const [insuranceFile, setInsuranceFile] = useState<File | null>(null);
+  const [profilePhoto, setProfilePhoto] = useState<File | null>(null);
   const [infoAccurate, setInfoAccurate] = useState(false);
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [password, setPassword] = useState('');
@@ -222,6 +223,12 @@ export default function OnboardingPage() {
     }
   };
 
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      setProfilePhoto(e.target.files[0]);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -265,7 +272,7 @@ export default function OnboardingPage() {
       let finalFileUrl = '';
       if (insuranceFile && contractor) {
         const fileExt = insuranceFile.name.split('.').pop();
-        const fileName = `${contractor.id}-${Date.now()}.${fileExt}`;
+        const fileName = `insurance-${contractor.id}-${Date.now()}.${fileExt}`;
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from('documents')
           .upload(fileName, insuranceFile);
@@ -274,7 +281,24 @@ export default function OnboardingPage() {
           const { data: { publicUrl } } = supabase.storage.from('documents').getPublicUrl(fileName);
           finalFileUrl = publicUrl;
         } else {
-          console.warn("Could not upload file to storage, continuing anyway.", uploadError);
+          console.warn("Could not upload insurance file to storage, continuing anyway.", uploadError);
+        }
+      }
+
+      // 2.5 Upload Profile Photo if provided
+      let finalPhotoUrl = '';
+      if (profilePhoto && contractor) {
+        const photoExt = profilePhoto.name.split('.').pop();
+        const photoName = `avatar-${contractor.id}-${Date.now()}.${photoExt}`;
+        const { data: pUploadData, error: pUploadError } = await supabase.storage
+          .from('documents')
+          .upload(photoName, profilePhoto);
+          
+        if (!pUploadError && pUploadData) {
+          const { data: { publicUrl } } = supabase.storage.from('documents').getPublicUrl(photoName);
+          finalPhotoUrl = publicUrl;
+        } else {
+          console.warn("Could not upload profile photo to storage, continuing anyway.", pUploadError);
         }
       }
 
@@ -300,7 +324,8 @@ export default function OnboardingPage() {
           max_radius: maxRadius,
           insurance_details: {
             file_url: finalFileUrl || existingNotes.insurance_details?.file_url
-          }
+          },
+          profile_photo_url: finalPhotoUrl || existingNotes.profile_photo_url
       };
 
       const { error: updateError } = await supabase
@@ -380,6 +405,16 @@ export default function OnboardingPage() {
                     onChange={e => setPhone(e.target.value)} 
                     required
                   />
+                </div>
+                <div className="md:col-span-2">
+                  <Label>Profile Photo (Optional)</Label>
+                  <Input 
+                    type="file" 
+                    accept="image/*"
+                    onChange={handlePhotoChange}
+                    className="cursor-pointer bg-white"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">A friendly photo helps build trust with customers.</p>
                 </div>
               </div>
             </div>
