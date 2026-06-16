@@ -1,6 +1,8 @@
-import { Calendar, ChevronRight, Droplets, MapPin, Plus, ShieldCheck, Star } from 'lucide-react';
+import { Calendar, ChevronRight, MapPin, Plus, ShieldCheck, FileText, Clock, Star } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
+import Link from 'next/link';
+import { SERVICE_TYPE_LABELS, TIME_WINDOW_LABELS } from '@/types';
 
 export default async function CustomerPortalPage() {
   const supabase = await createClient();
@@ -24,9 +26,16 @@ export default async function CustomerPortalPage() {
     .from('jobs')
     .select('*, contractor:contractors(*)')
     .eq('customer_id', customer.id)
-    .in('status', ['scheduled', 'en_route', 'in_progress'])
+    .in('status', ['confirmed', 'assigned', 'on_the_way', 'in_progress'])
     .order('scheduled_date', { ascending: true })
     .limit(1);
+
+  const { data: pendingJobs } = await supabase
+    .from('jobs')
+    .select('*, contractor:contractors(*)')
+    .eq('customer_id', customer.id)
+    .in('status', ['lead_received', 'quoted', 'deposit_paid'])
+    .order('created_at', { ascending: false });
 
   const { data: pastJobs } = await supabase
     .from('jobs')
@@ -37,7 +46,7 @@ export default async function CustomerPortalPage() {
     .limit(5);
 
   const nextJob = upcomingJobs?.[0];
-  const isLive = nextJob && ['en_route', 'in_progress'].includes(nextJob.status);
+  const isLive = nextJob && ['on_the_way', 'in_progress'].includes(nextJob.status);
 
   return (
     <div className="bg-slate-50 min-h-[calc(100vh-64px)] py-12">
@@ -47,15 +56,17 @@ export default async function CustomerPortalPage() {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
           <div>
             <h1 className="text-3xl font-bold text-slate-900 mb-2">Welcome back, {customer.full_name?.split(' ')[0]}</h1>
-            <p className="text-slate-500">{customer.address_line1}, {customer.city} • Standard Care Plan</p>
+            <p className="text-slate-500">{customer.address_line1}, {customer.city} • Customer Dashboard</p>
           </div>
           <div className="flex gap-3">
-            <button className="bg-white text-[#001a36] border border-slate-200 px-4 py-2 rounded-lg font-medium hover:bg-slate-50 transition-colors shadow-sm text-sm">
-              Manage Plan
+            <button className="bg-white text-[#001a36] border border-slate-200 px-4 py-2 rounded-lg font-medium hover:bg-slate-50 transition-colors shadow-sm text-sm flex items-center gap-2">
+              <FileText className="h-4 w-4" /> My Invoices
             </button>
-            <button className="bg-[#001a36] text-white px-4 py-2 rounded-lg font-medium hover:bg-[#022850] transition-colors shadow-sm text-sm flex items-center gap-2">
-              <Plus className="h-4 w-4" /> Book Extra Service
-            </button>
+            <Link href="/customer-site/quote">
+              <button className="bg-[#001a36] text-white px-4 py-2 rounded-lg font-medium hover:bg-[#022850] transition-colors shadow-sm text-sm flex items-center gap-2">
+                <Plus className="h-4 w-4" /> Request Quote
+              </button>
+            </Link>
           </div>
         </div>
 
@@ -89,54 +100,47 @@ export default async function CustomerPortalPage() {
               </div>
             )}
 
-            {/* Home Status Score */}
-            <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="text-lg font-bold text-slate-900">Home Cleanliness Score</h3>
-                <span className="text-sm text-slate-500">Last updated: Aug 12, 2026</span>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="col-span-1 flex flex-col items-center justify-center border-r border-slate-100">
-                  <div className="relative h-32 w-32 mb-4">
-                    <svg className="h-full w-full" viewBox="0 0 100 100">
-                      <circle cx="50" cy="50" r="40" fill="none" stroke="#f1f5f9" strokeWidth="8" />
-                      <circle cx="50" cy="50" r="40" fill="none" stroke="#10b981" strokeWidth="8" strokeDasharray="251" strokeDashoffset="25" strokeLinecap="round" className="transform -rotate-90 origin-center" />
-                    </svg>
-                    <div className="absolute inset-0 flex flex-col items-center justify-center">
-                      <span className="text-3xl font-bold text-slate-900">92</span>
-                      <span className="text-xs text-slate-500 uppercase font-medium tracking-wide">Excellent</span>
+            {/* Active Quotes & Pending Actions */}
+            <div>
+              <h3 className="text-lg font-bold text-slate-900 mb-4">Pending Actions & Quotes</h3>
+              {pendingJobs && pendingJobs.length > 0 ? (
+                <div className="space-y-4">
+                  {pendingJobs.map((job: any) => (
+                    <div key={job.id} className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm flex flex-col md:flex-row gap-6 justify-between items-start md:items-center">
+                      <div>
+                        <div className="flex items-center gap-3 mb-2">
+                          <span className="bg-amber-100 text-amber-800 px-2.5 py-1 rounded-md text-xs font-semibold capitalize">
+                            {job.status.replace('_', ' ')}
+                          </span>
+                          <span className="text-sm font-bold text-slate-900">
+                            {SERVICE_TYPE_LABELS[job.service_type as keyof typeof SERVICE_TYPE_LABELS] || job.service_type}
+                          </span>
+                        </div>
+                        <p className="text-sm text-slate-500">
+                          Requested for {new Date(job.scheduled_date).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-3 w-full md:w-auto">
+                        <div className="text-right flex-1 md:flex-none">
+                          <div className="text-sm text-slate-500">Quoted Price</div>
+                          <div className="text-xl font-bold text-slate-900">${job.quoted_price || '0'}</div>
+                        </div>
+                        <button className="bg-[#001a36] text-white px-4 py-2 rounded-lg font-medium hover:bg-[#022850] transition-colors shadow-sm text-sm whitespace-nowrap">
+                          {job.status === 'quoted' ? 'Review Quote' : 'Pay Deposit'}
+                        </button>
+                      </div>
                     </div>
-                  </div>
+                  ))}
                 </div>
-                
-                <div className="col-span-2 grid grid-cols-2 gap-4">
-                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
-                     <div className="text-sm text-slate-500 mb-1">Kitchen & Baths</div>
-                    <div className="text-xl font-bold text-slate-900 flex items-baseline gap-2">
-                      Deep Clean <span className="text-sm font-medium text-green-500">Done</span>
-                    </div>
+              ) : (
+                <div className="bg-white rounded-2xl p-8 border border-slate-200 shadow-sm text-center">
+                  <div className="h-12 w-12 bg-slate-50 text-slate-400 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <ShieldCheck className="h-6 w-6" />
                   </div>
-                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
-                    <div className="text-sm text-slate-500 mb-1">Living Areas</div>
-                    <div className="text-xl font-bold text-slate-900 flex items-baseline gap-2">
-                      Dusted <span className="text-sm font-medium text-green-500">Done</span>
-                    </div>
-                  </div>
-                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
-                    <div className="text-sm text-slate-500 mb-1">Floors</div>
-                    <div className="text-xl font-bold text-slate-900 flex items-baseline gap-2">
-                      Mopped <span className="text-sm font-medium text-green-500">Done</span>
-                    </div>
-                  </div>
-                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
-                    <div className="text-sm text-slate-500 mb-1">Bedrooms</div>
-                    <div className="text-xl font-bold text-slate-900 flex items-baseline gap-2">
-                      Tidied <span className="text-sm font-medium text-green-500">Done</span>
-                    </div>
-                  </div>
+                  <h3 className="font-bold text-slate-900 mb-1">All caught up!</h3>
+                  <p className="text-sm text-slate-500">You have no pending quotes or actions required.</p>
                 </div>
-              </div>
+              )}
             </div>
 
             {/* Service Timeline / Logbook */}
@@ -156,7 +160,7 @@ export default async function CustomerPortalPage() {
                     <div className="flex-1">
                       <div className="flex justify-between items-start mb-2">
                         <div>
-                          <h4 className="font-bold text-slate-900">Cleaning Service</h4>
+                          <h4 className="font-bold text-slate-900">{SERVICE_TYPE_LABELS[job.service_type as keyof typeof SERVICE_TYPE_LABELS] || job.service_type}</h4>
                           <p className="text-sm text-slate-500">
                             {job.status === 'completed' ? 'Completed' : 'Cancelled'} 
                             {job.contractor?.full_name ? ` by ${job.contractor.full_name}` : ''} on {new Date(job.scheduled_date).toLocaleDateString()} at {new Date(job.scheduled_date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
@@ -203,7 +207,7 @@ export default async function CustomerPortalPage() {
                       </span>
                     </div>
                     <div>
-                      <div className="font-semibold text-slate-900">Cleaning Service</div>
+                      <div className="font-semibold text-slate-900">{SERVICE_TYPE_LABELS[nextJob.service_type as keyof typeof SERVICE_TYPE_LABELS] || nextJob.service_type}</div>
                       <div className="text-sm text-slate-500">
                         Scheduled for {new Date(nextJob.scheduled_date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                       </div>
@@ -212,24 +216,6 @@ export default async function CustomerPortalPage() {
                 ) : (
                   <div className="text-slate-500 text-sm italic">No upcoming services scheduled.</div>
                 )}
-              </div>
-            </div>
-
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
-              <h3 className="font-bold text-slate-900 mb-4">Payment Method</h3>
-              <div className="flex items-center justify-between p-3 rounded-xl border border-slate-200 bg-slate-50 mb-3">
-                <div className="flex items-center gap-3">
-                  <div className="h-8 w-12 bg-[#001a36] rounded text-white text-[10px] font-bold flex items-center justify-center">VISA</div>
-                  <div>
-                    <div className="text-sm font-semibold text-slate-900">•••• 4242</div>
-                    <div className="text-xs text-slate-500">Expires 12/28</div>
-                  </div>
-                </div>
-                <button className="text-sm text-blue-600 font-medium hover:underline">Edit</button>
-              </div>
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-slate-500">Next billing cycle:</span>
-                <span className="font-medium text-slate-900">Sep 1, 2026</span>
               </div>
             </div>
 
