@@ -388,10 +388,10 @@ export default function ContractorDashboard() {
 
       {/* ── Quick Actions ── */}
       <div className="flex gap-2">
-        <Link href="/contractor/availability" className="flex-1">
+        <Link href="/contractor/jobs" className="flex-1">
           <Button variant="outline" className="w-full h-10 text-xs font-medium">
-            <Clock className="h-3.5 w-3.5 mr-1.5" />
-            Update Availability
+            <Briefcase className="h-3.5 w-3.5 mr-1.5" />
+            View All Jobs
           </Button>
         </Link>
         <Link href="/contractor/earnings" className="flex-1">
