@@ -83,7 +83,7 @@ export default function QuotePage() {
     try {
       const res = await submitQuoteRequest({
         ...formData,
-        quoted_price: quoteData?.base_quote?.final_price,
+        quoted_price: quoteData?.final_price,
       });
       if (res.success) {
         setIsSuccess(true);
@@ -297,11 +297,11 @@ export default function QuotePage() {
               </div>
               <p className="text-blue-200 text-sm font-bold tracking-widest uppercase mb-2">Estimated Total</p>
               <p className="text-5xl md:text-7xl font-black text-white tracking-tighter mb-6">
-                ${quoteData.base_quote.final_price.toFixed(2)}
+                ${quoteData.final_price.toFixed(2)}
               </p>
 
               <div className="space-y-3 pt-6 border-t border-blue-500/20">
-                {quoteData.base_quote.line_items.map((item: any, i: number) => (
+                {quoteData.line_items.map((item: any, i: number) => (
                   <div key={i} className="flex justify-between text-sm">
                     <span className="text-blue-100">{item.label}</span>
                     <span className="text-white font-medium">${item.amount.toFixed(2)}</span>

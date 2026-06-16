@@ -80,7 +80,7 @@ export default function InternalQuotePage() {
     try {
       const res = await submitInternalQuoteRequest({
         ...formData,
-        quoted_price: quoteData?.base_quote?.final_price,
+        quoted_price: quoteData?.final_price,
       });
       if (res.success) {
         setIsSuccess(true);
@@ -271,11 +271,11 @@ export default function InternalQuotePage() {
               <div className="bg-slate-50 border border-slate-200 rounded-2xl p-8 mb-8">
                 <p className="text-slate-500 text-sm font-bold tracking-widest uppercase mb-2">Estimated Total</p>
                 <p className="text-5xl md:text-6xl font-black text-slate-900 tracking-tighter mb-6">
-                  ${quoteData.base_quote.final_price.toFixed(2)}
+                  ${quoteData.final_price.toFixed(2)}
                 </p>
 
                 <div className="space-y-3 pt-6 border-t border-slate-200">
-                  {quoteData.base_quote.line_items.map((item: any, i: number) => (
+                  {quoteData.line_items.map((item: any, i: number) => (
                     <div key={i} className="flex justify-between text-sm">
                       <span className="text-slate-600">{item.label}</span>
                       <span className="text-slate-900 font-medium">${item.amount.toFixed(2)}</span>
