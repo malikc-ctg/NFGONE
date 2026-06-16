@@ -31,9 +31,8 @@ export default function InternalQuotePage() {
   };
 
   const categories = [
-    'House Cleaning', 'Window Cleaning', 'Pressure Washing', 
-    'Junk Removal', 'Lawn Care', 'Landscaping', 
-    'Moving Services', 'Electrical', 'HVAC', 'Plumbing'
+    'Standard Clean', 'Deep Clean', 'Move In/Out Clean', 
+    'Recurring Standard', 'Recurring Deep'
   ];
 
   const windows = [
@@ -47,9 +46,10 @@ export default function InternalQuotePage() {
     setError(null);
     try {
       let service_type = 'standard_clean';
-      if (formData.category !== 'House Cleaning') {
-        service_type = formData.category.toLowerCase().replace(/ /g, '_');
-      }
+      if (formData.category === 'Deep Clean') service_type = 'deep_clean';
+      else if (formData.category === 'Move In/Out Clean') service_type = 'move_in_clean'; // Or move_out_clean based on description, using move_in_clean as proxy for both
+      else if (formData.category === 'Recurring Standard') service_type = 'recurring_standard';
+      else if (formData.category === 'Recurring Deep') service_type = 'recurring_deep';
 
       const res = await getLiveQuote({
         service_type,
@@ -179,9 +179,8 @@ export default function InternalQuotePage() {
               <h2 className="text-xl text-slate-900 font-semibold mb-6">2. Job Details</h2>
               
               <div className="space-y-8">
-                {/* Specs (If Cleaning) */}
-                {formData.category === 'House Cleaning' && (
-                  <div className="grid grid-cols-3 gap-4">
+                {/* Specs */}
+                <div className="grid grid-cols-3 gap-4">
                     <div>
                       <label className="block text-slate-700 text-sm font-medium mb-2">Bedrooms</label>
                       <input 
@@ -210,7 +209,6 @@ export default function InternalQuotePage() {
                       </button>
                     </div>
                   </div>
-                )}
 
                 {/* Schedule */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

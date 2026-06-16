@@ -38,8 +38,12 @@ export async function submitInternalQuoteRequest(data: {
 
     // 3. Map service category to the closest service_type enum
     let service_type = null;
-    if (data.category === 'House Cleaning') service_type = 'standard_clean';
-    else service_type = data.category.toLowerCase().replace(/ /g, '_');
+    if (data.category === 'Standard Clean') service_type = 'standard_clean';
+    else if (data.category === 'Deep Clean') service_type = 'deep_clean';
+    else if (data.category === 'Move In/Out Clean') service_type = 'move_in_clean';
+    else if (data.category === 'Recurring Standard') service_type = 'recurring_standard';
+    else if (data.category === 'Recurring Deep') service_type = 'recurring_deep';
+    else service_type = 'standard_clean'; // fallback
     
     // 4. Insert into leads table (using service client because leads is protected)
     const { data: leadData, error: leadError } = await serviceClient
