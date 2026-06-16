@@ -37,6 +37,34 @@ export default async function CustomerPortalPage() {
     .in('status', ['lead_received', 'quoted', 'deposit_paid'])
     .order('created_at', { ascending: false });
 
+  const { data: pendingLeads } = await supabase
+    .from('leads')
+    .select('*')
+    .eq('customer_email', customer.email)
+    .not('status', 'in', '("converted","lost")')
+    .order('created_at', { ascending: false });
+
+  const pendingItems = [
+    ...(pendingJobs || []).map((j: any) => ({
+      id: `job-${j.id}`,
+      type: 'job',
+      status: j.status,
+      service_type: j.service_type,
+      date: j.scheduled_date,
+      quoted_price: j.quoted_price,
+      raw: j
+    })),
+    ...(pendingLeads || []).map((l: any) => ({
+      id: `lead-${l.id}`,
+      type: 'lead',
+      status: l.status === 'new' ? 'pending_review' : l.status,
+      service_type: l.service_type,
+      date: l.preferred_date,
+      quoted_price: l.quoted_price,
+      raw: l
+    }))
+  ].sort((a, b) => new Date(b.raw.created_at).getTime() - new Date(a.raw.created_at).getTime());
+
   const { data: pastJobs } = await supabase
     .from('jobs')
     .select('*, contractor:contractors(*)')
@@ -62,7 +90,7 @@ export default async function CustomerPortalPage() {
             <button className="bg-white text-[#001a36] border border-slate-200 px-4 py-2 rounded-lg font-medium hover:bg-slate-50 transition-colors shadow-sm text-sm flex items-center gap-2">
               <FileText className="h-4 w-4" /> My Invoices
             </button>
-            <Link href="/customer-site/quote">
+            <Link href="/customer-site/portal/quote">
               <button className="bg-[#001a36] text-white px-4 py-2 rounded-lg font-medium hover:bg-[#022850] transition-colors shadow-sm text-sm flex items-center gap-2">
                 <Plus className="h-4 w-4" /> Request Quote
               </button>
@@ -103,30 +131,33 @@ export default async function CustomerPortalPage() {
             {/* Active Quotes & Pending Actions */}
             <div>
               <h3 className="text-lg font-bold text-slate-900 mb-4">Pending Actions & Quotes</h3>
-              {pendingJobs && pendingJobs.length > 0 ? (
+              {pendingItems && pendingItems.length > 0 ? (
                 <div className="space-y-4">
-                  {pendingJobs.map((job: any) => (
-                    <div key={job.id} className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm flex flex-col md:flex-row gap-6 justify-between items-start md:items-center">
+                  {pendingItems.map((item: any) => (
+                    <div key={item.id} className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm flex flex-col md:flex-row gap-6 justify-between items-start md:items-center">
                       <div>
                         <div className="flex items-center gap-3 mb-2">
-                          <span className="bg-amber-100 text-amber-800 px-2.5 py-1 rounded-md text-xs font-semibold capitalize">
-                            {job.status.replace('_', ' ')}
+                          <span className={`px-2.5 py-1 rounded-md text-xs font-semibold capitalize ${item.status === 'pending_review' ? 'bg-blue-100 text-blue-800' : 'bg-amber-100 text-amber-800'}`}>
+                            {item.status.replace('_', ' ')}
                           </span>
                           <span className="text-sm font-bold text-slate-900">
-                            {SERVICE_TYPE_LABELS[job.service_type as keyof typeof SERVICE_TYPE_LABELS] || job.service_type}
+                            {SERVICE_TYPE_LABELS[item.service_type as keyof typeof SERVICE_TYPE_LABELS] || item.service_type}
                           </span>
                         </div>
                         <p className="text-sm text-slate-500">
-                          Requested for {new Date(job.scheduled_date).toLocaleDateString()}
+                          Requested for {new Date(item.date).toLocaleDateString()}
                         </p>
                       </div>
                       <div className="flex items-center gap-3 w-full md:w-auto">
                         <div className="text-right flex-1 md:flex-none">
                           <div className="text-sm text-slate-500">Quoted Price</div>
-                          <div className="text-xl font-bold text-slate-900">${job.quoted_price || '0'}</div>
+                          <div className="text-xl font-bold text-slate-900">${item.quoted_price || '0'}</div>
                         </div>
-                        <button className="bg-[#001a36] text-white px-4 py-2 rounded-lg font-medium hover:bg-[#022850] transition-colors shadow-sm text-sm whitespace-nowrap">
-                          {job.status === 'quoted' ? 'Review Quote' : 'Pay Deposit'}
+                        <button 
+                          disabled={item.status === 'pending_review'}
+                          className="bg-[#001a36] text-white px-4 py-2 rounded-lg font-medium hover:bg-[#022850] transition-colors shadow-sm text-sm whitespace-nowrap disabled:opacity-50"
+                        >
+                          {item.status === 'quoted' ? 'Review Quote' : item.status === 'pending_review' ? 'Under Review' : 'Pay Deposit'}
                         </button>
                       </div>
                     </div>
