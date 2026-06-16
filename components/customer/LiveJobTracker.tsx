@@ -24,14 +24,14 @@ export function LiveJobTracker({ initialJob }: { initialJob: Job | null }) {
         table: 'jobs',
         filter: `id=eq.${initialJob.id}`
       }, (payload) => {
-        setJob({ ...job, ...payload.new } as Job);
+        setJob((prev) => ({ ...prev, ...payload.new } as Job));
       })
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [initialJob, supabase, job]);
+  }, [initialJob, supabase]);
 
   if (!job) {
     return (
@@ -55,6 +55,20 @@ export function LiveJobTracker({ initialJob }: { initialJob: Job | null }) {
       currentStepIndex = index;
     }
   });
+
+  if (job.status === 'cancelled') {
+    return (
+      <div className="bg-red-50 p-5 rounded-lg border border-red-100 flex flex-col items-center justify-center text-center">
+        <div className="h-12 w-12 bg-red-100 rounded-full flex items-center justify-center mb-3">
+          <Circle className="h-6 w-6 text-red-500" />
+        </div>
+        <h3 className="text-red-900 font-bold mb-1">Booking Cancelled</h3>
+        <p className="text-sm text-red-600">
+          This booking has been cancelled. Please contact support if you need to reschedule or have any questions.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-slate-50 p-5">

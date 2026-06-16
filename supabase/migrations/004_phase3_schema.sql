@@ -559,3 +559,4 @@ CREATE POLICY "pricing_config_read" ON dynamic_pricing_config FOR SELECT USING (
 
 DO $$ BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE disputes; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 DO $$ BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE dispute_messages; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE jobs; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
