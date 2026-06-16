@@ -26,7 +26,7 @@ export default async function CustomerPortalPage() {
     .from('jobs')
     .select('*, contractor:contractors(*)')
     .eq('customer_id', customer.id)
-    .in('status', ['confirmed', 'assigned', 'on_the_way', 'in_progress'])
+    .in('status', ['confirmed', 'offered', 'accepted', 'assigned', 'on_the_way', 'in_progress'])
     .order('scheduled_date', { ascending: true })
     .limit(1);
 

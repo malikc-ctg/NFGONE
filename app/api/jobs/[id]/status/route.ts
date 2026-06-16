@@ -47,8 +47,18 @@ export async function PATCH(
       return NextResponse.json({ error: 'Job not found' }, { status: 404 });
     }
 
+    let contractorId = null;
+    if (user && !isAdmin) {
+      const { data: contractor } = await supabase
+        .from('contractors')
+        .select('id')
+        .eq('profile_id', user.id)
+        .single();
+      contractorId = contractor?.id;
+    }
+
     // Security Check: Only admin or the assigned contractor can update this job
-    if (!isAdmin && job.assigned_contractor_id !== user?.id) {
+    if (!isAdmin && job.assigned_contractor_id !== contractorId) {
       return NextResponse.json({ error: 'Unauthorized to update this job' }, { status: 403 });
     }
 

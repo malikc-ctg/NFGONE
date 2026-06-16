@@ -170,8 +170,9 @@ export default function ContractorJobDetailPage() {
   const appleMapsUrl = `http://maps.apple.com/?daddr=${encodeURIComponent(`${job.address_line1}, ${job.city} ${job.postal_code}`)}&dirflg=d`;
   const wazeUrl = `https://waze.com/ul?q=${encodeURIComponent(`${job.address_line1}, ${job.city} ${job.postal_code}`)}&navigate=yes`;
 
-  const currentStepIndex = STATUS_STEPS.indexOf(job.status);
-  const isActive = ['assigned', 'on_the_way', 'in_progress'].includes(job.status);
+  const stepStatus = job.status === 'accepted' ? 'assigned' : job.status;
+  const currentStepIndex = STATUS_STEPS.indexOf(stepStatus);
+  const isActive = ['accepted', 'assigned', 'on_the_way', 'in_progress'].includes(job.status);
 
   return (
     <div className="space-y-4">
