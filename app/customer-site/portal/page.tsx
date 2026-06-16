@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { SERVICE_TYPE_LABELS, TIME_WINDOW_LABELS } from '@/types';
+import { LiveJobTracker } from '@/components/customer/LiveJobTracker';
 
 export default async function CustomerPortalPage() {
   const supabase = await createClient();
@@ -226,28 +227,7 @@ export default async function CustomerPortalPage() {
               <div className="p-5 border-b border-slate-100">
                 <h3 className="font-bold text-slate-900">Next Scheduled Service</h3>
               </div>
-              <div className="p-5 bg-slate-50 flex items-center gap-4">
-                {nextJob ? (
-                  <>
-                    <div className="h-14 w-14 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col items-center justify-center shrink-0">
-                      <span className="text-xs font-bold text-blue-600 uppercase">
-                        {new Date(nextJob.scheduled_date).toLocaleString('default', { month: 'short' })}
-                      </span>
-                      <span className="text-xl font-bold text-slate-900">
-                        {new Date(nextJob.scheduled_date).getDate()}
-                      </span>
-                    </div>
-                    <div>
-                      <div className="font-semibold text-slate-900">{SERVICE_TYPE_LABELS[nextJob.service_type as keyof typeof SERVICE_TYPE_LABELS] || nextJob.service_type}</div>
-                      <div className="text-sm text-slate-500">
-                        Scheduled for {new Date(nextJob.scheduled_date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                      </div>
-                    </div>
-                  </>
-                ) : (
-                  <div className="text-slate-500 text-sm italic">No upcoming services scheduled.</div>
-                )}
-              </div>
+              <LiveJobTracker initialJob={nextJob || null} />
             </div>
 
             <div className="bg-blue-50 rounded-2xl border border-blue-100 p-5">

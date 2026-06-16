@@ -108,10 +108,13 @@ export async function PATCH(
 
     // ----- EMAIL DISPATCH LOGIC -----
     try {
-      const cName = data.customer?.full_name || 'Customer';
-      const cEmail = data.customer?.email;
-      const contName = data.contractor?.full_name || 'Contractor';
-      const contEmail = data.contractor?.email;
+      const custObj = Array.isArray(data.customer) ? data.customer[0] : data.customer;
+      const contObj = Array.isArray(data.contractor) ? data.contractor[0] : data.contractor;
+
+      const cName = custObj?.full_name || 'Customer';
+      const cEmail = custObj?.email;
+      const contName = contObj?.full_name || 'Contractor';
+      const contEmail = contObj?.email;
       const date = data.scheduled_date || 'TBD';
       const time = data.scheduled_window || 'TBD';
       

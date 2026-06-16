@@ -75,7 +75,33 @@ export default function ContractorDashboard() {
       const today = format(new Date(), 'yyyy-MM-dd');
       const jobsRes = await fetch(`/api/jobs?date=${today}&contractor_id=${meData.id}`);
       const jobsData = await jobsRes.json();
-      setTodaysJobs(Array.isArray(jobsData) ? jobsData : []);
+      
+      let filteredJobs = Array.isArray(jobsData) ? jobsData : [];
+      const now = new Date().getTime();
+      filteredJobs = filteredJobs.filter(job => {
+        if (job.status === 'cancelled') {
+          const updated = new Date(job.updated_at).getTime();
+          return (now - updated) < 15 * 60 * 1000; // 15 mins
+        }
+        return true;
+      });
+
+      const statusPriority: Record<string, number> = {
+        in_progress: 1,
+        on_the_way: 2,
+        assigned: 3,
+        accepted: 4,
+        completed: 5,
+        cancelled: 6,
+      };
+
+      filteredJobs.sort((a, b) => {
+        const pA = statusPriority[a.status] || 99;
+        const pB = statusPriority[b.status] || 99;
+        return pA - pB;
+      });
+
+      setTodaysJobs(filteredJobs);
 
       // 3. Get pending offers
       const offersRes = await fetch('/api/offers');

@@ -10,6 +10,9 @@ interface PhotoUploadProps {
   jobId: string;
   onPhotosChange?: (photos: PhotoFile[]) => void;
   maxPhotos?: number;
+  title?: string;
+  subtitle?: string;
+  onUploadComplete?: () => void;
 }
 
 export interface PhotoFile {
@@ -20,7 +23,7 @@ export interface PhotoFile {
   category: 'before' | 'after';
 }
 
-export function PhotoUpload({ category, jobId, onPhotosChange, maxPhotos = 6 }: PhotoUploadProps) {
+export function PhotoUpload({ category, jobId, onPhotosChange, maxPhotos = 6, title, subtitle, onUploadComplete }: PhotoUploadProps) {
   const [photos, setPhotos] = useState<PhotoFile[]>([]);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -77,6 +80,7 @@ export function PhotoUpload({ category, jobId, onPhotosChange, maxPhotos = 6 }: 
       console.error('Upload failed');
     } finally {
       setUploading(false);
+      onUploadComplete?.();
     }
   }
 
@@ -112,8 +116,8 @@ export function PhotoUpload({ category, jobId, onPhotosChange, maxPhotos = 6 }: 
               <ImageIcon className={`h-3.5 w-3.5 ${config.iconColor}`} />
             </div>
             <div>
-              <p className="font-bold text-sm">{config.title}</p>
-              <p className="text-[10px] text-muted-foreground font-normal">{config.subtitle}</p>
+              <p className="font-bold text-sm">{title || config.title}</p>
+              <p className="text-[10px] text-muted-foreground font-normal">{subtitle || config.subtitle}</p>
             </div>
           </div>
           <span className="text-[10px] text-muted-foreground font-medium">

@@ -24,6 +24,66 @@ import { startLocationTracking, stopLocationTracking } from '@/lib/location-serv
 import { PhotoUpload } from '@/components/contractor/PhotoUpload';
 import { SupplyCheck } from '@/components/contractor/SupplyCheck';
 
+function RoomChecklist({ title, items, onItemChange, jobId }: { title: string, items: Record<string, boolean>, onItemChange: (key: string, checked: boolean) => void, jobId: string }) {
+  const [beforeDone, setBeforeDone] = useState(false);
+  const [afterDone, setAfterDone] = useState(false);
+  
+  const allChecked = Object.values(items).every(v => v === true);
+
+  return (
+    <Card className="overflow-hidden border-slate-200">
+      <CardHeader className="bg-slate-50 border-b border-slate-100 pb-3">
+        <CardTitle className="text-base font-bold">{title}</CardTitle>
+      </CardHeader>
+      <CardContent className="p-0 space-y-0">
+        
+        {/* Step 1: Before Photo */}
+        <div className="p-4 border-b border-slate-100">
+          <div className="flex items-center gap-2 mb-3">
+            <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${beforeDone ? 'bg-green-500 text-white' : 'bg-slate-200 text-slate-500'}`}>1</div>
+            <span className={`text-sm font-semibold ${beforeDone ? 'text-green-700' : 'text-slate-700'}`}>Before Photo</span>
+          </div>
+          {!beforeDone ? (
+            <PhotoUpload category="before" jobId={jobId} title={`${title} Before`} subtitle="Take a photo before starting" maxPhotos={1} onUploadComplete={() => setBeforeDone(true)} />
+          ) : (
+            <p className="text-xs text-green-600 flex items-center gap-1"><CheckCircle2 className="h-4 w-4"/> Photo saved</p>
+          )}
+        </div>
+
+        {/* Step 2: Checklist */}
+        <div className={`p-4 border-b border-slate-100 transition-opacity ${!beforeDone ? 'opacity-50 pointer-events-none' : ''}`}>
+          <div className="flex items-center gap-2 mb-3">
+            <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${allChecked ? 'bg-green-500 text-white' : 'bg-slate-200 text-slate-500'}`}>2</div>
+            <span className={`text-sm font-semibold ${allChecked ? 'text-green-700' : 'text-slate-700'}`}>Tasks</span>
+          </div>
+          <div className="space-y-3">
+            {Object.entries(items).map(([key, val]) => (
+              <label key={key} className="flex items-center gap-3 py-1 cursor-pointer">
+                <Checkbox checked={val} onCheckedChange={(c) => onItemChange(key, !!c)} />
+                <span className="text-sm capitalize">{key.replace(/_/g, ' ')}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+
+        {/* Step 3: After Photo */}
+        <div className={`p-4 transition-opacity ${!allChecked ? 'opacity-50 pointer-events-none' : ''}`}>
+           <div className="flex items-center gap-2 mb-3">
+            <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${afterDone ? 'bg-green-500 text-white' : 'bg-slate-200 text-slate-500'}`}>3</div>
+            <span className={`text-sm font-semibold ${afterDone ? 'text-green-700' : 'text-slate-700'}`}>After Photo</span>
+          </div>
+          {!afterDone ? (
+            <PhotoUpload category="after" jobId={jobId} title={`${title} After`} subtitle="Take a photo when finished" maxPhotos={1} onUploadComplete={() => setAfterDone(true)} />
+          ) : (
+            <p className="text-xs text-green-600 flex items-center gap-1"><CheckCircle2 className="h-4 w-4"/> Photo saved</p>
+          )}
+        </div>
+
+      </CardContent>
+    </Card>
+  );
+}
+
 // Lazy-load map to avoid SSR issues
 const ContractorJobMap = dynamic(() => import('@/components/contractor/ContractorJobMap'), {
   ssr: false,
@@ -392,58 +452,48 @@ export default function ContractorJobDetailPage() {
         <SupplyCheck onConfirmed={() => { setSupplyConfirmed(true); handleStatusUpdate('in_progress'); }} bringsOwnSupplies={true} />
       )}
 
-      {/* Before Photos */}
-      {['on_the_way', 'in_progress'].includes(job.status) && (
-        <PhotoUpload category="before" jobId={job.id} maxPhotos={6} />
-      )}
+      {/* Before Photos (now handled per room) */}
 
       {/* Checklist */}
       {job.status === 'in_progress' && checklist && (
         <>
           <Card><CardContent className="p-4"><div className="flex justify-between text-sm mb-2"><span className="font-medium">Checklist Progress</span><span>{checked} of {total}</span></div><Progress value={progress} className="h-2" /></CardContent></Card>
 
-          <Card><CardHeader className="pb-2"><CardTitle className="text-base">Kitchen</CardTitle></CardHeader><CardContent className="space-y-3">
-            {Object.entries(checklist.kitchen).map(([key, val]) => (
-              <label key={key} className="flex items-center gap-3 py-1 min-h-[44px] cursor-pointer">
-                <Checkbox checked={val as boolean} onCheckedChange={(c) => setChecklist({ ...checklist, kitchen: { ...checklist.kitchen, [key]: !!c } })} />
-                <span className="text-sm capitalize">{key.replace(/_/g, ' ')}</span>
-              </label>
+          <div className="space-y-6">
+            <RoomChecklist 
+              jobId={job.id} 
+              title="Kitchen" 
+              items={checklist.kitchen as Record<string, boolean>} 
+              onItemChange={(key, val) => setChecklist({ ...checklist, kitchen: { ...checklist.kitchen, [key]: val } })} 
+            />
+
+            {checklist.bathrooms.map((bath, i) => (
+              <RoomChecklist 
+                key={`bath-${i}`} 
+                jobId={job.id} 
+                title={`Bathroom ${i + 1}`} 
+                items={bath as Record<string, boolean>} 
+                onItemChange={(key, val) => { const newBaths = [...checklist.bathrooms]; newBaths[i] = { ...newBaths[i], [key]: val }; setChecklist({ ...checklist, bathrooms: newBaths }); }} 
+              />
             ))}
-          </CardContent></Card>
 
-          {checklist.bathrooms.map((bath, i) => (
-            <Card key={`bath-${i}`}><CardHeader className="pb-2"><CardTitle className="text-base">Bathroom {i + 1}</CardTitle></CardHeader><CardContent className="space-y-3">
-              {Object.entries(bath).map(([key, val]) => (
-                <label key={key} className="flex items-center gap-3 py-1 min-h-[44px] cursor-pointer">
-                  <Checkbox checked={val as boolean} onCheckedChange={(c) => { const newBaths = [...checklist.bathrooms]; newBaths[i] = { ...newBaths[i], [key]: !!c }; setChecklist({ ...checklist, bathrooms: newBaths }); }} />
-                  <span className="text-sm capitalize">{key.replace(/_/g, ' ')}</span>
-                </label>
-              ))}
-            </CardContent></Card>
-          ))}
-
-          {checklist.bedrooms.map((bed, i) => (
-            <Card key={`bed-${i}`}><CardHeader className="pb-2"><CardTitle className="text-base">Bedroom {i + 1}</CardTitle></CardHeader><CardContent className="space-y-3">
-              {Object.entries(bed).map(([key, val]) => (
-                <label key={key} className="flex items-center gap-3 py-1 min-h-[44px] cursor-pointer">
-                  <Checkbox checked={val as boolean} onCheckedChange={(c) => { const newBeds = [...checklist.bedrooms]; newBeds[i] = { ...newBeds[i], [key]: !!c }; setChecklist({ ...checklist, bedrooms: newBeds }); }} />
-                  <span className="text-sm capitalize">{key.replace(/_/g, ' ')}</span>
-                </label>
-              ))}
-            </CardContent></Card>
-          ))}
-
-          <Card><CardHeader className="pb-2"><CardTitle className="text-base">Living Areas</CardTitle></CardHeader><CardContent className="space-y-3">
-            {Object.entries(checklist.living_areas).map(([key, val]) => (
-              <label key={key} className="flex items-center gap-3 py-1 min-h-[44px] cursor-pointer">
-                <Checkbox checked={val as boolean} onCheckedChange={(c) => setChecklist({ ...checklist, living_areas: { ...checklist.living_areas, [key]: !!c } })} />
-                <span className="text-sm capitalize">{key.replace(/_/g, ' ')}</span>
-              </label>
+            {checklist.bedrooms.map((bed, i) => (
+              <RoomChecklist 
+                key={`bed-${i}`} 
+                jobId={job.id} 
+                title={`Bedroom ${i + 1}`} 
+                items={bed as Record<string, boolean>} 
+                onItemChange={(key, val) => { const newBeds = [...checklist.bedrooms]; newBeds[i] = { ...newBeds[i], [key]: val }; setChecklist({ ...checklist, bedrooms: newBeds }); }} 
+              />
             ))}
-          </CardContent></Card>
 
-          {/* After Photos */}
-          <PhotoUpload category="after" jobId={job.id} maxPhotos={8} />
+            <RoomChecklist 
+              jobId={job.id} 
+              title="Living Areas" 
+              items={checklist.living_areas as Record<string, boolean>} 
+              onItemChange={(key, val) => setChecklist({ ...checklist, living_areas: { ...checklist.living_areas, [key]: val } })} 
+            />
+          </div>
 
           <Card><CardContent className="p-4"><Label>Notes (optional)</Label><Textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Any issues or scope changes..." className="mt-2 min-h-[80px]" /></CardContent></Card>
 
