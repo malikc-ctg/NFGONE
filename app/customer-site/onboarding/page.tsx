@@ -234,7 +234,29 @@ export default function CustomerOnboardingPage() {
                     <Label className="text-white/80 flex items-center gap-2">
                       <MapPin className="w-3.5 h-3.5 text-blue-400" /> Primary Address
                     </Label>
-                    <AddressAutofill accessToken={process.env.NEXT_PUBLIC_MAPBOX_TOKEN || ''}>
+                    <AddressAutofill 
+                      accessToken={process.env.NEXT_PUBLIC_MAPBOX_TOKEN || ''}
+                      theme={{
+                        variables: {
+                          colorPrimary: '#3b82f6',
+                          colorBackground: '#001a36',
+                          colorText: '#ffffff',
+                          fontFamily: 'inherit',
+                          borderRadius: '12px',
+                          boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.5)'
+                        }
+                      }}
+                      onRetrieve={(res) => {
+                        const feature = res.features[0];
+                        if (feature) {
+                          setAddressLine1(feature.properties.address_line1 || feature.properties.place_name || '');
+                          setCity((feature.properties as any).address_level2 || (feature.properties as any).place || '');
+                          setProvince((feature.properties as any).address_level1 || (feature.properties as any).region || '');
+                          setPostalCode(feature.properties.postcode || '');
+                        }
+                        isSelectingAddress.current = false;
+                      }}
+                    >
                       <Input 
                         value={addressLine1}
                         onChange={(e) => setAddressLine1(e.target.value)}
