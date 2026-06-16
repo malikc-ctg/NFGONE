@@ -32,13 +32,21 @@ export async function GET(
     // Security check for non-admins
     if (!isAdmin) {
       if (profile?.role === 'contractor') {
+        const { data: contractor } = await supabase
+          .from('contractors')
+          .select('id')
+          .eq('profile_id', auth.id)
+          .single();
+
+        const contractorId = contractor?.id;
+
         // Must be assigned to the job, OR have a pending offer for it
-        if (data.assigned_contractor_id !== auth.id) {
+        if (data.assigned_contractor_id !== contractorId) {
           const { data: offer } = await supabase
             .from('job_offers')
             .select('id')
             .eq('job_id', data.id)
-            .eq('contractor_id', auth.id)
+            .eq('contractor_id', contractorId)
             .single();
             
           if (!offer) {

@@ -133,8 +133,19 @@ export async function GET(request: NextRequest) {
     // Security check for non-admins
     if (!isAdmin) {
       if (profile?.role === 'contractor') {
+        const { data: contractor } = await supabase
+          .from('contractors')
+          .select('id')
+          .eq('profile_id', auth.id)
+          .single();
+          
         // Contractors can only fetch their own jobs
-        query = query.eq('assigned_contractor_id', auth.id);
+        if (contractor?.id) {
+          query = query.eq('assigned_contractor_id', contractor.id);
+        } else {
+          // No contractor record found, return empty set
+          query = query.eq('assigned_contractor_id', '00000000-0000-0000-0000-000000000000');
+        }
       } else if (profile?.role === 'customer') {
         // Customers can only fetch their own jobs
         query = query.eq('customer_id', auth.id);
