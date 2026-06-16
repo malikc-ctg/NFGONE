@@ -78,7 +78,11 @@ export async function PATCH(request: Request) {
 
     const { data: customer, error } = await serviceClient
       .from('customers')
-      .upsert({ ...updatePayload, profile_id: user.id }, { onConflict: 'profile_id' })
+      .upsert({ 
+        ...updatePayload, 
+        profile_id: user.id,
+        email: user.email
+      }, { onConflict: 'profile_id' })
       .select()
       .single();
 
