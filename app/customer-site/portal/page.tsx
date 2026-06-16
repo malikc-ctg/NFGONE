@@ -1,6 +1,44 @@
 import { Calendar, ChevronRight, Droplets, MapPin, Plus, ShieldCheck, Star } from 'lucide-react';
+import { createClient } from '@/lib/supabase/server';
+import { redirect } from 'next/navigation';
 
-export default function CustomerPortalPage() {
+export default async function CustomerPortalPage() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect('/customer-site/login');
+  }
+
+  const { data: customer } = await supabase
+    .from('customers')
+    .select('*')
+    .eq('profile_id', user.id)
+    .single();
+
+  if (!customer) {
+    redirect('/customer-site/onboarding');
+  }
+
+  const { data: upcomingJobs } = await supabase
+    .from('jobs')
+    .select('*, contractor:contractors(*)')
+    .eq('customer_id', customer.id)
+    .in('status', ['scheduled', 'en_route', 'in_progress'])
+    .order('scheduled_date', { ascending: true })
+    .limit(1);
+
+  const { data: pastJobs } = await supabase
+    .from('jobs')
+    .select('*, contractor:contractors(*)')
+    .eq('customer_id', customer.id)
+    .in('status', ['completed', 'cancelled'])
+    .order('scheduled_date', { ascending: false })
+    .limit(5);
+
+  const nextJob = upcomingJobs?.[0];
+  const isLive = nextJob && ['en_route', 'in_progress'].includes(nextJob.status);
+
   return (
     <div className="bg-slate-50 min-h-[calc(100vh-64px)] py-12">
       <div className="container max-w-6xl mx-auto px-6">
@@ -8,8 +46,8 @@ export default function CustomerPortalPage() {
         {/* Welcome & Quick Actions */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-slate-900 mb-2">Welcome back, Sarah</h1>
-            <p className="text-slate-500">123 Maple Street, Toronto • Standard Care Plan</p>
+            <h1 className="text-3xl font-bold text-slate-900 mb-2">Welcome back, {customer.full_name?.split(' ')[0]}</h1>
+            <p className="text-slate-500">{customer.address_line1}, {customer.city} • Standard Care Plan</p>
           </div>
           <div className="flex gap-3">
             <button className="bg-white text-[#001a36] border border-slate-200 px-4 py-2 rounded-lg font-medium hover:bg-slate-50 transition-colors shadow-sm text-sm">
@@ -27,27 +65,29 @@ export default function CustomerPortalPage() {
           <div className="lg:col-span-2 space-y-8">
             
             {/* Live Tracking Banner */}
-            <div className="bg-[#001a36] rounded-2xl p-6 text-white shadow-lg relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-6">
-              {/* Subtle background graphic */}
-              <div className="absolute right-0 top-0 w-64 h-64 bg-blue-500/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />
-              
-              <div className="relative z-10">
-                <div className="inline-flex items-center gap-2 px-2 py-1 rounded bg-blue-500/20 text-blue-200 text-xs font-bold uppercase tracking-wider mb-3">
-                  <span className="relative flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-400"></span>
-                  </span>
-                  Live Service
+            {isLive && (
+              <div className="bg-[#001a36] rounded-2xl p-6 text-white shadow-lg relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-6">
+                {/* Subtle background graphic */}
+                <div className="absolute right-0 top-0 w-64 h-64 bg-blue-500/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />
+                
+                <div className="relative z-10">
+                  <div className="inline-flex items-center gap-2 px-2 py-1 rounded bg-blue-500/20 text-blue-200 text-xs font-bold uppercase tracking-wider mb-3">
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-400"></span>
+                    </span>
+                    Live Service
+                  </div>
+                  <h2 className="text-2xl font-bold mb-1">Your technician is en route</h2>
+                  <p className="text-blue-100/70">Estimated arrival: {new Date(nextJob.scheduled_date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
                 </div>
-                <h2 className="text-2xl font-bold mb-1">Your technician is en route</h2>
-                <p className="text-blue-100/70">Estimated arrival: 2:15 PM (15 mins away)</p>
+                
+                <button className="bg-white text-[#001a36] px-6 py-3 rounded-xl font-semibold w-full md:w-auto relative z-10 flex items-center justify-center gap-2 hover:bg-slate-50 transition-colors">
+                  <MapPin className="h-4 w-4" />
+                  Track Live
+                </button>
               </div>
-              
-              <button className="bg-white text-[#001a36] px-6 py-3 rounded-xl font-semibold w-full md:w-auto relative z-10 flex items-center justify-center gap-2 hover:bg-slate-50 transition-colors">
-                <MapPin className="h-4 w-4" />
-                Track Live
-              </button>
-            </div>
+            )}
 
             {/* Home Status Score */}
             <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
@@ -103,57 +143,39 @@ export default function CustomerPortalPage() {
             <div>
               <h3 className="text-lg font-bold text-slate-900 mb-4">Service Timeline</h3>
               <div className="space-y-4">
-                
-                {/* Timeline Item 1 */}
-                <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm flex gap-6 relative">
-                  <div className="hidden sm:flex flex-col items-center">
-                    <div className="h-10 w-10 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center shrink-0 border-4 border-white z-10">
-                      <ShieldCheck className="h-5 w-5" />
-                    </div>
-                    <div className="w-0.5 bg-slate-100 h-full absolute top-10 bottom-0 left-11" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex justify-between items-start mb-2">
-                      <div>
-                        <h4 className="font-bold text-slate-900">Weekly Maintenance</h4>
-                        <p className="text-sm text-slate-500">Completed by Mike T. on Aug 12, 2026 at 10:30 AM</p>
+                {pastJobs && pastJobs.length > 0 ? pastJobs.map((job: any, idx: number) => (
+                  <div key={job.id} className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm flex gap-6 relative">
+                    <div className="hidden sm:flex flex-col items-center">
+                      <div className={`h-10 w-10 ${idx === 0 ? 'bg-blue-50 text-blue-600' : 'bg-slate-50 text-slate-400'} rounded-full flex items-center justify-center shrink-0 border-4 border-white z-10`}>
+                        {idx === 0 ? <ShieldCheck className="h-5 w-5" /> : <Calendar className="h-5 w-5" />}
                       </div>
-                      <span className="bg-green-50 text-green-700 px-2.5 py-1 rounded-md text-xs font-semibold">Completed</span>
+                      {idx !== pastJobs.length - 1 && (
+                        <div className="w-0.5 bg-slate-100 h-full absolute top-10 bottom-0 left-11" />
+                      )}
                     </div>
-                    <p className="text-slate-600 text-sm mb-4 leading-relaxed">
-                      Completed full deep clean of kitchen including oven and fridge. Sanitized all 3 bathrooms. Vacuumed and steam mopped all hardwood floors. Master bedroom organized.
-                    </p>
-                    <div className="flex gap-2">
-                      <div className="h-20 w-32 bg-slate-200 rounded-lg overflow-hidden relative">
-                        {/* Placeholder for photo */}
-                        <div className="absolute inset-0 flex items-center justify-center text-xs text-slate-500 font-medium">Before</div>
+                    <div className="flex-1">
+                      <div className="flex justify-between items-start mb-2">
+                        <div>
+                          <h4 className="font-bold text-slate-900">Cleaning Service</h4>
+                          <p className="text-sm text-slate-500">
+                            {job.status === 'completed' ? 'Completed' : 'Cancelled'} 
+                            {job.contractor?.full_name ? ` by ${job.contractor.full_name}` : ''} on {new Date(job.scheduled_date).toLocaleDateString()} at {new Date(job.scheduled_date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                          </p>
+                        </div>
+                        <span className={`${job.status === 'completed' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'} px-2.5 py-1 rounded-md text-xs font-semibold capitalize`}>
+                          {job.status}
+                        </span>
                       </div>
-                      <div className="h-20 w-32 bg-slate-200 rounded-lg overflow-hidden relative">
-                        {/* Placeholder for photo */}
-                        <div className="absolute inset-0 flex items-center justify-center text-xs text-slate-500 font-medium">After</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Timeline Item 2 */}
-                <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm flex gap-6 relative">
-                  <div className="hidden sm:flex flex-col items-center">
-                    <div className="h-10 w-10 bg-slate-50 text-slate-400 rounded-full flex items-center justify-center shrink-0 border-4 border-white z-10">
-                      <Calendar className="h-5 w-5" />
+                      {job.notes && (
+                        <p className="text-slate-600 text-sm mb-4 leading-relaxed">
+                          {job.notes}
+                        </p>
+                      )}
                     </div>
                   </div>
-                  <div className="flex-1">
-                    <div className="flex justify-between items-start mb-2">
-                      <div>
-                        <h4 className="font-bold text-slate-900">Weekly Maintenance</h4>
-                        <p className="text-sm text-slate-500">Completed by Mike T. on Aug 5, 2026 at 11:15 AM</p>
-                      </div>
-                      <span className="bg-slate-100 text-slate-600 px-2.5 py-1 rounded-md text-xs font-semibold">Completed</span>
-                    </div>
-                  </div>
-                </div>
-
+                )) : (
+                  <div className="text-slate-500 text-sm italic">No past services found.</div>
+                )}
               </div>
               <button className="w-full mt-4 py-3 text-sm font-medium text-slate-500 hover:text-slate-900 transition-colors">
                 View All History
@@ -170,14 +192,26 @@ export default function CustomerPortalPage() {
                 <h3 className="font-bold text-slate-900">Next Scheduled Service</h3>
               </div>
               <div className="p-5 bg-slate-50 flex items-center gap-4">
-                <div className="h-14 w-14 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col items-center justify-center shrink-0">
-                  <span className="text-xs font-bold text-blue-600 uppercase">Aug</span>
-                  <span className="text-xl font-bold text-slate-900">19</span>
-                </div>
-                <div>
-                  <div className="font-semibold text-slate-900">Weekly Maintenance</div>
-                  <div className="text-sm text-slate-500">Estimated window: 1PM - 4PM</div>
-                </div>
+                {nextJob ? (
+                  <>
+                    <div className="h-14 w-14 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col items-center justify-center shrink-0">
+                      <span className="text-xs font-bold text-blue-600 uppercase">
+                        {new Date(nextJob.scheduled_date).toLocaleString('default', { month: 'short' })}
+                      </span>
+                      <span className="text-xl font-bold text-slate-900">
+                        {new Date(nextJob.scheduled_date).getDate()}
+                      </span>
+                    </div>
+                    <div>
+                      <div className="font-semibold text-slate-900">Cleaning Service</div>
+                      <div className="text-sm text-slate-500">
+                        Scheduled for {new Date(nextJob.scheduled_date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-slate-500 text-sm italic">No upcoming services scheduled.</div>
+                )}
               </div>
             </div>
 
