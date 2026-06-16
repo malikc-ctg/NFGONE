@@ -76,17 +76,33 @@ export async function PATCH(request: Request) {
     if (body.province) updatePayload.province = body.province;
     if (body.postal_code) updatePayload.postal_code = body.postal_code;
 
-    const { data: customer, error } = await serviceClient
-      .from('customers')
-      .upsert({ 
-        ...updatePayload, 
-        profile_id: user.id,
-        email: user.email
-      }, { onConflict: 'profile_id' })
-      .select()
-      .single();
+    let customer;
+    let dbError;
 
-    if (error) throw error;
+    if (currentCustomer) {
+      const { data, error } = await serviceClient
+        .from('customers')
+        .update(updatePayload)
+        .eq('profile_id', user.id)
+        .select()
+        .single();
+      customer = data;
+      dbError = error;
+    } else {
+      const { data, error } = await serviceClient
+        .from('customers')
+        .insert({
+          ...updatePayload,
+          profile_id: user.id,
+          email: user.email
+        })
+        .select()
+        .single();
+      customer = data;
+      dbError = error;
+    }
+
+    if (dbError) throw dbError;
 
     return NextResponse.json(customer);
   } catch (err: any) {
