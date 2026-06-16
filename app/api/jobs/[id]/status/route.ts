@@ -10,6 +10,8 @@ import ContractorEnRoute from '@/emails/customer/ContractorEnRoute';
 import ServiceStarted from '@/emails/customer/ServiceStarted';
 import ServiceCompleted from '@/emails/customer/ServiceCompleted';
 import ReviewRequest from '@/emails/customer/ReviewRequest';
+import CustomerJobCancelled from '@/emails/customer/JobCancelled';
+import ContractorJobCancelled from '@/emails/contractor/JobCancelled';
 import React from 'react';
 export async function PATCH(
   request: NextRequest,
@@ -157,7 +159,7 @@ export async function PATCH(
              subject: 'Service Started',
              react: React.createElement(ServiceStarted, { customerName: cName, startTime: 'now' })
            });
-        } else if (newStatus === 'completed' && cEmail) {
+         } else if (newStatus === 'completed' && cEmail) {
            await sendEmail({
              to: cEmail,
              subject: 'All Done!',
@@ -168,7 +170,26 @@ export async function PATCH(
              subject: 'How did we do?',
              react: React.createElement(ReviewRequest, { customerName: cName, date, reviewLink: 'https://seaofblue.app/reviews' })
            });
-        }
+         } else if (newStatus === 'cancelled') {
+           // 3. Expire pending offers if the job is cancelled
+           const serviceClient = await createServiceClient();
+           await serviceClient.from('job_offers').update({ status: 'expired' }).eq('job_id', id).eq('status', 'pending');
+           
+           if (cEmail) {
+             await sendEmail({
+               to: cEmail,
+               subject: `Booking Cancelled - ${date}`,
+               react: React.createElement(CustomerJobCancelled, { customerName: cName, date })
+             });
+           }
+           if (contEmail) {
+             await sendEmail({
+               to: contEmail,
+               subject: `Job Cancelled - ${date}`,
+               react: React.createElement(ContractorJobCancelled, { contractorName: contName, date })
+             });
+           }
+         }
       }
     } catch (emailError) {
       console.error('Failed to send status update emails:', emailError);
