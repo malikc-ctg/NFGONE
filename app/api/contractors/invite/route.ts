@@ -32,12 +32,13 @@ export async function POST(request: Request) {
     }
 
     // 2. Generate invite link (this creates the user in auth.users)
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
     const { data: inviteData, error: inviteError } = await supabase.auth.admin.generateLink({
       type: 'invite',
       email: email,
       options: {
         data: { full_name, phone },
-        redirectTo: `http://localhost:3002/contractor/onboarding`
+        redirectTo: `${appUrl}/contractor/onboarding`
       }
     });
 
