@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
   ArrowLeft, Star, ShieldCheck, ShieldX, ShieldAlert,
-  FileText, ExternalLink, CheckCircle2, XCircle, Clock
+  FileText, ExternalLink, CheckCircle2, XCircle, Clock, Camera
 } from 'lucide-react';
 import type { Contractor } from '@/types';
 import Link from 'next/link';
@@ -28,6 +28,16 @@ export default function ContractorDetailPage() {
   const params = useParams();
   const [contractor, setContractor] = useState<Contractor | null>(null);
   const [insurance, setInsurance] = useState<InsuranceDetails | null>(null);
+  
+  // Profile Photo State
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  const [photoStatus, setPhotoStatus] = useState<'verified' | 'rejected' | 'pending' | null>(null);
+  const [photoRejectionReason, setPhotoRejectionReason] = useState<string | null>(null);
+  const [photoVerifiedAt, setPhotoVerifiedAt] = useState<string | null>(null);
+  const [isVerifyingPhoto, setIsVerifyingPhoto] = useState(false);
+  const [photoRejectionNote, setPhotoRejectionNote] = useState('');
+  const [showPhotoRejectInput, setShowPhotoRejectInput] = useState(false);
+
   const [hqAddress, setHqAddress] = useState<string | null>(null);
   const [maxRadius, setMaxRadius] = useState<number | null>(null);
   const [isVerifying, setIsVerifying] = useState(false);
@@ -43,10 +53,18 @@ export default function ContractorDetailPage() {
       try {
         const notes = found.notes ? JSON.parse(found.notes) : {};
         setInsurance(notes.insurance_details ?? null);
+        setPhotoUrl(notes.profile_photo_url ?? null);
+        setPhotoStatus(notes.profile_photo_status ?? null);
+        setPhotoRejectionReason(notes.profile_photo_rejection_reason ?? null);
+        setPhotoVerifiedAt(notes.profile_photo_verified_at ?? null);
         setHqAddress(notes.hq_address ?? null);
         setMaxRadius(notes.max_radius ?? null);
       } catch {
         setInsurance(null);
+        setPhotoUrl(null);
+        setPhotoStatus(null);
+        setPhotoRejectionReason(null);
+        setPhotoVerifiedAt(null);
         setHqAddress(null);
         setMaxRadius(null);
       }
@@ -97,6 +115,48 @@ export default function ContractorDetailPage() {
     }
   }
 
+  async function handleVerifyPhoto() {
+    setIsVerifyingPhoto(true);
+    try {
+      const res = await fetch(`/api/contractors/${params.id}/verify-photo`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'verify' }),
+      });
+      if (!res.ok) throw new Error('Failed to verify photo');
+      toast.success('Profile photo verified!');
+      fetchContractor();
+    } catch {
+      toast.error('Failed to verify profile photo');
+    } finally {
+      setIsVerifyingPhoto(false);
+    }
+  }
+
+  async function handleRejectPhoto() {
+    if (!photoRejectionNote.trim()) {
+      toast.error('Please enter a reason for rejection');
+      return;
+    }
+    setIsVerifyingPhoto(true);
+    try {
+      const res = await fetch(`/api/contractors/${params.id}/verify-photo`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'reject', admin_notes: photoRejectionNote }),
+      });
+      if (!res.ok) throw new Error('Failed to reject photo');
+      toast.success('Profile photo rejected.');
+      setShowPhotoRejectInput(false);
+      setPhotoRejectionNote('');
+      fetchContractor();
+    } catch {
+      toast.error('Failed to reject profile photo');
+    } finally {
+      setIsVerifyingPhoto(false);
+    }
+  }
+
   if (!contractor) return (
     <div className="flex items-center justify-center py-20">
       <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
@@ -105,6 +165,7 @@ export default function ContractorDetailPage() {
 
   const insuranceStatus = insurance?.status;
   const hasFile = !!insurance?.file_url;
+  const hasPhoto = !!photoUrl;
 
   return (
     <div className="space-y-6">
@@ -166,8 +227,9 @@ export default function ContractorDetailPage() {
         </Card>
       </div>
 
-      {/* ── Insurance Verification Card ── */}
-      <Card className={`border-2 ${
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* ── Insurance Verification Card ── */}
+        <Card className={`border-2 ${
         insuranceStatus === 'verified'
           ? 'border-green-200 bg-green-50/40 dark:bg-green-950/20'
           : insuranceStatus === 'rejected'
@@ -339,6 +401,149 @@ export default function ContractorDetailPage() {
           )}
         </CardContent>
       </Card>
+
+        {/* ── Profile Photo Verification Card ── */}
+        <Card className={`border-2 ${
+          photoStatus === 'verified'
+            ? 'border-green-200 bg-green-50/40 dark:bg-green-950/20'
+            : photoStatus === 'rejected'
+            ? 'border-red-200 bg-red-50/40 dark:bg-red-950/20'
+            : hasPhoto
+            ? 'border-amber-200 bg-amber-50/40 dark:bg-amber-950/20'
+            : 'border-dashed border-muted-foreground/30'
+        }`}>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                {photoStatus === 'verified' ? (
+                  <><ShieldCheck className="h-5 w-5 text-green-600" /> Profile Photo Verification</>
+                ) : photoStatus === 'rejected' ? (
+                  <><ShieldX className="h-5 w-5 text-red-600" /> Profile Photo Verification</>
+                ) : hasPhoto ? (
+                  <><ShieldAlert className="h-5 w-5 text-amber-600" /> Profile Photo Verification</>
+                ) : (
+                  <><ShieldAlert className="h-5 w-5 text-muted-foreground" /> Profile Photo Verification</>
+                )}
+              </CardTitle>
+              <div>
+                {photoStatus === 'verified' && (
+                  <Badge className="bg-green-100 text-green-700 border-green-200 flex items-center gap-1">
+                    <CheckCircle2 className="h-3 w-3" /> Verified
+                  </Badge>
+                )}
+                {photoStatus === 'rejected' && (
+                  <Badge className="bg-red-100 text-red-700 border-red-200 flex items-center gap-1">
+                    <XCircle className="h-3 w-3" /> Rejected
+                  </Badge>
+                )}
+                {!photoStatus && hasPhoto && (
+                  <Badge className="bg-amber-100 text-amber-700 border-amber-200 flex items-center gap-1">
+                    <Clock className="h-3 w-3" /> Pending Review
+                  </Badge>
+                )}
+                {!hasPhoto && !photoStatus && (
+                  <Badge variant="outline" className="text-muted-foreground">No Photo</Badge>
+                )}
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Uploaded document */}
+            {photoUrl ? (
+              <div className="flex items-center gap-4 p-3 bg-background rounded-lg border border-border">
+                <div className="w-16 h-16 rounded-full overflow-hidden shrink-0 border border-border bg-muted relative">
+                  <img src={photoUrl} alt="Profile Photo" className="w-full h-full object-cover" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium">Profile Photo</p>
+                  <a
+                    href={photoUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1 text-xs text-primary hover:underline shrink-0 mt-1"
+                  >
+                    View Full Size <ExternalLink className="h-3 w-3" />
+                  </a>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-6 text-muted-foreground">
+                <Camera className="h-8 w-8 mx-auto mb-2 opacity-30" />
+                <p className="text-sm">No profile photo uploaded yet</p>
+              </div>
+            )}
+
+            {/* Rejection reason */}
+            {photoStatus === 'rejected' && photoRejectionReason && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm">
+                <p className="text-xs font-medium text-red-700 mb-1">Rejection Reason</p>
+                <p className="text-red-600">{photoRejectionReason}</p>
+              </div>
+            )}
+
+            {/* Admin verified info */}
+            {photoStatus === 'verified' && photoVerifiedAt && (
+              <p className="text-xs text-green-700">
+                ✓ Verified on {new Date(photoVerifiedAt).toLocaleDateString()}
+              </p>
+            )}
+
+            {/* Action buttons — only show when file exists and not yet verified */}
+            {hasPhoto && photoStatus !== 'verified' && (
+              <div className="space-y-3 pt-2 border-t border-border">
+                {!showPhotoRejectInput ? (
+                  <div className="flex gap-3">
+                    <Button
+                      className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                      onClick={handleVerifyPhoto}
+                      disabled={isVerifyingPhoto}
+                    >
+                      <CheckCircle2 className="h-4 w-4 mr-2" />
+                      {isVerifyingPhoto ? 'Verifying...' : 'Verify Photo'}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="flex-1 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+                      onClick={() => setShowPhotoRejectInput(true)}
+                      disabled={isVerifyingPhoto}
+                    >
+                      <XCircle className="h-4 w-4 mr-2" />
+                      Reject
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <label className="text-xs text-muted-foreground font-medium">Rejection Reason *</label>
+                    <textarea
+                      className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background resize-none"
+                      rows={2}
+                      placeholder="e.g. Not a clear picture of your face, has filters..."
+                      value={photoRejectionNote}
+                      onChange={e => setPhotoRejectionNote(e.target.value)}
+                    />
+                    <div className="flex gap-2">
+                      <Button
+                        variant="destructive"
+                        className="flex-1"
+                        onClick={handleRejectPhoto}
+                        disabled={isVerifyingPhoto}
+                      >
+                        {isVerifyingPhoto ? 'Rejecting...' : 'Confirm Rejection'}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        onClick={() => { setShowPhotoRejectInput(false); setPhotoRejectionNote(''); }}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
