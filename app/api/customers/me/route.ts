@@ -22,7 +22,7 @@ export async function GET() {
       .single();
 
     if (dbError || !customer) {
-      return NextResponse.json({ error: 'Customer not found' }, { status: 404 });
+      return NextResponse.json(null);
     }
 
     return NextResponse.json(customer);
@@ -78,8 +78,7 @@ export async function PATCH(request: Request) {
 
     const { data: customer, error } = await serviceClient
       .from('customers')
-      .update(updatePayload)
-      .eq('profile_id', user.id)
+      .upsert({ ...updatePayload, profile_id: user.id }, { onConflict: 'profile_id' })
       .select()
       .single();
 

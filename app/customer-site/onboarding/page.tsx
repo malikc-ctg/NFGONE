@@ -63,27 +63,29 @@ export default function CustomerOnboardingPage() {
         const res = await fetch('/api/customers/me');
         if (res.ok) {
           const customer = await res.json();
-          const notes = customer.notes ? JSON.parse(customer.notes) : {};
-          
-          if (notes.is_onboarded) {
-            router.push('/customer-site/portal');
-            return;
-          }
+          if (customer) {
+            const notes = customer.notes ? JSON.parse(customer.notes) : {};
+            
+            if (notes.is_onboarded) {
+              router.push('/customer-site/portal');
+              return;
+            }
 
-          setFullName(customer.full_name || '');
-          setPhone(customer.phone || '');
-          setAddressLine1(customer.address_line1 || '');
-          setAddressLine2(customer.address_line2 || '');
-          setCity(customer.city || '');
-          setProvince(customer.province || '');
-          setPostalCode(customer.postal_code || '');
-          
-          if (notes.home_size_sqft) setHomeSize(notes.home_size_sqft);
-          if (notes.bedrooms) setBedrooms(notes.bedrooms);
-          if (notes.bathrooms) setBathrooms(notes.bathrooms);
-          if (notes.has_pets !== undefined) setHasPets(notes.has_pets);
-          if (notes.parking_instructions) setParkingInstructions(notes.parking_instructions);
-          if (notes.entry_instructions) setEntryInstructions(notes.entry_instructions);
+            setFullName(customer.full_name || '');
+            setPhone(customer.phone || '');
+            setAddressLine1(customer.address_line1 || '');
+            setAddressLine2(customer.address_line2 || '');
+            setCity(customer.city || '');
+            setProvince(customer.province || '');
+            setPostalCode(customer.postal_code || '');
+            
+            if (notes.home_size_sqft) setHomeSize(notes.home_size_sqft);
+            if (notes.bedrooms) setBedrooms(notes.bedrooms);
+            if (notes.bathrooms) setBathrooms(notes.bathrooms);
+            if (notes.has_pets !== undefined) setHasPets(notes.has_pets);
+            if (notes.parking_instructions) setParkingInstructions(notes.parking_instructions);
+            if (notes.entry_instructions) setEntryInstructions(notes.entry_instructions);
+          }
         }
       } catch (err) {
         console.error(err);

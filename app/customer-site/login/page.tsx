@@ -31,9 +31,13 @@ export default function CustomerLoginPage() {
       const res = await fetch('/api/customers/me');
       if (res.ok) {
         const customer = await res.json();
-        const notes = customer.notes ? JSON.parse(customer.notes) : {};
-        if (notes.is_onboarded) {
-          router.push('/customer-site/portal');
+        if (customer) {
+          const notes = customer.notes ? JSON.parse(customer.notes) : {};
+          if (notes.is_onboarded) {
+            router.push('/customer-site/portal');
+          } else {
+            router.push('/customer-site/onboarding');
+          }
         } else {
           router.push('/customer-site/onboarding');
         }
