@@ -12,7 +12,7 @@ import {
   MapPin, Briefcase, DollarSign, Star, TrendingUp,
   Clock, CheckCircle2, ArrowRight, CalendarDays,
   Sparkles, Bath, BedDouble, ChevronRight, Timer, Package, Key, Info,
-  AlertTriangle, UploadCloud, FileText, Loader2
+  AlertTriangle, UploadCloud, FileText, Loader2, Camera
 } from 'lucide-react';
 import { createBrowserClient } from '@supabase/ssr';
 import { SERVICE_TYPE_LABELS, TIME_WINDOW_LABELS } from '@/types';
@@ -140,14 +140,19 @@ export default function ContractorDashboard() {
     }
   }
 
-  // Check if they have insurance
+  // Check if they have insurance and profile photo
   let hasInsurance = false;
+  let hasProfilePhoto = false;
+  
   if (contractor) {
     const notesStr = contractor.notes || '{}';
     try {
       const notesObj = JSON.parse(notesStr);
       if (notesObj.insurance_details?.provider || notesObj.insurance_details?.policy_number || notesObj.insurance_details?.file_url) {
         hasInsurance = true;
+      }
+      if (notesObj.profile_photo_url) {
+        hasProfilePhoto = true;
       }
     } catch { }
   }
@@ -193,6 +198,45 @@ export default function ContractorDashboard() {
     }
   }
 
+  async function handleProfilePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !contractor) return;
+    
+    setIsUploading(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `avatar-${contractor.id}-${Math.random()}.${fileExt}`;
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('documents')
+        .upload(fileName, file);
+        
+      if (uploadError) throw uploadError;
+      
+      const { data: { publicUrl } } = supabase.storage.from('documents').getPublicUrl(fileName);
+      
+      const response = await fetch('/api/contractors/me/photo', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ profile_photo_url: publicUrl })
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to save profile photo');
+      }
+      
+      toast.success('Profile photo uploaded successfully!');
+      fetchData();
+    } catch (err: any) {
+      toast.error('Failed to upload photo: ' + err.message);
+    } finally {
+      setIsUploading(false);
+      e.target.value = '';
+    }
+  }
+
+  const isEligible = hasInsurance && hasProfilePhoto;
+
   return (
     <div className="space-y-5">
       {/* ── Hero Header ── */}
@@ -232,40 +276,79 @@ export default function ContractorDashboard() {
         </CardContent>
       </Card>
 
-      {/* ── Insurance Reminder ── */}
-      {!loading && !hasInsurance && (
-        <Card className="border-amber-200/50 bg-amber-50/80 dark:bg-amber-950/20 shadow-sm relative overflow-hidden">
-          <div className="absolute left-0 top-0 bottom-0 w-1 bg-amber-500" />
-          <CardContent className="p-4 flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
-            <div className="flex gap-3">
-              <div className="w-10 h-10 rounded-full bg-amber-100/80 dark:bg-amber-900/40 flex items-center justify-center shrink-0 shadow-inner">
-                <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-500" />
-              </div>
-              <div>
-                <h3 className="font-bold text-amber-900 dark:text-amber-400 tracking-tight">Action Required: Liability Insurance</h3>
-                <p className="text-xs text-amber-800/80 dark:text-amber-300/80 mt-0.5 max-w-sm">
-                  Please upload your liability insurance slip to start accepting jobs.
-                </p>
-              </div>
-            </div>
-            <div className="shrink-0 relative w-full md:w-auto">
-              <Input 
-                type="file" 
-                accept="image/*,.pdf" 
-                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" 
-                onChange={handleInsuranceUpload}
-                disabled={isUploading}
-              />
-              <Button variant="outline" className="w-full md:w-auto bg-white/60 dark:bg-black/40 hover:bg-white dark:hover:bg-black border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400 font-semibold shadow-sm transition-all" disabled={isUploading}>
-                {isUploading ? (
-                  <span className="flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" /> Uploading...</span>
-                ) : (
-                  <><UploadCloud className="h-4 w-4 mr-2" /> Upload Slip</>
-                )}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+      {/* ── Requirements Reminders ── */}
+      {!loading && !isEligible && (
+        <div className="space-y-3">
+          {!hasInsurance && (
+            <Card className="border-amber-200/50 bg-amber-50/80 dark:bg-amber-950/20 shadow-sm relative overflow-hidden">
+              <div className="absolute left-0 top-0 bottom-0 w-1 bg-amber-500" />
+              <CardContent className="p-4 flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
+                <div className="flex gap-3">
+                  <div className="w-10 h-10 rounded-full bg-amber-100/80 dark:bg-amber-900/40 flex items-center justify-center shrink-0 shadow-inner">
+                    <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-500" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-amber-900 dark:text-amber-400 tracking-tight">Action Required: Liability Insurance</h3>
+                    <p className="text-xs text-amber-800/80 dark:text-amber-300/80 mt-0.5 max-w-sm">
+                      Please upload your liability insurance slip to start accepting jobs.
+                    </p>
+                  </div>
+                </div>
+                <div className="shrink-0 relative w-full md:w-auto">
+                  <Input 
+                    type="file" 
+                    accept="image/*,.pdf" 
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" 
+                    onChange={handleInsuranceUpload}
+                    disabled={isUploading}
+                  />
+                  <Button variant="outline" className="w-full md:w-auto bg-white/60 dark:bg-black/40 hover:bg-white dark:hover:bg-black border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400 font-semibold shadow-sm transition-all" disabled={isUploading}>
+                    {isUploading ? (
+                      <span className="flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" /> Uploading...</span>
+                    ) : (
+                      <><UploadCloud className="h-4 w-4 mr-2" /> Upload Slip</>
+                    )}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {!hasProfilePhoto && (
+            <Card className="border-blue-200/50 bg-blue-50/80 dark:bg-blue-950/20 shadow-sm relative overflow-hidden">
+              <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500" />
+              <CardContent className="p-4 flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
+                <div className="flex gap-3">
+                  <div className="w-10 h-10 rounded-full bg-blue-100/80 dark:bg-blue-900/40 flex items-center justify-center shrink-0 shadow-inner">
+                    <Camera className="h-5 w-5 text-blue-600 dark:text-blue-500" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-blue-900 dark:text-blue-400 tracking-tight">Action Required: Profile Photo</h3>
+                    <p className="text-xs text-blue-800/80 dark:text-blue-300/80 mt-0.5 max-w-sm">
+                      Please upload a clear picture of your face to build trust with customers. You cannot accept jobs without one.
+                    </p>
+                  </div>
+                </div>
+                <div className="shrink-0 relative w-full md:w-auto">
+                  <Input 
+                    type="file" 
+                    accept="image/*" 
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" 
+                    onChange={handleProfilePhotoUpload}
+                    disabled={isUploading}
+                  />
+                  <Button variant="outline" className="w-full md:w-auto bg-white/60 dark:bg-black/40 hover:bg-white dark:hover:bg-black border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-400 font-semibold shadow-sm transition-all" disabled={isUploading}>
+                    {isUploading ? (
+                      <span className="flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" /> Uploading...</span>
+                    ) : (
+                      <><UploadCloud className="h-4 w-4 mr-2" /> Upload Photo</>
+                    )}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
       )}
 
       {/* ── Stats Row ── */}
@@ -318,7 +401,7 @@ export default function ContractorDashboard() {
       </div>
 
       {/* ── Pending Offers ── */}
-      {pendingOffers.length > 0 && (
+      {isEligible && pendingOffers.length > 0 && (
         <div className="space-y-3">
           <div className="flex justify-between items-center">
             <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
@@ -446,7 +529,8 @@ export default function ContractorDashboard() {
       )}
 
       {/* ── Today's Jobs ── */}
-      <div className="space-y-3">
+      {isEligible && (
+        <div className="space-y-3">
         <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
           <CalendarDays className="h-4 w-4" /> Today&apos;s Schedule
         </h2>
@@ -562,9 +646,10 @@ export default function ContractorDashboard() {
           })
         )}
       </div>
+      )}
 
       {/* ── Upcoming Jobs ── */}
-      {upcomingJobs.length > 0 && (
+      {isEligible && upcomingJobs.length > 0 && (
         <div className="space-y-3">
           <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
             <CalendarDays className="h-4 w-4" /> Upcoming

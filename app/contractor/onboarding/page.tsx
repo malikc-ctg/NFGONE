@@ -53,9 +53,7 @@ export default function OnboardingPage() {
   const [bringsOwnSupplies, setBringsOwnSupplies] = useState(false);
   const [hasVehicle, setHasVehicle] = useState(true);
   
-  // Insurance and Password state
-  const [insuranceFile, setInsuranceFile] = useState<File | null>(null);
-  const [profilePhoto, setProfilePhoto] = useState<File | null>(null);
+  // Password and Terms state
   const [infoAccurate, setInfoAccurate] = useState(false);
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [password, setPassword] = useState('');
@@ -217,18 +215,6 @@ export default function OnboardingPage() {
     return eligible;
   }, [hqCoords, zones, maxRadius]);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      setInsuranceFile(e.target.files[0]);
-    }
-  };
-
-  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      setProfilePhoto(e.target.files[0]);
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -252,11 +238,6 @@ export default function OnboardingPage() {
       return;
     }
 
-    if (!insuranceFile) {
-      toast.error('Please upload your insurance slip.');
-      return;
-    }
-
     if (!infoAccurate || !agreeTerms) {
       toast.error('Please confirm the mandatory checkboxes to proceed.');
       return;
@@ -268,41 +249,7 @@ export default function OnboardingPage() {
       const { error: passwordError } = await supabase.auth.updateUser({ password });
       if (passwordError) throw passwordError;
 
-      // 2. Upload Insurance File if provided
-      let finalFileUrl = '';
-      if (insuranceFile && contractor) {
-        const fileExt = insuranceFile.name.split('.').pop();
-        const fileName = `insurance-${contractor.id}-${Date.now()}.${fileExt}`;
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('documents')
-          .upload(fileName, insuranceFile);
-          
-        if (!uploadError && uploadData) {
-          const { data: { publicUrl } } = supabase.storage.from('documents').getPublicUrl(fileName);
-          finalFileUrl = publicUrl;
-        } else {
-          console.warn("Could not upload insurance file to storage, continuing anyway.", uploadError);
-        }
-      }
-
-      // 2.5 Upload Profile Photo if provided
-      let finalPhotoUrl = '';
-      if (profilePhoto && contractor) {
-        const photoExt = profilePhoto.name.split('.').pop();
-        const photoName = `avatar-${contractor.id}-${Date.now()}.${photoExt}`;
-        const { data: pUploadData, error: pUploadError } = await supabase.storage
-          .from('documents')
-          .upload(photoName, profilePhoto);
-          
-        if (!pUploadError && pUploadData) {
-          const { data: { publicUrl } } = supabase.storage.from('documents').getPublicUrl(photoName);
-          finalPhotoUrl = publicUrl;
-        } else {
-          console.warn("Could not upload profile photo to storage, continuing anyway.", pUploadError);
-        }
-      }
-
-      // 3. Set Primary and Additional Zones
+      // 2. Set Primary and Additional Zones
       const primaryZoneId = calculatedZones[0].zone.id; // Closest is primary
       const additionalZoneIds = calculatedZones.slice(1).map(z => z.zone.id);
 
@@ -321,11 +268,7 @@ export default function OnboardingPage() {
           ...existingNotes,
           hq_address: hqAddress,
           hq_coords: hqCoords,
-          max_radius: maxRadius,
-          insurance_details: {
-            file_url: finalFileUrl || existingNotes.insurance_details?.file_url
-          },
-          profile_photo_url: finalPhotoUrl || existingNotes.profile_photo_url
+          max_radius: maxRadius
       };
 
       const { error: updateError } = await supabase
@@ -405,16 +348,6 @@ export default function OnboardingPage() {
                     onChange={e => setPhone(e.target.value)} 
                     required
                   />
-                </div>
-                <div className="md:col-span-2">
-                  <Label>Profile Photo (Optional)</Label>
-                  <Input 
-                    type="file" 
-                    accept="image/*"
-                    onChange={handlePhotoChange}
-                    className="cursor-pointer bg-white"
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">A friendly photo helps build trust with customers.</p>
                 </div>
               </div>
             </div>
@@ -548,22 +481,11 @@ export default function OnboardingPage() {
               </div>
             </div>
 
-            {/* Insurance & Legal */}
+            {/* Legal */}
             <div className="p-6 border-b space-y-6">
               <div>
-                <h2 className="text-sm font-bold uppercase tracking-wider text-slate-500">Insurance & Legal</h2>
-                <p className="text-sm text-muted-foreground">Upload your liability insurance slip and confirm your details.</p>
-              </div>
-              
-              <div>
-                <Label className="mb-2 block">Upload Insurance Slip (Required)</Label>
-                <Input 
-                  type="file" 
-                  accept="image/*,.pdf"
-                  onChange={handleFileChange}
-                  className="cursor-pointer"
-                  required
-                />
+                <h2 className="text-sm font-bold uppercase tracking-wider text-slate-500">Legal & Terms</h2>
+                <p className="text-sm text-muted-foreground">Please confirm your details and agree to our terms to proceed.</p>
               </div>
 
               <div className="flex flex-col gap-4 mt-4 bg-slate-50 p-4 rounded-lg border border-slate-100">
