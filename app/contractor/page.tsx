@@ -18,6 +18,7 @@ import { createBrowserClient } from '@supabase/ssr';
 import { SERVICE_TYPE_LABELS, TIME_WINDOW_LABELS } from '@/types';
 import type { Job, JobOffer, Contractor } from '@/types';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 
@@ -44,6 +45,7 @@ function buildScopeSummary(job: Job): string[] {
 }
 
 export default function ContractorDashboard() {
+  const router = useRouter();
   const [todaysJobs, setTodaysJobs] = useState<Job[]>([]);
   const [upcomingJobs, setUpcomingJobs] = useState<Job[]>([]);
   const [pendingOffers, setPendingOffers] = useState<JobOffer[]>([]);
@@ -129,7 +131,17 @@ export default function ContractorDashboard() {
           throw new Error(result.error || 'Failed to respond');
         }
       } else {
-        toast.success(action === 'accept' ? 'Job accepted!' : 'Offer declined');
+        if (action === 'accept') {
+          toast.success('Job Secured! 🎉');
+          // Find the offer to get the job_id
+          const offer = pendingOffers.find(o => o.id === offerId);
+          if (offer && offer.job_id) {
+            router.push(`/contractor/jobs/${offer.job_id}`);
+            return; // Exit early so we don't refetch data while transitioning
+          }
+        } else {
+          toast.success('Offer declined');
+        }
       }
       
       fetchData();
