@@ -8,12 +8,13 @@ export async function middleware(request: NextRequest) {
   // Rewrite seaofblue.xyz requests to the /customer-site folder
   // Also support localhost testing with a specific subdomain/host (e.g., customer.localhost:3000)
   if (hostname.includes('seaofblue.xyz') || hostname.includes('customer.localhost')) {
-    // If they are visiting the root or any path, prefix it with /customer-site
-    // Avoid double prefixing if the path already starts with /customer-site
-    if (!url.pathname.startsWith('/customer-site')) {
-      url.pathname = `/customer-site${url.pathname === '/' ? '' : url.pathname}`;
+    // Do not prefix API routes
+    if (!url.pathname.startsWith('/api')) {
+      if (!url.pathname.startsWith('/customer-site')) {
+        url.pathname = `/customer-site${url.pathname === '/' ? '' : url.pathname}`;
+      }
+      return NextResponse.rewrite(url);
     }
-    return NextResponse.rewrite(url);
   }
 
   // Otherwise, default to standard app routing (seaofblue.app) and update session
