@@ -103,7 +103,6 @@ export function AdminDashboard() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] text-muted-foreground animate-pulse">
         <Waves className="h-12 w-12 mb-4 text-blue-500 opacity-20" />
-        <p className="text-sm font-medium">Synchronizing operational data...</p>
       </div>
     );
   }

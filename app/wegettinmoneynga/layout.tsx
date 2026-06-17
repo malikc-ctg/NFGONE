@@ -86,7 +86,6 @@ export default function AdminLayout({
       <div className="flex h-screen items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-3 animate-pulse">
           <Waves className="h-10 w-10 text-blue-500/30" />
-          <p className="text-xs text-muted-foreground font-medium">Verifying access...</p>
         </div>
       </div>
     );
