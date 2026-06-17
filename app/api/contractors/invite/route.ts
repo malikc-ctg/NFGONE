@@ -20,7 +20,7 @@ export async function POST(request: Request) {
 
     const supabase = await createServiceClient();
 
-    // 1. Check if user already exists (efficient lookup via profiles table)
+    // 1. Check if user already exists in auth
     const { data: existingProfile } = await supabase
       .from('profiles')
       .select('id')
@@ -31,64 +31,67 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'User with this email already exists' }, { status: 400 });
     }
 
-    // 2. Generate invite link (this creates the user in auth.users)
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-    const { data: inviteData, error: inviteError } = await supabase.auth.admin.generateLink({
-      type: 'invite',
-      email: email,
-      options: {
-        data: { full_name, phone },
-        redirectTo: `${appUrl}/contractor/onboarding`
-      }
-    });
-
-    if (inviteError) {
-      throw new Error(`Failed to generate invite: ${inviteError.message}`);
-    }
-
-    const authUserId = inviteData.user.id;
-
-    // 3. The handle_new_user trigger SHOULD have created a profile, but if generateLink 
-    // bypasses the trigger, we upsert manually to ensure the profile row exists.
-    const { error: profileError } = await supabase
-      .from('profiles')
-      .upsert({ 
-        id: authUserId, 
-        email: email,
-        role: 'contractor', 
-        full_name, 
-        phone 
-      }, { onConflict: 'id' });
-
-    if (profileError) {
-      throw new Error(`Failed to update profile role: ${profileError.message}`);
-    }
-
-    // 4. Create the contractor record
-    const { error: contractorError } = await supabase
+    // 2. Check if a contractor record already exists with this email
+    const { data: existingContractor } = await supabase
       .from('contractors')
-      .insert({
-        profile_id: authUserId,
-        full_name,
-        email,
-        phone,
-        zone_id: zone_id || null,
-        status: 'invited',
-        tier: tier || 'basic',
-        payout_rate: parseFloat(payout_rate) || 0.7,
-        brings_own_supplies: !!brings_own_supplies,
-        has_vehicle: !!has_vehicle,
-        max_jobs_per_day: parseInt(max_jobs_per_day) || 2,
-      });
+      .select('id, status')
+      .eq('email', email)
+      .maybeSingle();
 
-    if (contractorError) {
-      throw new Error(`Failed to create contractor record: ${contractorError.message}`);
+    let contractorId = existingContractor?.id;
+
+    // 3. Create or update the contractor record
+    if (existingContractor) {
+      if (existingContractor.status !== 'invited') {
+        return NextResponse.json({ error: 'A contractor with this email already exists and is not pending.' }, { status: 400 });
+      }
+      // Update existing invite
+      const { error: updateError } = await supabase
+        .from('contractors')
+        .update({
+          full_name,
+          phone,
+          zone_id: zone_id || null,
+          tier: tier || 'basic',
+          payout_rate: parseFloat(payout_rate) || 0.7,
+          brings_own_supplies: !!brings_own_supplies,
+          has_vehicle: !!has_vehicle,
+          max_jobs_per_day: parseInt(max_jobs_per_day) || 2,
+        })
+        .eq('id', contractorId);
+        
+      if (updateError) throw new Error(`Failed to update contractor record: ${updateError.message}`);
+    } else {
+      // Create new invite
+      const { data: newContractor, error: insertError } = await supabase
+        .from('contractors')
+        .insert({
+          profile_id: null, // Will be set during onboarding
+          full_name,
+          email,
+          phone,
+          zone_id: zone_id || null,
+          status: 'invited',
+          tier: tier || 'basic',
+          payout_rate: parseFloat(payout_rate) || 0.7,
+          brings_own_supplies: !!brings_own_supplies,
+          has_vehicle: !!has_vehicle,
+          max_jobs_per_day: parseInt(max_jobs_per_day) || 2,
+        })
+        .select('id')
+        .single();
+
+      if (insertError) throw new Error(`Failed to create contractor record: ${insertError.message}`);
+      contractorId = newContractor.id;
     }
+
+    // 4. Generate the invite link
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const actionLink = `${appUrl}/contractor/onboarding?invite_id=${contractorId}`;
+
+    console.log('--- NEW ACTION LINK ---', actionLink);
 
     // 5. Send Email via React Email
-    const actionLink = inviteData.properties.action_link;
-    console.log('--- ACTION LINK ---', actionLink);
-
     const { success, error: emailError } = await sendEmail({
       to: email,
       subject: 'You have been invited to Sea of Blue',
@@ -99,7 +102,7 @@ export async function POST(request: Request) {
       throw new Error(`Failed to send email: ${(emailError as any)?.message || 'Unknown error'}`);
     }
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, inviteId: contractorId });
 
   } catch (err: any) {
     console.error('Invite error:', err);

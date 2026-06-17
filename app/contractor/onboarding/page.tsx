@@ -62,6 +62,7 @@ export default function OnboardingPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
+  const [inviteId, setInviteId] = useState<string | null>(null);
 
   useEffect(() => {
     setIsMounted(true);
@@ -72,7 +73,40 @@ export default function OnboardingPage() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY! || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
   );
 
-  const loadContractorData = async () => {
+  const loadContractorData = async (token: string) => {
+    try {
+      const res = await fetch(`/api/contractors/invite/verify?id=${token}`);
+      if (res.ok) {
+        const data = await res.json();
+        setContractor(data.contractor);
+        setFullName(data.contractor.full_name || '');
+        setEmail(data.contractor.email || '');
+        setPhone(data.contractor.phone || '');
+        
+        const existingNotes = data.contractor.notes ? JSON.parse(data.contractor.notes) : {};
+        setHqAddress(existingNotes.hq_address || '');
+        if (existingNotes.hq_coords) setHqCoords(existingNotes.hq_coords);
+        if (existingNotes.max_radius) setMaxRadius(existingNotes.max_radius);
+        setBringsOwnSupplies(data.contractor.brings_own_supplies || false);
+        setHasVehicle(data.contractor.has_vehicle ?? true);
+      } else {
+        const errData = await res.json();
+        toast.error(errData.error || 'Invalid or expired invite link.');
+        router.push('/contractor/login');
+        return;
+      }
+
+      const { data: allZones } = await supabase.from('zones').select('*').order('name');
+      setZones(allZones || []);
+    } catch (e) {
+      console.error("Error loading contractor data", e);
+      toast.error('Failed to load invite details.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadExistingSessionData = async () => {
     try {
       const meRes = await fetch('/api/contractors/me');
       if (meRes.ok) {
@@ -93,108 +127,35 @@ export default function OnboardingPage() {
         setBringsOwnSupplies(data.brings_own_supplies || false);
         setHasVehicle(data.has_vehicle ?? true);
       } else {
-        const { data: sessionData } = await supabase.auth.getSession();
-        
-        // Verify the user actually exists in the database still (catches "User from sub claim in JWT does not exist" errors)
-        const { data: userData, error: userError } = await supabase.auth.getUser();
-        if (userError || !userData?.user) {
-          console.warn("Stale JWT detected. Logging out.");
-          await supabase.auth.signOut();
-          router.push('/contractor/login');
-          return;
-        }
-
-        if (sessionData.session?.user) {
-          const { data: contractorData } = await supabase
-            .from('contractors')
-            .select(`*, zone:zones!contractors_zone_id_fkey(*)`)
-            .eq('profile_id', sessionData.session.user.id)
-            .single();
-            
-          if (contractorData) {
-            setContractor(contractorData);
-            setFullName(contractorData.full_name || '');
-            setEmail(contractorData.email || '');
-            setPhone(contractorData.phone || '');
-            const existingNotes = contractorData.notes ? JSON.parse(contractorData.notes) : {};
-            setHqAddress(existingNotes.hq_address || '');
-            if (existingNotes.hq_coords) setHqCoords(existingNotes.hq_coords);
-            if (existingNotes.max_radius) setMaxRadius(existingNotes.max_radius);
-          }
-        }
+        router.push('/contractor/login');
+        return;
       }
-
       const { data: allZones } = await supabase.from('zones').select('*').order('name');
       setZones(allZones || []);
     } catch (e) {
-      console.error("Error loading contractor data", e);
+      console.error("Error loading existing data", e);
     } finally {
       setLoading(false);
     }
-  };
+  }
 
   useEffect(() => {
-    let isHandled = false;
+    const searchParams = new URLSearchParams(window.location.search);
+    const invite_id = searchParams.get('invite_id');
 
-    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (session?.user && !isHandled) {
-        isHandled = true;
-        await loadContractorData();
-      } else if (event === 'INITIAL_SESSION' && !session) {
-        const hasAuthTokens = window.location.hash.includes('access_token') || 
-                              window.location.search.includes('token_hash') ||
-                              window.location.search.includes('code');
-        const hash = window.location.hash;
-        const searchParams = new URLSearchParams(window.location.search);
-        const token_hash = searchParams.get('token_hash');
-        const type = searchParams.get('type') as any;
-
-        if (hash && hash.includes('access_token=')) {
-          const hashParams = new URLSearchParams(hash.substring(1));
-          const access_token = hashParams.get('access_token');
-          const refresh_token = hashParams.get('refresh_token');
-          
-          if (access_token && refresh_token) {
-            supabase.auth.setSession({ access_token, refresh_token }).then(({ data, error }) => {
-              if (error || !data.session) {
-                toast.error('Invalid or expired invite link.');
-                router.push('/contractor/login');
-              } else {
-                window.history.replaceState({}, document.title, window.location.pathname);
-              }
-            });
-          }
-        } else if (token_hash && type) {
-          supabase.auth.verifyOtp({ token_hash, type }).then(({ error }) => {
-            if (error) {
-              toast.error('Invalid or expired invite link.');
-              router.push('/contractor/login');
-            } else {
-              window.history.replaceState({}, document.title, window.location.pathname);
-            }
-          });
-        } else if (!hasAuthTokens) {
+    if (invite_id) {
+      setInviteId(invite_id);
+      loadContractorData(invite_id);
+    } else {
+      // Backwards compatibility for old magic links or users who already have a session
+      supabase.auth.getSession().then(({ data }) => {
+        if (data.session) {
+          loadExistingSessionData();
+        } else {
           router.push('/contractor/login');
         }
-      }
-    });
-    
-    const fallbackTimer = setTimeout(async () => {
-      if (!isHandled) {
-        isHandled = true;
-        const { data } = await supabase.auth.getSession();
-        if (data.session) {
-          await loadContractorData();
-        } else {
-          setLoading(false);
-        }
-      }
-    }, 5000);
-    
-    return () => {
-      clearTimeout(fallbackTimer);
-      authListener.subscription.unsubscribe();
-    };
+      });
+    }
   }, [router, supabase]);
 
   // Radius Calculations
@@ -245,49 +206,78 @@ export default function OnboardingPage() {
 
     setSubmitting(true);
     try {
-      // 1. Update password
-      const { error: passwordError } = await supabase.auth.updateUser({ password });
-      if (passwordError) throw passwordError;
-
-      // 2. Set Primary and Additional Zones
       const primaryZoneId = calculatedZones[0].zone.id; // Closest is primary
       const additionalZoneIds = calculatedZones.slice(1).map(z => z.zone.id);
 
-      if (additionalZoneIds.length > 0) {
-        await supabase.from('contractor_zones').delete().eq('contractor_id', contractor?.id);
-        const zoneInserts = additionalZoneIds.map(zId => ({
-          contractor_id: contractor?.id,
-          zone_id: zId
-        }));
-        await supabase.from('contractor_zones').insert(zoneInserts);
+      if (inviteId) {
+        // NEW FLOW: Create the auth account and link it securely
+        const res = await fetch('/api/contractors/onboard', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            invite_id: inviteId,
+            password,
+            fullName,
+            phone,
+            hqAddress,
+            hqCoords,
+            maxRadius,
+            primaryZoneId,
+            additionalZoneIds,
+            bringsOwnSupplies,
+            hasVehicle
+          })
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed to complete onboarding');
+
+        // Automatically log them in now that the account exists
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+          email: data.email,
+          password: password
+        });
+
+        if (signInError) throw signInError;
+
+      } else {
+        // OLD FLOW (Backwards compatibility)
+        const { error: passwordError } = await supabase.auth.updateUser({ password });
+        if (passwordError) throw passwordError;
+
+        if (additionalZoneIds.length > 0) {
+          await supabase.from('contractor_zones').delete().eq('contractor_id', contractor?.id);
+          const zoneInserts = additionalZoneIds.map(zId => ({
+            contractor_id: contractor?.id,
+            zone_id: zId
+          }));
+          await supabase.from('contractor_zones').insert(zoneInserts);
+        }
+
+        const existingNotes = contractor?.notes ? JSON.parse(contractor.notes) : {};
+        const updatedNotes = {
+            ...existingNotes,
+            hq_address: hqAddress,
+            hq_coords: hqCoords,
+            max_radius: maxRadius
+        };
+
+        const { error: updateError } = await supabase
+          .from('contractors')
+          .update({ 
+              full_name: fullName,
+              phone: phone,
+              zone_id: primaryZoneId,
+              brings_own_supplies: bringsOwnSupplies,
+              has_vehicle: hasVehicle,
+              status: 'active',
+              notes: JSON.stringify(updatedNotes)
+          })
+          .eq('id', contractor?.id);
+          
+        if (updateError) throw updateError;
+        await supabase.from('profiles').update({ full_name: fullName, phone: phone }).eq('id', contractor?.profile_id);
       }
-
-      // 4. Update contractor status, basic info, and JSON notes
-      const existingNotes = contractor?.notes ? JSON.parse(contractor.notes) : {};
-      const updatedNotes = {
-          ...existingNotes,
-          hq_address: hqAddress,
-          hq_coords: hqCoords,
-          max_radius: maxRadius
-      };
-
-      const { error: updateError } = await supabase
-        .from('contractors')
-        .update({ 
-            full_name: fullName,
-            email: email,
-            phone: phone,
-            zone_id: primaryZoneId,
-            brings_own_supplies: bringsOwnSupplies,
-            has_vehicle: hasVehicle,
-            status: 'active',
-            notes: JSON.stringify(updatedNotes)
-        })
-        .eq('id', contractor?.id);
-        
-      if (updateError) throw updateError;
-
-      await supabase.from('profiles').update({ full_name: fullName, phone: phone }).eq('id', contractor?.profile_id);
 
       toast.success('Onboarding complete! Welcome to Sea of Blue.');
       router.push('/contractor');
