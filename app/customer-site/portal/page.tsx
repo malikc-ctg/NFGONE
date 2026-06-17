@@ -1,5 +1,5 @@
 import { Calendar, ChevronRight, MapPin, Plus, ShieldCheck, FileText, Clock, Star } from 'lucide-react';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { SERVICE_TYPE_LABELS, TIME_WINDOW_LABELS } from '@/types';
@@ -13,14 +13,43 @@ export default async function CustomerPortalPage() {
     redirect('/customer-site/login');
   }
 
-  const { data: customer } = await supabase
+  let { data: customer } = await supabase
     .from('customers')
     .select('*')
     .eq('profile_id', user.id)
     .single();
 
   if (!customer) {
-    redirect('/customer-site/onboarding');
+    // Check if they have a lead we can pull from
+    const { data: lead } = await supabase
+      .from('leads')
+      .select('*')
+      .eq('customer_email', user.email)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    // Auto-create customer using service client to bypass RLS
+    const serviceClient = await createServiceClient();
+    const { data: newCustomer, error } = await serviceClient
+      .from('customers')
+      .insert({
+        profile_id: user.id,
+        email: user.email,
+        full_name: lead?.customer_name || 'Valued Customer',
+        phone: lead?.customer_phone || '555-555-5555',
+        address_line1: lead?.city || '',
+        notes: JSON.stringify({ is_onboarded: true }),
+        is_active: true
+      })
+      .select()
+      .single();
+      
+    if (newCustomer) {
+      customer = newCustomer;
+    } else {
+      redirect('/customer-site/onboarding');
+    }
   }
 
   const { data: upcomingJobs } = await supabase
