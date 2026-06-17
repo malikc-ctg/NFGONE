@@ -30,13 +30,13 @@ const CSS = `
   align-items:center;justify-content:center;gap:28px;
   transition:transform 1.05s cubic-bezier(.76,0,.24,1),opacity .55s ease .4s;
   will-change:transform,opacity}
-.sob-wl[data-lifting="true"]{transform:translateY(-100%);opacity:0;pointer-events:none}
-.sob-wl__mark{display:block;width:min(60vw,360px);height:auto;overflow:visible}
+.sob-wl[data-lifting="true"]{transform:translateY(-10px);opacity:0;pointer-events:none}
+.sob-wl__mark{display:block;width:min(30vw,120px);height:auto;overflow:visible}
 .sob-wl__fill{transform:scaleX(0);transform-box:fill-box;transform-origin:left center;
   transition: transform 0.3s ease-out;}
 .sob-wl__shine{opacity:0;transform:translateX(-260px);transform-box:fill-box;
   animation:sob-wl-shine 1.15s ease 1.55s forwards}
-.sob-wl__rule{position:relative;width:min(60vw,360px);height:2px;border-radius:2px;overflow:hidden}
+.sob-wl__rule{position:relative;width:min(30vw,120px);height:2px;border-radius:2px;overflow:hidden}
 .sob-wl__rulefill{position:absolute;inset:0;transform-origin:left;transform:scaleX(0);
   transition: transform 0.3s ease-out;}
 .sob-wl__word{opacity:0;transform:translateY(8px);
@@ -117,7 +117,7 @@ export function WaveMark({
  */
 export default function WaveLoader({
   children,
-  background = '#fffcf6',
+  background = 'transparent', // Default to transparent now
   fill = '#3c6ca8',
   track = '#e6eef6',
   wordmark = 'Sea of Blue',
@@ -168,9 +168,9 @@ export default function WaveLoader({
         setLifting(true);
         setTimeout(() => {
           setIsLoading(false);
-        }, 1100); // Wait for lift animation to complete
-      }, 400); // Give it a moment at 100%
-    }, 800); // Minimum time to show the loader so it's not a glitchy flash
+        }, 500); // Wait for fade out animation
+      }, 300); // Give it a moment at 100%
+    }, 500); // Minimum time to show the loader so it's not a glitchy flash
 
     return () => {
       clearInterval(interval);
@@ -193,7 +193,7 @@ export default function WaveLoader({
           {wordmark && (
             <div className="sob-wl__word"
               style={{ fontFamily: wordmarkFont, color: wordmarkColor,
-                fontSize: 'clamp(24px,4.4vw,38px)' }}>
+                fontSize: 'clamp(18px,2vw,24px)' }}>
               {wordmark}
             </div>
           )}
