@@ -47,15 +47,14 @@ export default async function CustomerPortalPage() {
       
     if (newCustomer) {
       customer = newCustomer;
-    } else {
-      redirect('/customer-site/onboarding');
     }
+    // We intentionally removed the redirect to onboarding here.
   }
 
   const { data: upcomingJobs } = await supabase
     .from('jobs')
     .select('*, contractor:contractors(*)')
-    .eq('customer_id', customer.id)
+    .eq('customer_id', customer?.id || '00000000-0000-0000-0000-000000000000')
     .in('status', ['confirmed', 'offered', 'accepted', 'assigned', 'on_the_way', 'in_progress'])
     .order('scheduled_date', { ascending: true })
     .limit(1);
@@ -63,14 +62,14 @@ export default async function CustomerPortalPage() {
   const { data: pendingJobs } = await supabase
     .from('jobs')
     .select('*, contractor:contractors(*)')
-    .eq('customer_id', customer.id)
+    .eq('customer_id', customer?.id || '00000000-0000-0000-0000-000000000000')
     .in('status', ['lead_received', 'quoted', 'deposit_paid'])
     .order('created_at', { ascending: false });
 
   const { data: pendingLeads } = await supabase
     .from('leads')
     .select('*')
-    .eq('customer_email', customer.email)
+    .eq('customer_email', customer?.email || user.email)
     .not('status', 'in', '("converted","lost")')
     .order('created_at', { ascending: false });
 
@@ -98,7 +97,7 @@ export default async function CustomerPortalPage() {
   const { data: pastJobs } = await supabase
     .from('jobs')
     .select('*, contractor:contractors(*)')
-    .eq('customer_id', customer.id)
+    .eq('customer_id', customer?.id || '00000000-0000-0000-0000-000000000000')
     .in('status', ['completed', 'cancelled'])
     .order('scheduled_date', { ascending: false })
     .limit(5);
@@ -113,8 +112,8 @@ export default async function CustomerPortalPage() {
         {/* Welcome & Quick Actions */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-slate-900 mb-2">Welcome back, {customer.full_name?.split(' ')[0]}</h1>
-            <p className="text-slate-500">{customer.address_line1}, {customer.city} • Customer Dashboard</p>
+            <h1 className="text-3xl font-bold text-slate-900 mb-2">Welcome back, {customer?.full_name?.split(' ')[0] || 'Valued Customer'}</h1>
+            <p className="text-slate-500">{customer?.address_line1 || 'No Address Provided'} {customer?.city ? `, ${customer.city}` : ''} • Customer Dashboard</p>
           </div>
           <div className="flex gap-3">
             <button className="bg-white text-[#001a36] border border-slate-200 px-4 py-2 rounded-lg font-medium hover:bg-slate-50 transition-colors shadow-sm text-sm flex items-center gap-2">

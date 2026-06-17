@@ -27,30 +27,8 @@ export default function CustomerLoginPage() {
       const { error: authError } = await supabase.auth.signInWithPassword({ email, password });
       if (authError) throw authError;
 
-      // Check onboarding status
-      const res = await fetch('/api/customers/me');
-      if (res.ok) {
-        const customer = await res.json();
-        if (customer) {
-          let isOnboarded = false;
-          try {
-            const notes = customer.notes ? JSON.parse(customer.notes) : {};
-            isOnboarded = notes.is_onboarded || !!customer.address_line1;
-          } catch (e) {
-            isOnboarded = !!customer.address_line1;
-          }
-          
-          if (isOnboarded) {
-            router.push('/customer-site/portal');
-          } else {
-            router.push('/customer-site/onboarding');
-          }
-        } else {
-          router.push('/customer-site/onboarding');
-        }
-      } else {
-        router.push('/customer-site/onboarding');
-      }
+      // Always push to portal NO MATTER WHAT
+      router.push('/customer-site/portal');
     } catch (err: any) {
       toast.error(err.message);
     } finally {
