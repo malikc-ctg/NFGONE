@@ -60,9 +60,16 @@ export default function CustomerOnboardingPage() {
         if (res.ok) {
           const customer = await res.json();
           if (customer) {
-            const notes = customer.notes ? JSON.parse(customer.notes) : {};
+            let isOnboarded = false;
+            let notes: any = {};
+            try {
+              notes = customer.notes ? JSON.parse(customer.notes) : {};
+              isOnboarded = notes.is_onboarded || !!customer.address_line1;
+            } catch (e) {
+              isOnboarded = !!customer.address_line1;
+            }
             
-            if (notes.is_onboarded) {
+            if (isOnboarded) {
               router.push('/customer-site/portal');
               return;
             }

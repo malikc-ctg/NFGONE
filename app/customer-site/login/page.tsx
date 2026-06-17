@@ -32,8 +32,15 @@ export default function CustomerLoginPage() {
       if (res.ok) {
         const customer = await res.json();
         if (customer) {
-          const notes = customer.notes ? JSON.parse(customer.notes) : {};
-          if (notes.is_onboarded) {
+          let isOnboarded = false;
+          try {
+            const notes = customer.notes ? JSON.parse(customer.notes) : {};
+            isOnboarded = notes.is_onboarded || !!customer.address_line1;
+          } catch (e) {
+            isOnboarded = !!customer.address_line1;
+          }
+          
+          if (isOnboarded) {
             router.push('/customer-site/portal');
           } else {
             router.push('/customer-site/onboarding');
