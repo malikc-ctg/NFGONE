@@ -120,7 +120,7 @@ export default function WaveLoader({
   background = 'transparent', // Default to transparent now
   fill = '#3c6ca8',
   track = '#e6eef6',
-  wordmark = 'Sea of Blue',
+  wordmark = '',
   wordmarkColor = '#002c58',
   wordmarkFont = "var(--font-rustic), Georgia, serif",
 }: any) {
