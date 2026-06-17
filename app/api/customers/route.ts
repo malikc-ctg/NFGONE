@@ -44,6 +44,7 @@ export async function GET() {
     const { data, error } = await supabase
       .from('customers')
       .select('*, zone:zones(*)')
+      .eq('is_active', true)
       .order('full_name');
 
     if (error) throw error;

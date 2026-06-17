@@ -15,7 +15,7 @@ export async function deleteCustomerAction(customerId: string) {
     // 1. Get the customer to find their profile_id
     const { data: customer, error: fetchError } = await supabase
       .from('customers')
-      .select('profile_id')
+      .select('profile_id, email, notes')
       .eq('id', customerId)
       .single();
 
@@ -24,14 +24,18 @@ export async function deleteCustomerAction(customerId: string) {
       return { success: false, error: 'Customer not found' };
     }
 
-    // 2. Delete the customer record first (so we don't just orphan it)
+    // 2. Soft-delete the customer record (so we don't break foreign key constraints on jobs/invoices)
     const { error: deleteError } = await supabase
       .from('customers')
-      .delete()
+      .update({ 
+        is_active: false,
+        email: `deleted_${Date.now()}_${customer.email || 'unknown'}`,
+        notes: `[DELETED on ${new Date().toISOString()}]\n` + (customer.notes || '')
+      })
       .eq('id', customerId);
 
     if (deleteError) {
-      console.error('Error deleting customer:', deleteError);
+      console.error('Error soft-deleting customer:', deleteError);
       return { success: false, error: 'Failed to delete customer record' };
     }
 
