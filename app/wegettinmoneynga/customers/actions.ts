@@ -7,8 +7,8 @@ import { revalidatePath } from 'next/cache';
 export async function deleteCustomerAction(customerId: string) {
   try {
     // Basic auth check
-    const authError = await requireRole(['admin']);
-    if (authError) return { success: false, error: 'Unauthorized' };
+    const auth = await requireRole(['admin']);
+    if (!('id' in auth)) return { success: false, error: 'Unauthorized' };
 
     const supabase = await createServiceClient();
 
