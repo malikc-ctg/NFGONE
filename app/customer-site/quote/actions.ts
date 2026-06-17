@@ -207,13 +207,32 @@ export async function createCustomerAccountAndLinkQuote(data: any) {
         city: data.city || '',
         postal_code: data.postal_code || '',
         zone_id: zone?.id,
+        notes: JSON.stringify({ is_onboarded: true }),
+        is_active: true
       })
       .select()
       .single();
 
     if (customerError) {
-      // Just log it, we can still proceed with lead
       console.error('Error creating customer record:', customerError);
+      // Wait another second and try again (in case of replication lag for profile_id)
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      const retry = await supabase.from('customers').insert({
+        profile_id: authUser.user.id,
+        full_name: `${data.firstName} ${data.lastName}`.trim(),
+        email: data.email,
+        phone: data.phone,
+        address_line1: data.address,
+        city: data.city || '',
+        postal_code: data.postal_code || '',
+        zone_id: zone?.id,
+        notes: JSON.stringify({ is_onboarded: true }),
+        is_active: true
+      });
+      if (retry.error) {
+         console.error('Retry failed:', retry.error);
+         return { success: false, error: 'Failed to fully set up your profile. Please try again.' };
+      }
     }
 
     // 3. Submit the Lead exactly like submitQuoteRequest
