@@ -5,12 +5,14 @@ import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { DatePicker } from '@/components/ui/date-picker';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
+import { AddressAutocomplete } from '@/components/ui/address-autocomplete';
 import { ArrowLeft, ArrowRight, Check, Wand2, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'sonner';
@@ -276,7 +278,7 @@ export default function NewJobPage() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label>Date *</Label>
-                <Input type="date" value={form.scheduled_date} onChange={e => update('scheduled_date', e.target.value)} />
+                <DatePicker value={form.scheduled_date} onChange={(val) => update('scheduled_date', val)} />
               </div>
               <div>
                 <Label>Time Window *</Label>
@@ -291,7 +293,16 @@ export default function NewJobPage() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label>Address *</Label>
-                <Input value={form.address_line1} onChange={e => update('address_line1', e.target.value)} placeholder="123 Main St" />
+                <AddressAutocomplete 
+                  value={form.address_line1} 
+                  onChange={e => update('address_line1', e.target.value)}
+                  onAddressSelect={addr => {
+                    update('address_line1', addr.address_line1);
+                    if (addr.city) update('city', addr.city);
+                    if (addr.postal_code) update('postal_code', addr.postal_code);
+                  }}
+                  placeholder="123 Main St" 
+                />
               </div>
               <div>
                 <Label>City *</Label>

@@ -12,13 +12,9 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Loader2, User, Home, Key, MapPin, CheckCircle2, ChevronRight, ChevronLeft } from 'lucide-react';
+import { Loader2, User, Home, Key, MapPin, CheckCircle2, ChevronRight, ChevronLeft, Search } from 'lucide-react';
+import { AddressAutocomplete } from '@/components/ui/address-autocomplete';
 import dynamic_import from 'next/dynamic';
-
-const AddressAutofill = dynamic_import(
-  () => import('@mapbox/search-js-react').then((mod) => mod.AddressAutofill),
-  { ssr: false }
-);
 
 export default function CustomerOnboardingPage() {
   const router = useRouter();
@@ -234,41 +230,19 @@ export default function CustomerOnboardingPage() {
                     <Label className="text-white/80 flex items-center gap-2">
                       <MapPin className="w-3.5 h-3.5 text-blue-400" /> Primary Address
                     </Label>
-                    <AddressAutofill 
-                      accessToken={process.env.NEXT_PUBLIC_MAPBOX_TOKEN || ''}
-                      theme={{
-                        variables: {
-                          colorPrimary: '#3b82f6',
-                          colorBackground: '#001a36',
-                          colorText: '#ffffff',
-                          fontFamily: 'inherit',
-                          borderRadius: '12px',
-                          boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.5)'
-                        }
-                      }}
-                      onRetrieve={(res) => {
-                        const feature = res.features[0];
-                        if (feature) {
-                          setAddressLine1(feature.properties.address_line1 || feature.properties.place_name || '');
-                          setCity((feature.properties as any).address_level2 || (feature.properties as any).place || '');
-                          setProvince((feature.properties as any).address_level1 || (feature.properties as any).region || '');
-                          setPostalCode(feature.properties.postcode || '');
-                        }
+                    <AddressAutocomplete 
+                      theme="dark"
+                      value={addressLine1}
+                      onChange={(e) => setAddressLine1(e.target.value)}
+                      onAddressSelect={(addr) => {
+                        setAddressLine1(addr.address_line1);
+                        setCity(addr.city);
+                        setProvince(addr.state);
+                        setPostalCode(addr.postal_code);
                         isSelectingAddress.current = false;
                       }}
-                    >
-                      <Input 
-                        value={addressLine1}
-                        onChange={(e) => setAddressLine1(e.target.value)}
-                        autoComplete="address-line1"
-                        className="bg-black/20 border-white/10 text-white h-12 rounded-xl pr-10"
-                        placeholder="Start typing your address..."
-                        onSelect={() => { isSelectingAddress.current = true; }}
-                        onBlur={() => { 
-                          setTimeout(() => { isSelectingAddress.current = false; }, 200);
-                        }}
-                      />
-                    </AddressAutofill>
+                      className="bg-black/20 border-white/10 text-white h-12 rounded-xl pr-10"
+                    />
                     <Input type="hidden" autoComplete="address-line2" value={addressLine2} onChange={(e) => setAddressLine2(e.target.value)} />
                     <Input type="hidden" autoComplete="address-level2" value={city} onChange={(e) => setCity(e.target.value)} />
                     <Input type="hidden" autoComplete="address-level1" value={province} onChange={(e) => setProvince(e.target.value)} />

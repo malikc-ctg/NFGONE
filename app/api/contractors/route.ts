@@ -71,6 +71,7 @@ export async function GET() {
     const { data, error } = await supabase
       .from('contractors')
       .select('*, zone:zones!contractors_zone_id_fkey(*), contractor_zones(zone:zones(*))')
+      .neq('status', 'deleted')
       .order('full_name');
 
 

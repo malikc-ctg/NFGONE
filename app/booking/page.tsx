@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { DatePicker } from '@/components/ui/date-picker';
+import { AddressAutocomplete } from '@/components/ui/address-autocomplete';
 import { DEFAULT_PRICING, SERVICE_TYPE_LABELS } from '@/types';
 import type { ServiceType } from '@/types';
 
@@ -306,12 +308,11 @@ export default function BookingPage() {
             <div className="bg-white rounded-2xl border border-gray-100 p-5 space-y-5">
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Preferred Date *</label>
-                <input
-                  type="date"
-                  min={minDate}
+                <DatePicker
+                  minDate={minDate}
                   value={form.scheduled_date}
-                  onChange={e => update('scheduled_date', e.target.value)}
-                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  onChange={(val) => setForm(prev => ({ ...prev, scheduled_date: val }))}
+                  className="w-full bg-white text-gray-900 border-gray-200"
                 />
               </div>
               <div>
@@ -371,8 +372,14 @@ export default function BookingPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-1.5">Address *</label>
-                  <input
-                    value={form.address_line1} onChange={e => update('address_line1', e.target.value)}
+                  <AddressAutocomplete
+                    value={form.address_line1} 
+                    onChange={e => update('address_line1', e.target.value)}
+                    onAddressSelect={(addr) => {
+                      update('address_line1', addr.address_line1);
+                      if (addr.city) update('city', addr.city);
+                      if (addr.postal_code) update('postal_code', addr.postal_code);
+                    }}
                     placeholder="123 Main Street"
                     className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />

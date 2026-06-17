@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { DatePicker } from '@/components/ui/date-picker';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -182,7 +183,7 @@ export function AvailabilityModal() {
                 <CardTitle className="text-base">Block Specific Date</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <div><Label>Date</Label><Input type="date" value={blockDate} onChange={e => setBlockDate(e.target.value)} className="h-10" /></div>
+                <div><Label>Date</Label><DatePicker value={blockDate} onChange={(val) => setBlockDate(val)} className="h-10" /></div>
                 <div><Label>Window</Label>
                   <Select value={blockWindow} onValueChange={v => setBlockWindow(v as TimeWindow)}>
                     <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>

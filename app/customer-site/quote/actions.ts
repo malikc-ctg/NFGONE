@@ -169,3 +169,101 @@ export async function getLiveQuote(data: {
   }
 }
 
+
+export async function createCustomerAccountAndLinkQuote(data: any) {
+  try {
+    const supabase = await createServiceClient();
+
+    // 1. Create the Auth User
+    const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
+      email: data.email,
+      password: data.password,
+      email_confirm: true,
+      user_metadata: { role: 'customer', full_name: `${data.firstName} ${data.lastName}`.trim() },
+    });
+
+    if (authError) {
+      if (authError.message.includes('already registered')) {
+        return { success: false, error: 'An account with this email already exists. Please log in.' };
+      }
+      return { success: false, error: authError.message };
+    }
+
+    // 2. Create the Customer Record (Profiles trigger handles profiles)
+    // Wait for the trigger to fire
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    // Check if zone exists
+    const { data: zone } = await supabase.from('zones').select('id').limit(1).single();
+
+    const { data: customer, error: customerError } = await supabase
+      .from('customers')
+      .insert({
+        profile_id: authUser.user.id,
+        full_name: `${data.firstName} ${data.lastName}`.trim(),
+        email: data.email,
+        phone: data.phone,
+        address_line1: data.address,
+        city: data.city || '',
+        postal_code: data.postal_code || '',
+        zone_id: zone?.id,
+      })
+      .select()
+      .single();
+
+    if (customerError) {
+      // Just log it, we can still proceed with lead
+      console.error('Error creating customer record:', customerError);
+    }
+
+    // 3. Submit the Lead exactly like submitQuoteRequest
+    let service_type = null;
+    if (data.category === 'Standard Clean') service_type = 'standard_clean';
+    else if (data.category === 'Deep Clean') service_type = 'deep_clean';
+    else if (data.category === 'Move In/Out Clean') service_type = 'move_in_clean';
+    else if (data.category === 'Recurring Standard') service_type = 'recurring_standard';
+    else if (data.category === 'Recurring Deep') service_type = 'recurring_deep';
+    else service_type = 'standard_clean';
+
+    const { error: leadError } = await supabase
+      .from('leads')
+      .insert({
+        source: 'website_quote_account',
+        customer_name: `${data.firstName} ${data.lastName}`.trim(),
+        customer_email: data.email,
+        customer_phone: data.phone,
+        city: data.address,
+        service_type: service_type,
+        condition: data.description,
+        notes: `Account created during quote flow.\nCategory: ${data.category}\nAddress: ${data.address}`,
+        status: 'new',
+        quoted_price: data.quoted_price,
+        home_bedrooms: data.home_bedrooms,
+        home_bathrooms: data.home_bathrooms,
+        has_pets: data.has_pets || false,
+        preferred_date: data.scheduled_date,
+        preferred_window: data.scheduled_window,
+      });
+
+    if (leadError) {
+      console.error('Supabase error inserting lead for new account:', leadError);
+    }
+
+    // 4. Send Confirmation Email
+    await sendEmail({
+      to: data.email,
+      subject: 'Account Created & Request Received - Sea of Blue',
+      react: React.createElement(BookingRequestReceived, {
+        customerName: data.firstName,
+        serviceType: data.category,
+        date: data.scheduled_date || 'a future date',
+        timeWindow: data.scheduled_window || 'the preferred time'
+      })
+    });
+
+    return { success: true };
+  } catch (err: any) {
+    console.error('Error creating customer account:', err);
+    return { success: false, error: 'Internal server error' };
+  }
+}

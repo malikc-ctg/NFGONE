@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { DatePicker } from '@/components/ui/date-picker';
 import { getLiveQuote } from '@/app/customer-site/quote/actions';
 import { submitInternalQuoteRequest } from './actions';
 import { ChevronLeft, CheckCircle2 } from 'lucide-react';
@@ -214,11 +215,10 @@ export default function InternalQuotePage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-slate-700 text-sm font-medium mb-2">Preferred Date</label>
-                    <input 
-                      type="date" 
+                    <DatePicker
                       value={formData.scheduled_date}
-                      onChange={(e) => updateForm('scheduled_date', e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-slate-900 focus:outline-none focus:border-blue-500 transition-colors"
+                      onChange={(val) => updateForm('scheduled_date', val)}
+                      className="w-full bg-white text-slate-900 border-slate-200"
                     />
                   </div>
                   <div>

@@ -14,7 +14,7 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
     // 1. Get the contractor to find their profile_id
     const { data: contractor, error: fetchError } = await supabase
       .from('contractors')
-      .select('profile_id')
+      .select('profile_id, email')
       .eq('id', id)
       .single();
 
@@ -36,10 +36,13 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
       );
     }
 
-    // 3. Delete the contractor record from the contractors table first
+    // 3. Soft delete the contractor record instead of hard delete to preserve foreign key constraints
     const { error: deleteContractorError } = await supabase
       .from('contractors')
-      .delete()
+      .update({ 
+        status: 'deleted',
+        email: `deleted_${Date.now()}_${contractor.email}`
+      })
       .eq('id', id);
 
     if (deleteContractorError) {

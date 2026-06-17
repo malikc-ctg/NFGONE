@@ -5,6 +5,8 @@ import { useParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { DatePicker } from '@/components/ui/date-picker';
+import { AddressAutocomplete } from '@/components/ui/address-autocomplete';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -152,7 +154,7 @@ export default function LeadDetailPage() {
                     <SelectContent>{zones.map(z => <SelectItem key={z.id} value={z.id}>{z.name} ({z.city})</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
-                <div><Label>Scheduled Date</Label><Input type="date" value={convertForm.scheduled_date} onChange={e => setConvertForm({ ...convertForm, scheduled_date: e.target.value })} /></div>
+                <div><Label>Scheduled Date</Label><DatePicker value={convertForm.scheduled_date} onChange={(val) => setConvertForm({ ...convertForm, scheduled_date: val })} /></div>
                 <div><Label>Window</Label>
                   <Select value={convertForm.scheduled_window} onValueChange={v => setConvertForm({ ...convertForm, scheduled_window: v })}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
@@ -163,7 +165,7 @@ export default function LeadDetailPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div><Label>Address</Label><Input value={convertForm.address_line1} onChange={e => setConvertForm({ ...convertForm, address_line1: e.target.value })} /></div>
+                <div><Label>Address</Label><AddressAutocomplete value={convertForm.address_line1} onChange={e => setConvertForm({ ...convertForm, address_line1: e.target.value })} onAddressSelect={addr => setConvertForm(f => ({ ...f, address_line1: addr.address_line1, postal_code: addr.postal_code || f.postal_code }))} /></div>
                 <div><Label>Postal Code</Label><Input value={convertForm.postal_code} onChange={e => setConvertForm({ ...convertForm, postal_code: e.target.value })} /></div>
                 <div><Label>Quoted Price</Label><Input type="number" value={convertForm.quoted_price} onChange={e => setConvertForm({ ...convertForm, quoted_price: e.target.value })} /></div>
                 <Button onClick={handleConvert} className="w-full">Convert & Create Job</Button>

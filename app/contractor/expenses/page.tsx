@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { DatePicker } from '@/components/ui/date-picker';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
@@ -118,10 +119,9 @@ export default function ExpensesPage() {
             <form onSubmit={handleSubmit} className="space-y-4 mt-6">
               <div className="space-y-2">
                 <Label>Date</Label>
-                <Input 
-                  type="date" 
+                <DatePicker 
                   value={form.expense_date}
-                  onChange={e => setForm({...form, expense_date: e.target.value})}
+                  onChange={(val) => setForm({...form, expense_date: val})}
                   required
                 />
               </div>

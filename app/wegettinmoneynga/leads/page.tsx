@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Input } from '@/components/ui/input';
+import { DatePicker } from '@/components/ui/date-picker';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -160,7 +161,7 @@ export default function LeadsPage() {
                 </Select>
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <div><Label>Preferred Date</Label><Input type="date" value={form.preferred_date} onChange={(e) => setForm({ ...form, preferred_date: e.target.value })} /></div>
+                <div><Label>Preferred Date</Label><DatePicker value={form.preferred_date} onChange={(val) => setForm({ ...form, preferred_date: val })} /></div>
                 <div>
                   <Label>Window</Label>
                   <Select value={form.preferred_window} onValueChange={(v) => setForm({ ...form, preferred_window: v as TimeWindow })}>

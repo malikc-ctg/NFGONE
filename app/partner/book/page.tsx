@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { DatePicker } from '@/components/ui/date-picker';
+import { AddressAutocomplete } from '@/components/ui/address-autocomplete';
 import type { Zone } from '@/types';
 import { toast } from 'sonner';
 
@@ -115,7 +117,17 @@ export default function PartnerBookPage() {
           <h2 className="text-sm font-semibold text-foreground">Location</h2>
           <div>
             <label className="block text-xs text-muted-foreground mb-1">Street Address *</label>
-            <input required className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background" value={form.address_line1} onChange={e => update('address_line1', e.target.value)} />
+            <AddressAutocomplete 
+              required 
+              className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background" 
+              value={form.address_line1} 
+              onChange={e => update('address_line1', e.target.value)}
+              onAddressSelect={addr => {
+                update('address_line1', addr.address_line1);
+                if (addr.city) update('city', addr.city);
+                if (addr.postal_code) update('postal_code', addr.postal_code);
+              }}
+            />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -150,7 +162,12 @@ export default function PartnerBookPage() {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs text-muted-foreground mb-1">Date *</label>
-              <input required type="date" min={minDate} className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background" value={form.scheduled_date} onChange={e => update('scheduled_date', e.target.value)} />
+              <DatePicker
+                minDate={minDate}
+                value={form.scheduled_date}
+                onChange={(val) => update('scheduled_date', val)}
+                className="w-full border-border rounded-lg bg-background h-[38px]"
+              />
             </div>
             <div>
               <label className="block text-xs text-muted-foreground mb-1">Window</label>
