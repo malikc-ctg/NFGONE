@@ -85,7 +85,6 @@ export default function AdminLayout({
     return (
       <div className="flex h-screen items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-3 animate-pulse">
-          <Waves className="h-10 w-10 text-blue-500/30" />
         </div>
       </div>
     );
