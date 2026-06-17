@@ -31,6 +31,16 @@ export default async function CustomerPortalPage() {
 
     // Auto-create customer using service client to bypass RLS
     const serviceClient = await createServiceClient();
+    
+    // Ensure profile exists first (trigger might have failed)
+    await serviceClient.from('profiles').upsert({
+      id: user.id,
+      email: user.email,
+      full_name: lead?.customer_name || 'Valued Customer',
+      phone: lead?.customer_phone || '555-555-5555',
+      role: 'customer'
+    });
+    
     const { data: newCustomer, error } = await serviceClient
       .from('customers')
       .insert({

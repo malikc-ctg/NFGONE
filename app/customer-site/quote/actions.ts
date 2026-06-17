@@ -189,9 +189,18 @@ export async function createCustomerAccountAndLinkQuote(data: any) {
       return { success: false, error: authError.message };
     }
 
-    // 2. Create the Customer Record (Profiles trigger handles profiles)
-    // Wait for the trigger to fire
-    await new Promise(resolve => setTimeout(resolve, 500));
+    // 2. Ensure Profile Exists (Manually handle in case trigger fails)
+    const { error: profileError } = await supabase.from('profiles').upsert({
+      id: authUser.user.id,
+      email: data.email,
+      full_name: `${data.firstName} ${data.lastName}`.trim(),
+      phone: data.phone,
+      role: 'customer'
+    });
+    
+    if (profileError) {
+      console.error('Error creating profile manually:', profileError);
+    }
     
     // Check if zone exists
     const { data: zone } = await supabase.from('zones').select('id').limit(1).single();
