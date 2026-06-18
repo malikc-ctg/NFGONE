@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -58,7 +59,10 @@ function AdminLoginContent() {
               />
             </div>
             <div>
-              <Label htmlFor="password">Password</Label>
+              <div className="flex justify-between items-center">
+                <Label htmlFor="password">Password</Label>
+                <Link href="/wegettinmoneynga/forgot-password" className="text-sm text-primary hover:underline">Forgot password?</Link>
+              </div>
               <Input
                 id="password"
                 type="password"

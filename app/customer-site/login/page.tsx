@@ -71,7 +71,7 @@ export default function CustomerLoginPage() {
             <div>
               <div className="flex justify-between items-center mb-2">
                 <label className="block text-white/70 text-sm font-medium">Password</label>
-                <Link href="#" className="text-blue-400 text-xs hover:text-blue-300 transition-colors">Forgot?</Link>
+                <Link href="/customer-site/forgot-password" className="text-blue-400 text-xs hover:text-blue-300 transition-colors">Forgot?</Link>
               </div>
               <input 
                 type="password" 
