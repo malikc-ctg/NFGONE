@@ -274,7 +274,7 @@ export default async function CustomerPortalPage() {
             </div>
 
             {(nextJob?.contractor || pastJobs?.[0]?.contractor) && (
-              <MyCleanerWidget contractor={nextJob?.contractor || pastJobs[0].contractor} />
+              <MyCleanerWidget contractor={nextJob?.contractor || pastJobs?.[0]?.contractor} />
             )}
 
             <HomeProfileWidget customer={customer} />
