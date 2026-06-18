@@ -4,6 +4,9 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { SERVICE_TYPE_LABELS, TIME_WINDOW_LABELS } from '@/types';
 import { LiveJobTracker } from '@/components/customer/LiveJobTracker';
+import { HomeProfileWidget } from '@/components/customer/HomeProfileWidget';
+import { ReferralWidget } from '@/components/customer/ReferralWidget';
+import { MyCleanerWidget } from '@/components/customer/MyCleanerWidget';
 
 export default async function CustomerPortalPage() {
   const supabase = await createClient();
@@ -126,9 +129,11 @@ export default async function CustomerPortalPage() {
             <p className="text-slate-500">{customer?.address_line1 || 'No Address Provided'} {customer?.city ? `, ${customer.city}` : ''} • Customer Dashboard</p>
           </div>
           <div className="flex gap-3">
-            <button className="bg-white text-[#001a36] border border-slate-200 px-4 py-2 rounded-lg font-medium hover:bg-slate-50 transition-colors shadow-sm text-sm flex items-center gap-2">
-              <FileText className="h-4 w-4" /> My Invoices
-            </button>
+            <Link href="/customer-site/portal/billing">
+              <button className="bg-white text-[#001a36] border border-slate-200 px-4 py-2 rounded-lg font-medium hover:bg-slate-50 transition-colors shadow-sm text-sm flex items-center gap-2">
+                <FileText className="h-4 w-4" /> My Invoices
+              </button>
+            </Link>
             <Link href="/customer-site/portal/quote">
               <button className="bg-[#001a36] text-white px-4 py-2 rounded-lg font-medium hover:bg-[#022850] transition-colors shadow-sm text-sm flex items-center gap-2">
                 <Plus className="h-4 w-4" /> Request Quote
@@ -267,6 +272,14 @@ export default async function CustomerPortalPage() {
               </div>
               <LiveJobTracker initialJob={nextJob || null} />
             </div>
+
+            {(nextJob?.contractor || pastJobs?.[0]?.contractor) && (
+              <MyCleanerWidget contractor={nextJob?.contractor || pastJobs[0].contractor} />
+            )}
+
+            <HomeProfileWidget customer={customer} />
+
+            <ReferralWidget customerId={customer.id} />
 
             <div className="bg-blue-50 rounded-2xl border border-blue-100 p-5">
               <div className="h-10 w-10 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mb-3">
