@@ -12,6 +12,7 @@ import {
 import { format } from 'date-fns';
 import Link from 'next/link';
 import type { Job, Contractor, Zone } from '@/types';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const DispatchMap = dynamic(() => import('./DispatchMap'), {
   ssr: false,
@@ -101,7 +102,45 @@ export function AdminDashboard() {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] text-muted-foreground animate-pulse">
+      <div className="p-4 md:p-8 space-y-6 md:space-y-8 max-w-7xl mx-auto w-full">
+        {/* Header Skeleton */}
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-32" />
+            <Skeleton className="h-8 w-48" />
+          </div>
+          <div className="flex items-center gap-3">
+             <Skeleton className="h-10 w-32 rounded-xl" />
+             <div className="space-y-2 text-right hidden sm:block">
+               <Skeleton className="h-4 w-32 ml-auto" />
+               <Skeleton className="h-3 w-24 ml-auto" />
+             </div>
+          </div>
+        </div>
+        
+        {/* Metrics Skeleton */}
+        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+          {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-32 w-full rounded-2xl" />)}
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Main List Skeleton */}
+          <div className="lg:col-span-2 space-y-4">
+            <div className="flex items-center justify-between">
+              <Skeleton className="h-6 w-32" />
+              <Skeleton className="h-10 w-64 rounded-xl" />
+            </div>
+            <div className="space-y-3">
+              {[1, 2, 3].map(i => <Skeleton key={i} className="h-32 w-full rounded-2xl" />)}
+            </div>
+          </div>
+          
+          {/* Sidebar Skeleton */}
+          <div className="space-y-6">
+            <Skeleton className="h-64 w-full rounded-3xl" />
+            <Skeleton className="h-64 w-full rounded-3xl" />
+          </div>
+        </div>
       </div>
     );
   }

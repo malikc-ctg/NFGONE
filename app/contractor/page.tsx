@@ -7,6 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import {
   MapPin, Briefcase, DollarSign, Star, TrendingUp,
@@ -264,6 +265,34 @@ export default function ContractorDashboard() {
   }
 
   const isEligible = hasInsurance && hasProfilePhoto;
+
+  if (!isClient || (loading && !contractor)) {
+    return (
+      <div className="space-y-5 animate-pulse">
+        {/* Hero Skeleton */}
+        <Skeleton className="h-40 w-full rounded-xl" />
+        
+        {/* Stats Skeleton */}
+        <div className="grid grid-cols-3 gap-3">
+          <Skeleton className="h-28 w-full rounded-xl" />
+          <Skeleton className="h-28 w-full rounded-xl" />
+          <Skeleton className="h-28 w-full rounded-xl" />
+        </div>
+        
+        {/* Quick Actions Skeleton */}
+        <div className="flex gap-2">
+          <Skeleton className="h-10 flex-1 rounded-md" />
+          <Skeleton className="h-10 flex-1 rounded-md" />
+        </div>
+        
+        {/* Main List Skeleton */}
+        <div className="space-y-3 pt-2">
+          <Skeleton className="h-6 w-32 mb-4" />
+          {[1, 2, 3].map(i => <Skeleton key={i} className="h-48 w-full rounded-xl" />)}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-5">
@@ -562,19 +591,7 @@ export default function ContractorDashboard() {
         <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
           <CalendarDays className="h-4 w-4" /> Today&apos;s Schedule
         </h2>
-        {loading ? (
-          <div className="space-y-3">
-            {[1, 2].map(i => (
-              <Card key={i} className="animate-pulse">
-                <CardContent className="p-4">
-                  <div className="h-4 bg-muted rounded w-3/4 mb-2" />
-                  <div className="h-3 bg-muted rounded w-1/2 mb-3" />
-                  <div className="h-8 bg-muted rounded w-full" />
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        ) : todaysJobs.length === 0 ? (
+        {todaysJobs.length === 0 ? (
           <Card className="border-dashed">
             <CardContent className="p-10 text-center space-y-2">
               <div className="bg-muted w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4">
