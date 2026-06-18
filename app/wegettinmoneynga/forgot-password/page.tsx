@@ -45,7 +45,7 @@ export default function AdminForgotPasswordPage() {
           {sent ? (
             <div className="text-center space-y-4">
               <div className="p-3 bg-green-50 text-green-700 rounded-md text-sm border border-green-200">
-                Check your email! We've sent a password reset link to {email}.
+                Check your email! We&apos;ve sent a password reset link to {email}.
               </div>
               <Link href="/wegettinmoneynga/login">
                 <Button variant="outline" className="w-full">Return to login</Button>

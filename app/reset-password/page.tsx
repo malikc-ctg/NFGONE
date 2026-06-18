@@ -87,7 +87,7 @@ export default function ResetPasswordPage() {
             <p className="text-green-800 font-medium mb-4">Password reset successful!</p>
             <p className="text-sm text-green-600 mb-4">Redirecting you to the login page...</p>
             <Link href={loginLink} className="text-sm font-semibold text-blue-600 hover:text-blue-500">
-              Click here if you aren't redirected
+              Click here if you aren&apos;t redirected
             </Link>
           </div>
         ) : (

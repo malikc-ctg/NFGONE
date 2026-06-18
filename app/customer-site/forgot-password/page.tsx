@@ -53,12 +53,12 @@ export default function CustomerForgotPasswordPage() {
         
         <div className="bg-[#001a36]/40 backdrop-blur-xl border border-white/10 rounded-3xl p-8 shadow-2xl">
           <h1 className="font-rustic text-3xl text-white mb-2 text-center">Reset Password</h1>
-          <p className="text-white/50 text-sm text-center mb-8">Enter your email and we'll send you a link to reset your password.</p>
+          <p className="text-white/50 text-sm text-center mb-8">Enter your email and we&apos;ll send you a link to reset your password.</p>
 
           {sent ? (
             <div className="bg-blue-900/40 border border-blue-500/30 rounded-xl p-6 text-center">
               <p className="text-white font-medium mb-2">Check your email!</p>
-              <p className="text-blue-200/70 text-sm mb-6">We've sent a password reset link to {email}.</p>
+              <p className="text-blue-200/70 text-sm mb-6">We&apos;ve sent a password reset link to {email}.</p>
               <Link href="/customer-site/login" className="w-full inline-block bg-white text-[#010A14] py-3.5 rounded-full font-bold tracking-widest uppercase hover:bg-white/90 transition-colors">
                 Return to Login
               </Link>
