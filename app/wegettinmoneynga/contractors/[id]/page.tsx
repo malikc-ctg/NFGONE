@@ -203,6 +203,13 @@ export default function ContractorDetailPage() {
               </div>
             </div>
             <div className="flex justify-between pt-2 border-t"><span className="text-muted-foreground">Vehicle</span><span>{contractor.has_vehicle ? 'Yes' : 'No'}</span></div>
+            
+            <div className="pt-2 border-t">
+              <span className="text-muted-foreground block mb-1">Public Bio (Customer-Facing)</span>
+              <p className="text-xs bg-slate-50 p-2 rounded border border-slate-100 italic text-slate-700">
+                &ldquo;{(() => { try { return JSON.parse(contractor.notes || '{}').bio || 'Dedicated professional cleaner committed to making your home sparkle.'; } catch { return 'Dedicated professional cleaner committed to making your home sparkle.'; } })()}&rdquo;
+              </p>
+            </div>
           </CardContent>
         </Card>
 

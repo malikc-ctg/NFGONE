@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/dialog';
 import {
   ArrowLeft, Send, MapPin, DollarSign,
-  User, Star,
+  User, Star, AlertTriangle
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -142,6 +142,30 @@ export default function JobDetailPage() {
         )}
       </div>
 
+      {/* Home Profile Alerts */}
+      {customer && (() => {
+        try {
+          const p = JSON.parse(customer.notes || '{}');
+          if (!p.has_pets && !p.entry_instructions) return null;
+          return (
+            <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 flex gap-3">
+              <AlertTriangle className="h-5 w-5 text-orange-500 shrink-0 mt-0.5" />
+              <div className="space-y-2 text-sm text-orange-900">
+                <p className="font-bold">Customer Home Profile Alerts</p>
+                <ul className="list-disc pl-4 space-y-1">
+                  {p.has_pets && (
+                    <li><strong>Pets in home:</strong> Please be mindful of animals when opening doors.</li>
+                  )}
+                  {p.entry_instructions && (
+                    <li><strong>Entry Instructions:</strong> {p.entry_instructions}</li>
+                  )}
+                </ul>
+              </div>
+            </div>
+          );
+        } catch { return null; }
+      })()}
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
         {/* Job Summary */}
         <Card>
@@ -168,6 +192,28 @@ export default function JobDetailPage() {
             <div className="flex justify-between"><span className="text-muted-foreground">Final Price</span><span>${job.final_price ?? job.quoted_price}</span></div>
             <div className="flex justify-between"><span className="text-muted-foreground">Deposit</span><span>${job.deposit_amount ?? '—'}</span></div>
             <div className="flex justify-between"><span className="text-muted-foreground">Deposit Paid</span><span>{job.deposit_paid_at ? format(new Date(job.deposit_paid_at), 'MMM d, yyyy') : 'No'}</span></div>
+            
+            {(job.add_ons && job.add_ons.length > 0) && (
+              <>
+                <Separator />
+                <div>
+                  <span className="text-muted-foreground block mb-2">Up-Sells &amp; Extra Charges</span>
+                  <div className="space-y-1.5">
+                    {job.add_ons.map((addon, i) => (
+                      <div key={i} className="flex justify-between bg-amber-50 text-amber-900 border border-amber-100 p-2 rounded text-xs">
+                        <span>{addon.startsWith('Extra:') ? addon.replace(/ \(\$\d+\.?\d*\)$/, '') : addon.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</span>
+                        {addon.match(/\(\$(\d+\.?\d*)\)$/) ? (
+                          <span className="font-bold text-amber-700">${addon.match(/\(\$(\d+\.?\d*)\)$/)?.[1]}</span>
+                        ) : (
+                          <span className="text-amber-700/70 italic">Included in quote</span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
+
             <Separator />
             <div className="flex justify-between"><span className="text-muted-foreground">Contractor Payout (70%)</span><span className="font-bold">${payoutAmount.toFixed(2)}</span></div>
           </CardContent>
