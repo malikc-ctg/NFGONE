@@ -61,6 +61,7 @@ export default function ContractorProfilePage() {
     phone: '',
     zone_ids: [] as string[],
     max_radius: 30,
+    bio: '',
   });
   const [hqCoords, setHqCoords] = useState<{lat: number, lng: number} | null>(null);
 
@@ -83,6 +84,7 @@ export default function ContractorProfilePage() {
           phone: meData.phone || '',
           zone_ids: meData.selected_zone_ids || [],
           max_radius: parsedNotes.max_radius || 30,
+          bio: parsedNotes.bio || '',
         });
         if (parsedNotes.hq_coords) {
           setHqCoords(parsedNotes.hq_coords);
@@ -267,6 +269,17 @@ export default function ContractorProfilePage() {
                 <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input id="phone" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} className="pl-10" required />
               </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="bio">Public Bio (Visible to Customers)</Label>
+              <textarea
+                id="bio"
+                value={formData.bio}
+                onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
+                className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 min-h-[80px]"
+                placeholder="Hi, I'm John! I have 5 years of professional cleaning experience..."
+              />
+              <p className="text-xs text-muted-foreground">This will be shown on the &quot;Your Cleaner&quot; widget when customers view their upcoming jobs.</p>
             </div>
           </CardContent>
         </Card>

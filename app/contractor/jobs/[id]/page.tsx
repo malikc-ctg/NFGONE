@@ -13,7 +13,7 @@ import { Progress } from '@/components/ui/progress';
 import {
   ArrowLeft, MapPin, Navigation, Clock, DollarSign,
   CheckCircle2, User, Sparkles, Bath, BedDouble,
-  Phone, Map, AlertTriangle, Timer, Route, Zap, Car
+  Phone, Map, AlertTriangle, Timer, Route, Zap, Car, MessageSquare, PlusCircle
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { SERVICE_TYPE_LABELS, TIME_WINDOW_LABELS } from '@/types';
@@ -135,6 +135,8 @@ export default function ContractorJobDetailPage() {
   const [supplyConfirmed, setSupplyConfirmed] = useState(false);
   const [showSupplyCheck, setShowSupplyCheck] = useState(false);
   const [showMap, setShowMap] = useState(false);
+  const [extraChargeAmount, setExtraChargeAmount] = useState('');
+  const [extraChargeDesc, setExtraChargeDesc] = useState('');
 
   async function fetchData() {
     try {
@@ -209,6 +211,27 @@ export default function ContractorJobDetailPage() {
     finally { setSubmitting(false); }
   }
 
+  async function handleAddCharge() {
+    if (!extraChargeAmount || !extraChargeDesc) return;
+    setSubmitting(true);
+    try {
+      const res = await fetch(`/api/jobs/${params.id}/charges`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount: extraChargeAmount, description: extraChargeDesc }),
+      });
+      if (!res.ok) throw new Error('Failed to add charge');
+      toast.success('Extra charge added to invoice');
+      setExtraChargeAmount('');
+      setExtraChargeDesc('');
+      fetchData();
+    } catch {
+      toast.error('Failed to add extra charge');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   function countChecked(): { checked: number; total: number } {
     if (!checklist) return { checked: 0, total: 0 };
     let checked = 0, total = 0;
@@ -233,6 +256,14 @@ export default function ContractorJobDetailPage() {
   const stepStatus = job.status === 'accepted' ? 'assigned' : job.status;
   const currentStepIndex = STATUS_STEPS.indexOf(stepStatus);
   const isActive = ['accepted', 'assigned', 'on_the_way', 'in_progress'].includes(job.status);
+
+  const customerProfile = (() => {
+    try {
+      return JSON.parse((job as any).customer?.notes || '{}');
+    } catch {
+      return {};
+    }
+  })();
 
   return (
     <div className="space-y-4">
@@ -350,6 +381,24 @@ export default function ContractorJobDetailPage() {
         </div>
       )}
 
+      {/* Home Profile Alerts */}
+      {(customerProfile.has_pets || customerProfile.entry_instructions) && ['assigned', 'accepted', 'on_the_way', 'in_progress'].includes(job.status) && (
+        <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 flex gap-3">
+          <AlertTriangle className="h-5 w-5 text-orange-500 shrink-0 mt-0.5" />
+          <div className="space-y-2 text-sm text-orange-900">
+            <p className="font-bold">Customer Home Profile Alerts</p>
+            <ul className="list-disc pl-4 space-y-1">
+              {customerProfile.has_pets && (
+                <li><strong>Pets in home:</strong> Please be mindful of animals when opening doors.</li>
+              )}
+              {customerProfile.entry_instructions && (
+                <li><strong>Entry Instructions:</strong> {customerProfile.entry_instructions}</li>
+              )}
+            </ul>
+          </div>
+        </div>
+      )}
+
       {/* Job Details Card */}
       <Card className="border-blue-200 dark:border-blue-800 overflow-hidden">
         <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-3 flex items-center gap-2">
@@ -367,11 +416,18 @@ export default function ContractorJobDetailPage() {
             </div>
             {/* Show phone only if job is in progress or beyond */}
             {['in_progress', 'on_the_way'].includes(job.status) && (job as any).customer?.phone && (
-              <a href={`tel:${(job as any).customer.phone}`}>
-                <Button variant="outline" size="sm" className="h-9 gap-1.5 text-xs">
-                  <Phone className="h-3.5 w-3.5" /> Call
-                </Button>
-              </a>
+              <div className="flex gap-2">
+                <a href={`sms:${(job as any).customer.phone}`}>
+                  <Button variant="outline" size="sm" className="h-9 gap-1.5 text-xs text-blue-600 border-blue-200 hover:bg-blue-50 dark:border-blue-800 dark:hover:bg-blue-900/30">
+                    <MessageSquare className="h-3.5 w-3.5" /> SMS
+                  </Button>
+                </a>
+                <a href={`tel:${(job as any).customer.phone}`}>
+                  <Button variant="outline" size="sm" className="h-9 gap-1.5 text-xs text-green-600 border-green-200 hover:bg-green-50 dark:border-green-800 dark:hover:bg-green-900/30">
+                    <Phone className="h-3.5 w-3.5" /> Call
+                  </Button>
+                </a>
+              </div>
             )}
           </div>
           <div className="h-px bg-border" />
@@ -494,6 +550,28 @@ export default function ContractorJobDetailPage() {
               onItemChange={(key, val) => setChecklist({ ...checklist, living_areas: { ...checklist.living_areas, [key]: val } })} 
             />
           </div>
+
+          <Card>
+            <CardHeader className="bg-amber-50/50 border-b border-amber-100 pb-3">
+              <CardTitle className="text-base font-bold text-amber-900 flex items-center gap-2"><PlusCircle className="h-4 w-4 text-amber-600" /> Up-Sells / Extra Charges</CardTitle>
+            </CardHeader>
+            <CardContent className="p-4 space-y-3">
+              <p className="text-xs text-muted-foreground mb-2">Did the customer ask for an extra service on-site? Add it here to update the invoice.</p>
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <Label className="text-xs">Description</Label>
+                  <Textarea value={extraChargeDesc} onChange={e => setExtraChargeDesc(e.target.value)} placeholder="e.g. Inside fridge clean" className="mt-1 h-10 min-h-[40px] resize-none" />
+                </div>
+                <div className="w-24">
+                  <Label className="text-xs">Amount ($)</Label>
+                  <Textarea value={extraChargeAmount} onChange={e => setExtraChargeAmount(e.target.value)} placeholder="0.00" className="mt-1 h-10 min-h-[40px] resize-none" />
+                </div>
+              </div>
+              <Button onClick={handleAddCharge} disabled={submitting || !extraChargeDesc || !extraChargeAmount} className="w-full mt-2 h-10 text-xs font-bold bg-amber-500 hover:bg-amber-600 text-white">
+                {submitting ? 'Adding...' : 'Add Charge to Invoice'}
+              </Button>
+            </CardContent>
+          </Card>
 
           <Card><CardContent className="p-4"><Label>Notes (optional)</Label><Textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Any issues or scope changes..." className="mt-2 min-h-[80px]" /></CardContent></Card>
 

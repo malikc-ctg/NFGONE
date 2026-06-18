@@ -61,7 +61,7 @@ export async function PATCH(request: Request) {
     }
 
     const body = await request.json();
-    const { full_name, phone, zone_ids, max_radius } = body;
+    const { full_name, phone, zone_ids, max_radius, bio } = body;
 
     // Use service client to bypass RLS recursion issues
     const serviceClient = await createServiceClient();
@@ -78,6 +78,9 @@ export async function PATCH(request: Request) {
     const existingNotes = currentContractor.notes ? JSON.parse(currentContractor.notes) : {};
     if (max_radius !== undefined) {
       existingNotes.max_radius = max_radius;
+    }
+    if (bio !== undefined) {
+      existingNotes.bio = bio;
     }
 
     // 1. Update basic contractor info and notes
