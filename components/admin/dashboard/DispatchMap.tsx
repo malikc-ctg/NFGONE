@@ -87,6 +87,12 @@ interface ZoneMetric {
   online_contractors: number;
   assigned_jobs: number;
   coverage_status: 'high' | 'medium' | 'low' | 'idle';
+  // Dominance
+  in_house_contractors: number;
+  independent_contractors: number;
+  in_house_jobs_today: number;
+  contractor_jobs_today: number;
+  dominance_mode: 'in_house' | 'contractor' | 'mixed' | 'none';
 }
 
 interface FilterState {
@@ -209,11 +215,39 @@ function ZoneSidebar({
                       </div>
                     ))}
                   </div>
+
+                  {/* Dominance indicator */}
+                  {zone.dominance_mode !== 'none' && (
+                    <div className="flex items-center gap-1.5 mt-1.5">
+                      {zone.dominance_mode === 'in_house' && (
+                        <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-blue-500/15 border border-blue-500/30">
+                          <div className="w-1.5 h-1.5 rounded-full bg-blue-400" />
+                          <span className="text-blue-300 text-[8px] font-black uppercase">SOB Staff</span>
+                          <span className="text-blue-400/60 text-[8px]">{zone.in_house_contractors}↑</span>
+                        </div>
+                      )}
+                      {zone.dominance_mode === 'contractor' && (
+                        <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-orange-500/15 border border-orange-500/30">
+                          <div className="w-1.5 h-1.5 rounded-full bg-orange-400" />
+                          <span className="text-orange-300 text-[8px] font-black uppercase">Contractor</span>
+                          <span className="text-orange-400/60 text-[8px]">{zone.independent_contractors}↑</span>
+                        </div>
+                      )}
+                      {zone.dominance_mode === 'mixed' && (
+                        <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-purple-500/15 border border-purple-500/30">
+                          <div className="w-1.5 h-1.5 rounded-full bg-purple-400" />
+                          <span className="text-purple-300 text-[8px] font-black uppercase">Mixed</span>
+                          <span className="text-purple-400/60 text-[8px]">{zone.in_house_contractors}+{zone.independent_contractors}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {zone.coverage_status === 'low' && zone.active_jobs > 0 && (
-                    <div className="flex items-center gap-1 mt-1.5">
+                    <div className="flex items-center gap-1 mt-1">
                       <AlertTriangle className="h-2.5 w-2.5 text-red-400 shrink-0" />
                       <p className="text-red-400 text-[9px] font-medium">
-                        {zone.active_jobs} job{zone.active_jobs > 1 ? 's' : ''}, {zone.online_contractors} contractor{zone.online_contractors !== 1 ? 's' : ''} online
+                        {zone.active_jobs} job{zone.active_jobs > 1 ? 's' : ''}, {zone.online_contractors} online
                       </p>
                     </div>
                   )}
@@ -236,6 +270,19 @@ function ZoneSidebar({
                 <span className="text-white/40 text-[9px]">{l.label}</span>
               </div>
             ))}
+            <div className="pt-2 border-t border-white/10 space-y-1">
+              <p className="text-[9px] text-white/30 font-black uppercase tracking-widest mb-1">Dominance</p>
+              {[
+                { color: '#60a5fa', label: 'SOB Staff dominant' },
+                { color: '#fb923c', label: 'Contractor dominant' },
+                { color: '#c084fc', label: 'Mixed workforce' },
+              ].map(l => (
+                <div key={l.label} className="flex items-center gap-2">
+                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: l.color, flexShrink: 0 }} />
+                  <span className="text-white/40 text-[9px]">{l.label}</span>
+                </div>
+              ))}
+            </div>
           </div>
         </>
       )}
@@ -324,7 +371,7 @@ export default function DispatchMap({ onBack }: Props) {
 
     map.on('load', () => {
       // Zone polygons
-      map.addSource('zones-source', { type: 'geojson', data: '/zones.geojson' });
+      map.addSource('zones-source', { type: 'geojson', data: '/api/operations/zones-geojson' });
       map.addLayer({ id: 'zones-fill', type: 'fill', source: 'zones-source', paint: { 'fill-color': '#3b82f6', 'fill-opacity': 0.07 } });
       map.addLayer({ id: 'zones-outline', type: 'line', source: 'zones-source', paint: { 'line-color': '#3b82f6', 'line-width': 1.5, 'line-opacity': 0.5 } });
       map.addLayer({

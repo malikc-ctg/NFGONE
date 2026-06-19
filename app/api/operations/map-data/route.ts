@@ -34,7 +34,7 @@ export async function GET() {
         .select('id, name, city, is_active, areas, latitude, longitude')
         .eq('is_active', true),
 
-      // All active contractors (for HQ pins + zone assignment stats)
+      // All active contractors (for HQ pins + zone assignment stats + in-house vs contractor dominance)
       supabase
         .from('contractors')
         .select('id, full_name, phone, tier, status, notes, zone_id')
@@ -115,6 +115,29 @@ export async function GET() {
         coverageStatus = demand - onlineInZone >= 2 ? 'low' : 'medium';
       }
 
+      // ── In-house vs contractor dominance ──────────────────────────────
+      // "team" tier = Sea of Blue in-house staff
+      // "basic" / "pro" tiers = independent contractors
+      const IN_HOUSE_TIERS = ['team'];
+      const inHouseInZone = zoneContractors.filter(c => IN_HOUSE_TIERS.includes(c.tier)).length;
+      const independentInZone = zoneContractors.length - inHouseInZone;
+
+      // Jobs served by in-house vs contractor this zone today
+      const inHouseContractorIds = new Set(
+        zoneContractors.filter(c => IN_HOUSE_TIERS.includes(c.tier)).map(c => c.id)
+      );
+      const inHouseJobsToday = zoneJobs.filter(j => j.contractor_id && inHouseContractorIds.has(j.contractor_id)).length;
+      const contractorJobsToday = zoneJobs.filter(j => j.contractor_id && !inHouseContractorIds.has(j.contractor_id)).length;
+
+      // Dominance mode
+      let dominanceMode: 'in_house' | 'contractor' | 'mixed' | 'none' = 'none';
+      if (inHouseInZone > 0 || independentInZone > 0) {
+        const inHousePct = zoneContractors.length > 0 ? inHouseInZone / zoneContractors.length : 0;
+        if (inHousePct >= 0.7) dominanceMode = 'in_house';
+        else if (inHousePct <= 0.3) dominanceMode = 'contractor';
+        else dominanceMode = 'mixed';
+      }
+
       return {
         zone_id: zone.id,
         name: zone.name,
@@ -128,6 +151,12 @@ export async function GET() {
         online_contractors: onlineInZone,
         assigned_jobs: assignedInZone,
         coverage_status: coverageStatus,
+        // Dominance data
+        in_house_contractors: inHouseInZone,
+        independent_contractors: independentInZone,
+        in_house_jobs_today: inHouseJobsToday,
+        contractor_jobs_today: contractorJobsToday,
+        dominance_mode: dominanceMode,
       };
     });
 
