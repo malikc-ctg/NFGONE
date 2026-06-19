@@ -60,7 +60,7 @@ export function HomeProfileWidget({ customer }: HomeProfileProps) {
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col h-full">
+    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
       <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
         <h3 className="font-bold text-slate-900 flex items-center gap-2">
           <Home className="h-4 w-4 text-blue-600" />

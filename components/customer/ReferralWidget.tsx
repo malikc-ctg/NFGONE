@@ -21,7 +21,7 @@ export function ReferralWidget({ customerId }: ReferralWidgetProps) {
   }
 
   return (
-    <div className="bg-gradient-to-br from-[#001a36] to-[#022850] rounded-2xl border border-[#001a36] shadow-lg overflow-hidden text-white h-full flex flex-col relative group">
+    <div className="bg-gradient-to-br from-[#001a36] to-[#022850] rounded-2xl border border-[#001a36] shadow-lg overflow-hidden text-white flex flex-col relative group">
       {/* Background Graphic */}
       <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/20 rounded-full blur-2xl -translate-y-1/2 translate-x-1/3 pointer-events-none group-hover:bg-blue-400/30 transition-colors" />
       
