@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { Plus, Trash2, Edit2, Globe, Save, X } from 'lucide-react';
 import type { Zone } from '@/types';
+import { AddressAutocomplete } from '@/components/ui/address-autocomplete';
 
 export default function AdminZonesPage() {
   const [zones, setZones] = useState<Zone[]>([]);
@@ -146,10 +147,16 @@ export default function AdminZonesPage() {
               </div>
               <div className="space-y-2">
                 <Label>Main City</Label>
-                <Input 
+                <AddressAutocomplete 
                   value={formData.city} 
                   onChange={e => setFormData({ ...formData, city: e.target.value })}
-                  placeholder="City"
+                  onAddressSelect={addr => {
+                    // Extract just the city from the address object
+                    const cityVal = addr.city || addr.address_line1.split(',')[0];
+                    setFormData({ ...formData, city: cityVal });
+                    if (!formData.name) setFormData(prev => ({ ...prev, name: cityVal }));
+                  }}
+                  placeholder="Search city..."
                 />
               </div>
             </div>
