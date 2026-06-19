@@ -148,17 +148,7 @@ export function AdminDashboard() {
   if (view === 'map') {
     return (
       <div className="relative">
-        {/* Map view header strip */}
-        <div className="absolute top-4 left-4 z-30 flex items-center gap-2">
-          <button
-            onClick={() => setView('list')}
-            className="flex items-center gap-2 px-3 py-2 bg-black/80 backdrop-blur border border-white/10 rounded-xl text-white/60 hover:text-white text-xs font-bold transition-colors"
-          >
-            <List className="h-3.5 w-3.5" />
-            List View
-          </button>
-        </div>
-        <DispatchMap />
+        <DispatchMap onBack={() => setView('list')} />
       </div>
     );
   }
