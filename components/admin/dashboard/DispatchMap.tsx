@@ -247,6 +247,8 @@ function ZoneSidebar({
 export default function DispatchMap({ onBack }: Props) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
+  const initialFrameDone = useRef(false);
+  const resizeObserverRef = useRef<ResizeObserver | null>(null);
   const jobMarkersRef = useRef<{ [key: string]: mapboxgl.Marker }>({});
   const locMarkersRef = useRef<{ [key: string]: mapboxgl.Marker }>({});
   const hqMarkersRef = useRef<{ [key: string]: mapboxgl.Marker }>({});
@@ -351,8 +353,21 @@ export default function DispatchMap({ onBack }: Props) {
     });
 
     map.on('style.load', () => map.resize());
+
+    // Automatically call resize() when the container size changes (e.g. sidebar collapse)
+    resizeObserverRef.current = new ResizeObserver(() => {
+      if (mapRef.current) mapRef.current.resize();
+    });
+    if (mapContainerRef.current) {
+      resizeObserverRef.current.observe(mapContainerRef.current);
+    }
+
     setTimeout(() => map.resize(), 500);
-    return () => { map.remove(); mapRef.current = null; };
+    return () => { 
+      if (resizeObserverRef.current) resizeObserverRef.current.disconnect();
+      map.remove(); 
+      mapRef.current = null; 
+    };
   }, [mapToken]);
 
   // ── Zone map-click handler ───────────────────────────────────────────────────
@@ -542,14 +557,17 @@ export default function DispatchMap({ onBack }: Props) {
       });
     }
 
-    // Auto-frame
-    const allCoords: [number, number][] = [
-      ...filteredJobs.filter((j: any) => j.longitude && j.latitude).map((j: any) => [j.longitude, j.latitude] as [number, number]),
-      ...filteredContractors.filter((l: any) => l.longitude && l.latitude).map((l: any) => [l.longitude, l.latitude] as [number, number]),
-    ];
-    if (allCoords.length >= 2) {
-      const bounds = allCoords.reduce((b, c) => b.extend(c), new mapboxgl.LngLatBounds(allCoords[0], allCoords[0]));
-      map.fitBounds(bounds, { padding: { top: 80, bottom: 100, left: 40, right: sidebarCollapsed ? 60 : 300 }, maxZoom: 14, duration: 800 });
+    // Auto-frame ONLY ON FIRST DATA LOAD or when sidebar collapses initially
+    if (!initialFrameDone.current && filteredJobs.length > 0) {
+      const allCoords: [number, number][] = [
+        ...filteredJobs.filter((j: any) => j.longitude && j.latitude).map((j: any) => [j.longitude, j.latitude] as [number, number]),
+        ...filteredContractors.filter((l: any) => l.longitude && l.latitude).map((l: any) => [l.longitude, l.latitude] as [number, number]),
+      ];
+      if (allCoords.length >= 2) {
+        const bounds = allCoords.reduce((b, c) => b.extend(c), new mapboxgl.LngLatBounds(allCoords[0], allCoords[0]));
+        map.fitBounds(bounds, { padding: { top: 80, bottom: 100, left: 40, right: sidebarCollapsed ? 60 : 300 }, maxZoom: 14, duration: 800 });
+        initialFrameDone.current = true;
+      }
     }
   }, [mapLoaded, mapData, filters, sidebarCollapsed]);
 
