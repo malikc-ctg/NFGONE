@@ -465,8 +465,14 @@ export default function DispatchMap({ onBack }: Props) {
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapLoaded || !mapData.zoneMetrics.length || !map.getLayer('zones-fill')) return;
-    const matchExpr: any[] = ['match', ['get', 'name']];
-    mapData.zoneMetrics.forEach(zm => matchExpr.push(zm.name, COVERAGE_COLORS[zm.coverage_status]));
+    const matchExpr: any[] = ['match', ['get', 'zone_id']];
+    const seen = new Set();
+    mapData.zoneMetrics.forEach(zm => {
+      if (!seen.has(zm.zone_id)) {
+        seen.add(zm.zone_id);
+        matchExpr.push(zm.zone_id, COVERAGE_COLORS[zm.coverage_status]);
+      }
+    });
     matchExpr.push('#3b82f6');
     map.setPaintProperty('zones-fill', 'fill-color', matchExpr as any);
     map.setPaintProperty('zones-fill', 'fill-opacity', 0.12);
