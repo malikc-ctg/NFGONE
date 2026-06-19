@@ -28,7 +28,16 @@ export function DatePicker({
   minDate?: string | Date
   required?: boolean
 }) {
-  const dateValue = value ? new Date(value) : undefined
+  let dateValue = undefined
+  if (value) {
+    if (typeof value === 'string' && value.match(/^\d{4}-\d{2}-\d{2}$/)) {
+      // Add noon time to force local parsing and avoid midnight UTC shifts
+      dateValue = new Date(`${value}T12:00:00`)
+    } else {
+      dateValue = new Date(value)
+    }
+  }
+
   const [open, setOpen] = React.useState(false)
 
   const handleSelect = (date: Date | undefined) => {
