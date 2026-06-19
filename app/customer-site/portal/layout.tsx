@@ -1,14 +1,15 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { LayoutDashboard, FileText, Plus, User, LogOut } from 'lucide-react';
+import { createClient } from '@/lib/supabase/client';
 
 const navItems = [
   { href: '/customer-site/portal', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/customer-site/portal/billing', label: 'Invoices', icon: FileText },
   { href: '/customer-site/portal/quote', label: 'New Quote', icon: Plus },
-  { href: '/customer-site/profile', label: 'Profile', icon: User },
+  { href: '/customer-site/portal/profile', label: 'Profile', icon: User },
 ];
 
 export default function CustomerPortalLayout({
@@ -17,6 +18,13 @@ export default function CustomerPortalLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const supabase = createClient();
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    router.push('/customer-site/login');
+  };
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col">
@@ -35,10 +43,10 @@ export default function CustomerPortalLayout({
             >
               <Plus className="h-4 w-4" /> Request Quote
             </Link>
-            <Link href="/api/auth/signout" className="text-slate-500 hover:text-slate-900 transition-colors flex items-center gap-1.5 text-sm font-medium">
+            <button onClick={handleSignOut} className="text-slate-500 hover:text-slate-900 transition-colors flex items-center gap-1.5 text-sm font-medium">
               <LogOut className="h-4 w-4" />
               <span className="hidden sm:block">Sign Out</span>
-            </Link>
+            </button>
           </div>
         </div>
       </header>
