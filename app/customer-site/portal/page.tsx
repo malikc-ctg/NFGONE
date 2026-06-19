@@ -1,4 +1,4 @@
-import { Calendar, ChevronRight, MapPin, Plus, ShieldCheck, FileText, Clock, Star } from 'lucide-react';
+import { Calendar, ChevronRight, MapPin, Plus, ShieldCheck, FileText, Clock, Star, User } from 'lucide-react';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
@@ -147,28 +147,51 @@ export default async function CustomerPortalPage() {
           {/* Left Column: Pool Health & Live Tracking */}
           <div className="lg:col-span-2 space-y-8">
             
-            {/* Live Tracking Banner */}
-            {isLive && (
-              <div className="bg-[#001a36] rounded-2xl p-6 text-white shadow-lg relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-6">
-                {/* Subtle background graphic */}
-                <div className="absolute right-0 top-0 w-64 h-64 bg-blue-500/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />
-                
-                <div className="relative z-10">
-                  <div className="inline-flex items-center gap-2 px-2 py-1 rounded bg-blue-500/20 text-blue-200 text-xs font-bold uppercase tracking-wider mb-3">
-                    <span className="relative flex h-2 w-2">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-400"></span>
-                    </span>
-                    Live Service
+            {/* Next / Live Service Block */}
+            {nextJob && (
+              <div className="bg-white border border-slate-200 shadow-sm rounded-2xl overflow-hidden mb-8">
+                {isLive ? (
+                  <div className="bg-[#001a36] p-6 text-white relative flex flex-col lg:flex-row items-center justify-between gap-6">
+                    {/* Subtle background graphic */}
+                    <div className="absolute right-0 top-0 w-64 h-64 bg-blue-500/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />
+                    
+                    <div className="relative z-10 flex flex-col sm:flex-row items-center sm:items-start lg:items-center gap-6 w-full text-center sm:text-left">
+                      <div className="h-20 w-20 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center shrink-0 shadow-inner overflow-hidden border-2 border-white/20">
+                        {nextJob.contractor?.avatar_url ? (
+                          <img src={nextJob.contractor.avatar_url} alt={nextJob.contractor.full_name} className="h-full w-full object-cover" />
+                        ) : (
+                          <User className="h-10 w-10" />
+                        )}
+                      </div>
+                      <div>
+                        <div className="inline-flex items-center gap-2 px-2 py-1 rounded bg-blue-500/20 text-blue-200 text-xs font-bold uppercase tracking-wider mb-2">
+                          <span className="relative flex h-2 w-2">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-400"></span>
+                          </span>
+                          Live Service
+                        </div>
+                        <h2 className="text-2xl font-bold mb-1">Your technician is en route</h2>
+                        <p className="text-blue-100/70">
+                          {nextJob.contractor?.full_name ? `${nextJob.contractor.full_name} is arriving around ` : 'Estimated arrival: '} 
+                          {new Date(nextJob.scheduled_date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <button className="bg-white text-[#001a36] px-6 py-3 rounded-xl font-semibold w-full lg:w-auto relative z-10 flex items-center justify-center gap-2 hover:bg-slate-50 transition-colors shrink-0 shadow-sm">
+                      <MapPin className="h-4 w-4" />
+                      Track Live
+                    </button>
                   </div>
-                  <h2 className="text-2xl font-bold mb-1">Your technician is en route</h2>
-                  <p className="text-blue-100/70">Estimated arrival: {new Date(nextJob.scheduled_date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
+                ) : (
+                  <div className="p-5 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
+                    <h3 className="font-bold text-slate-900">Next Scheduled Service</h3>
+                  </div>
+                )}
+                <div className={isLive ? "border-t border-slate-100" : ""}>
+                  <LiveJobTracker initialJob={nextJob} />
                 </div>
-                
-                <button className="bg-white text-[#001a36] px-6 py-3 rounded-xl font-semibold w-full md:w-auto relative z-10 flex items-center justify-center gap-2 hover:bg-slate-50 transition-colors">
-                  <MapPin className="h-4 w-4" />
-                  Track Live
-                </button>
               </div>
             )}
 
@@ -266,12 +289,7 @@ export default async function CustomerPortalPage() {
           {/* Right Column: Quick Stats & Support */}
           <div className="space-y-6">
             
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-              <div className="p-5 border-b border-slate-100">
-                <h3 className="font-bold text-slate-900">Next Scheduled Service</h3>
-              </div>
-              <LiveJobTracker initialJob={nextJob || null} />
-            </div>
+            {/* Removed LiveJobTracker from here */}
 
             {(nextJob?.contractor || pastJobs?.[0]?.contractor) && (
               <MyCleanerWidget contractor={nextJob?.contractor || pastJobs?.[0]?.contractor} />
