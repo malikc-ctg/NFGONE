@@ -12,7 +12,7 @@ export default function CustomerSiteLayout({
   const isPortal = pathname?.startsWith('/customer-site/portal');
 
   return (
-    <div className="bg-[#001a36] min-h-screen text-white selection:bg-white/20 selection:text-white flex flex-col font-sans overflow-x-hidden">
+    <div className="bg-[#001a36] min-h-screen text-white selection:bg-white/20 selection:text-white flex flex-col font-sans overflow-x-clip">
       
       {/* Immersive Header - Hidden in Portal */}
       {!isPortal && (
