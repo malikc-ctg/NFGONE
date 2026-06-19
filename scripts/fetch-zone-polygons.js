@@ -2,7 +2,10 @@
  * scripts/fetch-zone-polygons.js
  *
  * Queries the Nominatim/Overpass APIs to fetch exact municipal boundary polygons
- * for all GTA service zones and writes them to public/zones.geojson.
+ * for all GTA service zones and writes them to the Supabase database.
+ *
+ * Requires NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY to be set
+ * in your .env.local file.
  *
  * Run with: node scripts/fetch-zone-polygons.js
  */
@@ -10,26 +13,15 @@
 const fs = require('fs');
 const path = require('path');
 
-// Zone definitions matching the database seeds in 005_multi_zone_system.sql
-const ZONES = [
-  { name: 'Downtown Toronto',               search: 'Old Toronto, Toronto, Ontario, Canada' },
-  { name: 'Midtown Toronto',                search: 'Midtown Toronto, Toronto, Ontario, Canada' },
-  { name: 'North York',                     search: 'North York, Toronto, Ontario, Canada' },
-  { name: 'Etobicoke',                      search: 'Etobicoke, Toronto, Ontario, Canada' },
-  { name: 'Scarborough',                    search: 'Scarborough, Toronto, Ontario, Canada' },
-  { name: 'Mississauga South',              search: 'Mississauga, Ontario, Canada' },
-  { name: 'Mississauga North',              search: 'Mississauga, Ontario, Canada' },
-  { name: 'Brampton',                       search: 'Brampton, Ontario, Canada' },
-  { name: 'Oakville',                       search: 'Oakville, Ontario, Canada' },
-  { name: 'Burlington',                     search: 'Burlington, Ontario, Canada' },
-  { name: 'Halton Region (Milton / Halton Hills)', search: 'Milton, Ontario, Canada' },
-  { name: 'Vaughan',                        search: 'Vaughan, Ontario, Canada' },
-  { name: 'Richmond Hill',                  search: 'Richmond Hill, Ontario, Canada' },
-  { name: 'Markham',                        search: 'Markham, Ontario, Canada' },
-  { name: 'Aurora / Newmarket',             search: 'Aurora, Ontario, Canada' },
-  { name: 'Pickering / Ajax',               search: 'Pickering, Ontario, Canada' },
-  { name: 'Whitby / Oshawa',               search: 'Whitby, Ontario, Canada' },
-];
+require('dotenv').config({ path: path.join(__dirname, '..', '.env.local') });
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!supabaseUrl || !supabaseKey) {
+  console.error('❌ Missing Supabase credentials in .env.local');
+  process.exit(1);
+}
 
 const NOMINATIM_BASE = 'https://nominatim.openstreetmap.org/search';
 const DELAY_MS = 1200; // Be polite to Nominatim's 1 req/s limit
@@ -38,77 +30,87 @@ function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-async function fetchPolygon(zone) {
-  const params = new URLSearchParams({
-    q: zone.search,
-    format: 'geojson',
-    limit: '1',
-    polygon_geojson: '1',
-  });
+const ZONE_SEARCH_OVERRIDES = {
+  'Downtown Toronto': 'Old Toronto, Toronto, Ontario, Canada',
+  'Midtown Toronto': 'Midtown Toronto, Toronto, Ontario, Canada',
+  'North York': 'North York, Toronto, Ontario, Canada',
+  'Etobicoke': 'Etobicoke, Toronto, Ontario, Canada',
+  'Scarborough': 'Scarborough, Toronto, Ontario, Canada',
+  'Mississauga South': 'Mississauga, Ontario, Canada',
+  'Mississauga North': 'Mississauga, Ontario, Canada',
+  'Halton Region (Milton / Halton Hills)': 'Milton, Ontario, Canada',
+  'Aurora / Newmarket': 'Aurora, Ontario, Canada',
+  'Pickering / Ajax': 'Pickering, Ontario, Canada',
+  'Whitby / Oshawa': 'Whitby, Ontario, Canada'
+};
 
+async function fetchPolygon(zoneName, cityName) {
+  const searchStr = ZONE_SEARCH_OVERRIDES[zoneName] || `${cityName || zoneName}, Ontario, Canada`;
+  const params = new URLSearchParams({ q: searchStr, format: 'geojson', limit: '1', polygon_geojson: '1' });
   const url = `${NOMINATIM_BASE}?${params.toString()}`;
-  console.log(`  Fetching: ${zone.name} → "${zone.search}"`);
+  console.log(`  Fetching: ${zoneName} → "${searchStr}"`);
 
   try {
-    const res = await fetch(url, {
-      headers: { 'User-Agent': 'SeaOfBlue-DispatchMap/1.0 (admin@seaofblue.ca)' }
-    });
-
+    const res = await fetch(url, { headers: { 'User-Agent': 'SeaOfBlue-DispatchMap/1.0 (admin@seaofblue.ca)' } });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
-
     if (!data.features || data.features.length === 0) {
-      console.warn(`  ⚠  No results for: ${zone.name}`);
+      console.warn(`  ⚠  No results for: ${zoneName}`);
       return null;
     }
-
     const feature = data.features[0];
-    // Only keep Polygon or MultiPolygon types; skip Points if OSM returns them
     if (!['Polygon', 'MultiPolygon'].includes(feature.geometry?.type)) {
-      console.warn(`  ⚠  Got ${feature.geometry?.type} (not a polygon) for: ${zone.name}`);
+      console.warn(`  ⚠  Got ${feature.geometry?.type} (not a polygon) for: ${zoneName}`);
       return null;
     }
-
-    return {
-      type: 'Feature',
-      properties: {
-        name: zone.name,
-        osm_display: feature.properties?.display_name ?? zone.search,
-      },
-      geometry: feature.geometry,
-    };
+    return feature.geometry;
   } catch (err) {
-    console.error(`  ✗ Failed for ${zone.name}:`, err.message);
+    console.error(`  ✗ Failed for ${zoneName}:`, err.message);
     return null;
   }
 }
 
 async function main() {
-  console.log('🗺  Fetching GTA zone polygons from OpenStreetMap...\n');
+  console.log('🗺  Fetching live zones from database...\n');
+  
+  const res = await fetch(`${supabaseUrl}/rest/v1/zones?select=id,name,city&is_active=eq.true`, {
+    headers: { apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}` }
+  });
+  
+  if (!res.ok) {
+    console.error('❌ Failed to fetch zones from DB:', await res.text());
+    process.exit(1);
+  }
+  
+  const zones = await res.json();
+  console.log(`Found ${zones.length} active zones. Fetching boundary polygons from OpenStreetMap...\n`);
 
-  const features = [];
+  let updatedCount = 0;
 
-  for (const zone of ZONES) {
-    const feature = await fetchPolygon(zone);
-    if (feature) {
-      features.push(feature);
-      console.log(`  ✓ ${zone.name} (${feature.geometry.type})`);
+  for (const zone of zones) {
+    const geometry = await fetchPolygon(zone.name, zone.city);
+    if (geometry) {
+      const updateRes = await fetch(`${supabaseUrl}/rest/v1/zones?id=eq.${zone.id}`, {
+        method: 'PATCH',
+        headers: {
+          apikey: supabaseKey,
+          Authorization: `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=minimal'
+        },
+        body: JSON.stringify({ geojson_polygon: geometry })
+      });
+      if (!updateRes.ok) {
+        console.error(`  ✗ Failed to save ${zone.name} to DB:`, await updateRes.text());
+      } else {
+        console.log(`  ✓ ${zone.name} saved to DB (${geometry.type})`);
+        updatedCount++;
+      }
     }
     await sleep(DELAY_MS);
   }
 
-  const geojson = {
-    type: 'FeatureCollection',
-    features,
-  };
-
-  const outPath = path.join(__dirname, '..', 'public', 'zones.geojson');
-  fs.writeFileSync(outPath, JSON.stringify(geojson, null, 2));
-
-  console.log(`\n✅ Wrote ${features.length}/${ZONES.length} zones to ${outPath}`);
-  if (features.length < ZONES.length) {
-    console.warn(`⚠  ${ZONES.length - features.length} zone(s) could not be resolved — check warnings above.`);
-  }
+  console.log(`\n✅ Updated polygons for ${updatedCount}/${zones.length} zones in the database.`);
 }
 
 main().catch(err => {
