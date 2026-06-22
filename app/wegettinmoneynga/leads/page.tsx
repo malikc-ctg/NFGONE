@@ -23,7 +23,7 @@ import { format } from 'date-fns';
 import { SERVICE_TYPE_LABELS, DEFAULT_PRICING } from '@/types';
 import type { Lead, ServiceType, TimeWindow, AddOn } from '@/types';
 import Link from 'next/link';
-import { QuickQuoteCalculator } from '@/components/admin/leads/QuickQuoteCalculator';
+import { CRMPricingModal } from '@/components/admin/leads/CRMPricingModal';
 
 const ADD_ON_OPTIONS: { value: AddOn; label: string }[] = [
   { value: 'inside_fridge', label: 'Inside Fridge' },
@@ -121,109 +121,7 @@ export default function LeadsPage() {
           <p className="text-muted-foreground">Manage incoming leads and quotes</p>
         </div>
         <div className="flex items-center gap-3">
-          <QuickQuoteCalculator />
-          <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
-            <SheetTrigger asChild>
-              <Button><Plus className="h-4 w-4 mr-2" />New Lead</Button>
-            </SheetTrigger>
-          <SheetContent className="w-[480px] overflow-y-auto">
-            <SheetHeader>
-              <SheetTitle>New Lead</SheetTitle>
-            </SheetHeader>
-            <div className="space-y-4 mt-6">
-              <div className="grid grid-cols-2 gap-4">
-                <div><Label>Name</Label><Input value={form.customer_name} onChange={(e) => setForm({ ...form, customer_name: e.target.value })} /></div>
-                <div><Label>Phone</Label><Input value={form.customer_phone} onChange={(e) => setForm({ ...form, customer_phone: e.target.value })} /></div>
-              </div>
-              <div><Label>Email</Label><Input type="email" value={form.customer_email} onChange={(e) => setForm({ ...form, customer_email: e.target.value })} /></div>
-              <div className="grid grid-cols-2 gap-4">
-                <div><Label>City</Label><Input value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} /></div>
-                <div>
-                  <Label>Source</Label>
-                  <Select value={form.source} onValueChange={(v) => setForm({ ...form, source: v })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="lsa">LSA</SelectItem>
-                      <SelectItem value="referral">Referral</SelectItem>
-                      <SelectItem value="realtor">Realtor</SelectItem>
-                      <SelectItem value="inbound_call">Inbound Call</SelectItem>
-                      <SelectItem value="website">Website</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <div>
-                <Label>Service Type</Label>
-                <Select value={form.service_type} onValueChange={(v) => setForm({ ...form, service_type: v as ServiceType })}>
-                  <SelectTrigger><SelectValue placeholder="Select service" /></SelectTrigger>
-                  <SelectContent>
-                    {Object.entries(SERVICE_TYPE_LABELS).map(([k, v]) => (
-                      <SelectItem key={k} value={k}>{v}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div><Label>Preferred Date</Label><DatePicker value={form.preferred_date} onChange={(val) => setForm({ ...form, preferred_date: val })} /></div>
-                <div>
-                  <Label>Window</Label>
-                  <Select value={form.preferred_window} onValueChange={(v) => setForm({ ...form, preferred_window: v as TimeWindow })}>
-                    <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="morning">Morning (8-12)</SelectItem>
-                      <SelectItem value="afternoon">Afternoon (12-4)</SelectItem>
-                      <SelectItem value="evening">Evening (4-8)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <div className="grid grid-cols-3 gap-4">
-                <div><Label>Bedrooms</Label><Input type="number" value={form.home_bedrooms} onChange={(e) => setForm({ ...form, home_bedrooms: e.target.value })} /></div>
-                <div><Label>Bathrooms</Label><Input type="number" value={form.home_bathrooms} onChange={(e) => setForm({ ...form, home_bathrooms: e.target.value })} /></div>
-                <div><Label>Sq ft</Label><Input type="number" value={form.home_size_sqft} onChange={(e) => setForm({ ...form, home_size_sqft: e.target.value })} /></div>
-              </div>
-              <div>
-                <Label>Condition</Label>
-                <Select value={form.condition} onValueChange={(v) => setForm({ ...form, condition: v })}>
-                  <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="well_maintained">Well Maintained</SelectItem>
-                    <SelectItem value="average">Average</SelectItem>
-                    <SelectItem value="heavy_clean_needed">Heavy Clean Needed</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex items-center gap-2">
-                <Checkbox checked={form.has_pets} onCheckedChange={(c) => setForm({ ...form, has_pets: !!c })} />
-                <Label>Has Pets</Label>
-              </div>
-              <div>
-                <Label>Add-ons</Label>
-                <div className="grid grid-cols-2 gap-2 mt-2">
-                  {ADD_ON_OPTIONS.map((opt) => (
-                    <div key={opt.value} className="flex items-center gap-2">
-                      <Checkbox
-                        checked={form.add_ons.includes(opt.value)}
-                        onCheckedChange={(c) => {
-                          setForm({
-                            ...form,
-                            add_ons: c
-                              ? [...form.add_ons, opt.value]
-                              : form.add_ons.filter((a) => a !== opt.value),
-                          });
-                        }}
-                      />
-                      <Label className="text-sm">{opt.label}</Label>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div><Label>Quoted Price ($)</Label><Input type="number" step="0.01" value={form.quoted_price} onChange={(e) => setForm({ ...form, quoted_price: e.target.value })} /></div>
-              <div><Label>Notes</Label><Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
-              <Button onClick={handleSubmit} className="w-full">Create Lead</Button>
-            </div>
-          </SheetContent>
-        </Sheet>
+          <CRMPricingModal onSuccess={fetchLeads} />
         </div>
       </div>
 

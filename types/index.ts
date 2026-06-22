@@ -21,7 +21,7 @@ export type JobStatus =
   | 'cancelled' | 'rescheduled' | 'no_show' | 'disputed' | 'refunded';
 
 export type ServiceType =
-  | 'standard_clean' | 'deep_clean'
+  | 'standard_clean' | 'standard_plus_clean' | 'deep_clean' | 'reset_clean'
   | 'move_in_clean' | 'move_out_clean'
   | 'recurring_standard' | 'recurring_deep';
 
@@ -47,7 +47,9 @@ export type LeadSource = 'lsa' | 'referral' | 'realtor' | 'inbound_call' | 'webs
 
 export type HomeCondition = 'well_maintained' | 'average' | 'heavy_clean_needed';
 
-export type AddOn = 'inside_fridge' | 'inside_oven' | 'inside_cabinets' | 'baseboards' | 'interior_windows';
+export type AddOn = 
+  | 'inside_fridge' | 'inside_oven' | 'inside_cabinets' | 'baseboards' | 'interior_windows'
+  | 'exterior_windows' | 'pressure_washing' | 'carpet_stain' | 'laundry' | 'closet_org' | 'kitchen_cabinet_detail';
 
 export type PhotoType = 'before' | 'after' | 'issue' | 'supply_kit';
 
@@ -69,7 +71,9 @@ export type ExpenseCategory = 'supplies' | 'gas' | 'insurance' | 'maintenance' |
 
 export const SERVICE_TYPE_LABELS: Record<ServiceType, string> = {
   standard_clean: 'Standard Clean',
+  standard_plus_clean: 'Standard Plus',
   deep_clean: 'Deep Clean',
+  reset_clean: 'Reset Clean',
   move_in_clean: 'Move-In Clean',
   move_out_clean: 'Move-Out Clean',
   recurring_standard: 'Recurring Standard',
@@ -836,3 +840,26 @@ export interface ZoneExpansionScore {
   ready: boolean;
 }
 
+export interface PricingQuote {
+  id: string;
+  lead_id: string | null;
+  package_name: string;
+  property_size: string;
+  conditions: string[];
+  modifiers: {
+    sameDay: boolean;
+    afterHours: boolean;
+  };
+  add_ons: string[];
+  calculated_price: number;
+  breakdown: {
+    basePrice: number;
+    sizeAdjustment: number;
+    conditionAdjustments: number;
+    modifierAdjustments: number;
+    addOnTotal: number;
+  };
+  estimated_hours: number;
+  generated_at: string;
+  valid_until: string;
+}
