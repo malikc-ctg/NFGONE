@@ -23,6 +23,7 @@ import { format } from 'date-fns';
 import { SERVICE_TYPE_LABELS, DEFAULT_PRICING } from '@/types';
 import type { Lead, ServiceType, TimeWindow, AddOn } from '@/types';
 import Link from 'next/link';
+import { QuickQuoteCalculator } from '@/components/admin/leads/QuickQuoteCalculator';
 
 const ADD_ON_OPTIONS: { value: AddOn; label: string }[] = [
   { value: 'inside_fridge', label: 'Inside Fridge' },
@@ -119,10 +120,12 @@ export default function LeadsPage() {
           <h1 className="text-2xl font-bold tracking-tight">Leads</h1>
           <p className="text-muted-foreground">Manage incoming leads and quotes</p>
         </div>
-        <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
-          <SheetTrigger asChild>
-            <Button><Plus className="h-4 w-4 mr-2" />New Lead</Button>
-          </SheetTrigger>
+        <div className="flex items-center gap-3">
+          <QuickQuoteCalculator />
+          <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
+            <SheetTrigger asChild>
+              <Button><Plus className="h-4 w-4 mr-2" />New Lead</Button>
+            </SheetTrigger>
           <SheetContent className="w-[480px] overflow-y-auto">
             <SheetHeader>
               <SheetTitle>New Lead</SheetTitle>
@@ -221,6 +224,7 @@ export default function LeadsPage() {
             </div>
           </SheetContent>
         </Sheet>
+        </div>
       </div>
 
       {/* Filter chips */}
