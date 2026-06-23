@@ -848,7 +848,9 @@ export interface PricingQuote {
   id: string;
   lead_id: string | null;
   package_name: string;
-  property_size: string;
+  bedrooms: number;
+  bathrooms: number;
+  sqft: number;
   conditions: string[];
   modifiers: {
     sameDay: boolean;
@@ -858,7 +860,9 @@ export interface PricingQuote {
   calculated_price: number;
   breakdown: {
     basePrice: number;
-    sizeAdjustment: number;
+    bedroomAdjustment: number;
+    bathroomAdjustment: number;
+    sqftAdjustment: number;
     conditionAdjustments: number;
     modifierAdjustments: number;
     addOnTotal: number;

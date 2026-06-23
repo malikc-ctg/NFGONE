@@ -8,7 +8,9 @@ const schema = z.object({
   customer_email: z.string().optional(),
   address: z.string().optional(),
   package_name: z.string(),
-  property_size: z.string(),
+  bedrooms: z.number().min(1),
+  bathrooms: z.number().min(1),
+  sqft: z.number().min(0),
   conditions: z.array(z.string()),
   modifiers: z.object({
     sameDay: z.boolean(),
@@ -39,7 +41,7 @@ export async function POST(req: Request) {
         quoted_price: data.calculated_price,
         status: 'new',
         source: 'inbound_call',
-        notes: `Auto-generated quote: ${data.package_name} - ${data.property_size}`,
+        notes: `Auto-generated quote: ${data.package_name} - ${data.bedrooms} Bed, ${data.bathrooms} Bath, ${data.sqft} Sqft`,
       })
       .select()
       .single();
@@ -52,7 +54,9 @@ export async function POST(req: Request) {
       .insert({
         lead_id: lead.id,
         package_name: data.package_name,
-        property_size: data.property_size,
+        bedrooms: data.bedrooms,
+        bathrooms: data.bathrooms,
+        sqft: data.sqft,
         conditions: data.conditions,
         modifiers: data.modifiers,
         add_ons: data.add_ons,

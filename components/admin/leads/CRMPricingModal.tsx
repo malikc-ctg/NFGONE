@@ -11,27 +11,18 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Info, Calculator, Copy, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 
 type PackageType = 'standard_clean' | 'standard_plus_clean' | 'deep_clean' | 'reset_clean';
-type PropertySize = 'studio' | '1bed' | '2bed' | '3bed' | '4bed' | '5+bed';
 
 const PACKAGES = {
   standard_clean: { label: 'Standard Clean', base: 250, hours: 2.5 },
   standard_plus_clean: { label: 'Standard Plus', base: 350, hours: 3.5 },
   deep_clean: { label: 'Deep Clean', base: 500, hours: 4.5 },
   reset_clean: { label: 'Reset Clean', base: 750, hours: 7.5 },
-};
-
-const SIZE_ADJUSTMENTS: Record<PackageType, Record<PropertySize, number>> = {
-  standard_clean: { 'studio': 0, '1bed': 0, '2bed': 30, '3bed': 70, '4bed': 110, '5+bed': 150 },
-  standard_plus_clean: { 'studio': 0, '1bed': 0, '2bed': 50, '3bed': 100, '4bed': 170, '5+bed': 220 },
-  deep_clean: { 'studio': 0, '1bed': 0, '2bed': 80, '3bed': 180, '4bed': 300, '5+bed': 400 },
-  reset_clean: { 'studio': 0, '1bed': 0, '2bed': 150, '3bed': 350, '4bed': 600, '5+bed': 850 },
 };
 
 const CONDITION_ADJUSTMENTS = {
@@ -59,9 +50,13 @@ export function CRMPricingModal({ onSuccess }: { onSuccess?: () => void }) {
   const [customerEmail, setCustomerEmail] = useState('');
   const [address, setAddress] = useState('');
 
-  // Quote Selections
-  const [selectedPackage, setSelectedPackage] = useState<PackageType | ''>('');
-  const [propertySize, setPropertySize] = useState<PropertySize | ''>('');
+  // Quote Selections - Defaults set so calculation runs instantly
+  const [selectedPackage, setSelectedPackage] = useState<PackageType>('standard_clean');
+  
+  // Detailed Size Inputs
+  const [bedrooms, setBedrooms] = useState<number>(1);
+  const [bathrooms, setBathrooms] = useState<number>(1);
+  const [sqft, setSqft] = useState<number>(1000);
   
   const [conditions, setConditions] = useState<Record<string, boolean>>({});
   const [sameDay, setSameDay] = useState(false);
@@ -72,7 +67,8 @@ export function CRMPricingModal({ onSuccess }: { onSuccess?: () => void }) {
   const handleOpenChange = (newOpen: boolean) => {
     if (!newOpen) {
       setCustomerName(''); setCustomerPhone(''); setCustomerEmail(''); setAddress('');
-      setSelectedPackage(''); setPropertySize('');
+      setSelectedPackage('standard_clean'); 
+      setBedrooms(1); setBathrooms(1); setSqft(1000);
       setConditions({}); setSameDay(false); setAfterHours(false); setSelectedAddOns({});
     }
     setOpen(newOpen);
@@ -84,11 +80,25 @@ export function CRMPricingModal({ onSuccess }: { onSuccess?: () => void }) {
   const canSelectAddOns = selectedPackage === 'deep_clean' || selectedPackage === 'reset_clean';
 
   const breakdown = useMemo(() => {
-    if (!selectedPackage || !propertySize) return null;
+    if (!selectedPackage) return null;
 
     const pkg = PACKAGES[selectedPackage];
     const basePrice = pkg.base;
-    const sizeAdjustment = SIZE_ADJUSTMENTS[selectedPackage][propertySize];
+
+    // Detailed Math logic based on new implementation plan
+    // Extra beds
+    const extraBeds = Math.max(0, bedrooms - 1);
+    const bedMultiplier = (selectedPackage === 'standard_clean' || selectedPackage === 'standard_plus_clean') ? 40 : 60;
+    const bedroomAdjustment = extraBeds * bedMultiplier;
+
+    // Extra baths
+    const extraBaths = Math.max(0, bathrooms - 1);
+    const bathMultiplier = (selectedPackage === 'standard_clean' || selectedPackage === 'standard_plus_clean') ? 30 : 50;
+    const bathroomAdjustment = extraBaths * bathMultiplier;
+
+    // Extra sqft (+$15 for every 500 sq ft over 1000)
+    const extraSqftBlocks = Math.ceil(Math.max(0, sqft - 1000) / 500);
+    const sqftAdjustment = extraSqftBlocks * 15;
 
     let conditionAdjustments = 0;
     const activeConditions: { label: string; amount: number; desc: string }[] = [];
@@ -115,13 +125,15 @@ export function CRMPricingModal({ onSuccess }: { onSuccess?: () => void }) {
       });
     }
 
-    let calculatedPrice = basePrice + sizeAdjustment + conditionAdjustments + modifierAdjustments + addOnTotal;
+    let calculatedPrice = basePrice + bedroomAdjustment + bathroomAdjustment + sqftAdjustment + conditionAdjustments + modifierAdjustments + addOnTotal;
     // Floor minimum
     if (calculatedPrice < 250) calculatedPrice = 250;
 
     return {
       basePrice,
-      sizeAdjustment,
+      bedroomAdjustment,
+      bathroomAdjustment,
+      sqftAdjustment,
       conditionAdjustments,
       activeConditions,
       modifierAdjustments,
@@ -130,19 +142,19 @@ export function CRMPricingModal({ onSuccess }: { onSuccess?: () => void }) {
       calculatedPrice,
       estimatedHours: pkg.hours
     };
-  }, [selectedPackage, propertySize, conditions, sameDay, afterHours, selectedAddOns, canSelectAddOns]);
+  }, [selectedPackage, bedrooms, bathrooms, sqft, conditions, sameDay, afterHours, selectedAddOns, canSelectAddOns]);
 
   const handleCopy = () => {
-    if (!breakdown || !selectedPackage || !propertySize) return;
+    if (!breakdown || !selectedPackage) return;
     
     const text = `
 QUOTE BREAKDOWN
 
 Base Package
-${PACKAGES[selectedPackage].label} - ${propertySize} Home: $${breakdown.basePrice.toFixed(2)}
+${PACKAGES[selectedPackage].label} (Up to 1 Bed/1 Bath/1000 Sqft): $${breakdown.basePrice.toFixed(2)}
 
-Size Adjustment: +$${breakdown.sizeAdjustment.toFixed(2)}
-
+Size Adjustments:
+${breakdown.bedroomAdjustment > 0 ? `- Extra Bedrooms: +$${breakdown.bedroomAdjustment.toFixed(2)}\n` : ''}${breakdown.bathroomAdjustment > 0 ? `- Extra Bathrooms: +$${breakdown.bathroomAdjustment.toFixed(2)}\n` : ''}${breakdown.sqftAdjustment > 0 ? `- Extra Square Footage: +$${breakdown.sqftAdjustment.toFixed(2)}\n` : ''}
 Condition Adjustments: +$${breakdown.conditionAdjustments.toFixed(2)}
 ${breakdown.activeConditions.map(c => `- ${c.label}: +$${c.amount.toFixed(2)}`).join('\n')}
 
@@ -161,8 +173,8 @@ Estimated duration: ${breakdown.estimatedHours} hours
   };
 
   const handleGenerateQuote = async () => {
-    if (!selectedPackage || !propertySize || !customerName) {
-      toast.error('Please fill out required fields (Name, Package, Size)');
+    if (!selectedPackage || !customerName) {
+      toast.error('Please fill out required fields (Name, Package)');
       return;
     }
     
@@ -177,7 +189,9 @@ Estimated duration: ${breakdown.estimatedHours} hours
           customer_email: customerEmail,
           address: address,
           package_name: selectedPackage,
-          property_size: propertySize,
+          bedrooms,
+          bathrooms,
+          sqft,
           conditions: Object.keys(conditions).filter(k => conditions[k]),
           modifiers: { sameDay, afterHours },
           add_ons: Object.keys(selectedAddOns).filter(k => selectedAddOns[k]),
@@ -247,20 +261,23 @@ Estimated duration: ${breakdown.estimatedHours} hours
               </div>
             </section>
 
-            {/* Property Size */}
+            {/* Property Size - Detailed Inputs */}
             <section className="space-y-4">
-              <h3 className="font-semibold text-lg">2. Property Size *</h3>
-              <Select value={propertySize} onValueChange={(v) => setPropertySize(v as PropertySize)}>
-                <SelectTrigger className="w-full max-w-sm"><SelectValue placeholder="Select size" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="studio">Studio</SelectItem>
-                  <SelectItem value="1bed">1 Bedroom</SelectItem>
-                  <SelectItem value="2bed">2 Bedrooms</SelectItem>
-                  <SelectItem value="3bed">3 Bedrooms</SelectItem>
-                  <SelectItem value="4bed">4 Bedrooms</SelectItem>
-                  <SelectItem value="5+bed">5+ Bedrooms</SelectItem>
-                </SelectContent>
-              </Select>
+              <h3 className="font-semibold text-lg">2. Property Details *</h3>
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <Label>Bedrooms</Label>
+                  <Input type="number" min={1} value={bedrooms} onChange={e => setBedrooms(parseInt(e.target.value) || 1)} />
+                </div>
+                <div>
+                  <Label>Bathrooms</Label>
+                  <Input type="number" min={1} value={bathrooms} onChange={e => setBathrooms(parseInt(e.target.value) || 1)} />
+                </div>
+                <div>
+                  <Label>Square Footage</Label>
+                  <Input type="number" min={0} step={100} value={sqft} onChange={e => setSqft(parseInt(e.target.value) || 0)} />
+                </div>
+              </div>
             </section>
 
             {/* Conditions */}
@@ -337,7 +354,7 @@ Estimated duration: ${breakdown.estimatedHours} hours
 
               {!breakdown ? (
                 <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm text-center">
-                  Select a package and property size to see the real-time quote.
+                  Select a package to see the real-time quote.
                 </div>
               ) : (
                 <div className="flex-1 overflow-y-auto space-y-6 pr-2">
@@ -346,19 +363,33 @@ Estimated duration: ${breakdown.estimatedHours} hours
                   <div>
                     <h4 className="text-xs font-semibold uppercase text-muted-foreground mb-2">Base Package</h4>
                     <div className="flex justify-between text-sm">
-                      <span>{PACKAGES[selectedPackage as PackageType].label} - {propertySize}</span>
+                      <span>{PACKAGES[selectedPackage as PackageType].label}</span>
                       <span className="font-medium">${breakdown.basePrice.toFixed(2)}</span>
                     </div>
                   </div>
 
                   {/* Size Adjustment */}
-                  {breakdown.sizeAdjustment > 0 && (
+                  {(breakdown.bedroomAdjustment > 0 || breakdown.bathroomAdjustment > 0 || breakdown.sqftAdjustment > 0) && (
                     <div>
-                      <h4 className="text-xs font-semibold uppercase text-muted-foreground mb-2">Size Adjustment</h4>
-                      <div className="flex justify-between text-sm text-orange-600">
-                        <span>{propertySize} premium</span>
-                        <span>+${breakdown.sizeAdjustment.toFixed(2)}</span>
-                      </div>
+                      <h4 className="text-xs font-semibold uppercase text-muted-foreground mb-2">Size Adjustments</h4>
+                      {breakdown.bedroomAdjustment > 0 && (
+                        <div className="flex justify-between text-sm text-orange-600 mb-1">
+                          <span>Extra Bedrooms ({Math.max(0, bedrooms - 1)})</span>
+                          <span>+${breakdown.bedroomAdjustment.toFixed(2)}</span>
+                        </div>
+                      )}
+                      {breakdown.bathroomAdjustment > 0 && (
+                        <div className="flex justify-between text-sm text-orange-600 mb-1">
+                          <span>Extra Bathrooms ({Math.max(0, bathrooms - 1)})</span>
+                          <span>+${breakdown.bathroomAdjustment.toFixed(2)}</span>
+                        </div>
+                      )}
+                      {breakdown.sqftAdjustment > 0 && (
+                        <div className="flex justify-between text-sm text-orange-600 mb-1">
+                          <span>Extra Sqft ({sqft > 1000 ? sqft - 1000 : 0})</span>
+                          <span>+${breakdown.sqftAdjustment.toFixed(2)}</span>
+                        </div>
+                      )}
                     </div>
                   )}
 
@@ -426,7 +457,7 @@ Estimated duration: ${breakdown.estimatedHours} hours
                   className="w-full text-base font-bold" 
                   size="lg" 
                   onClick={handleGenerateQuote}
-                  disabled={!selectedPackage || !propertySize || !customerName || loading || isExtreme}
+                  disabled={!selectedPackage || !customerName || loading || isExtreme}
                 >
                   {loading ? 'Generating...' : 'Generate Quote'}
                 </Button>
