@@ -12,6 +12,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Calculator, Copy, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -43,6 +50,7 @@ export function CRMPricingModal({ onSuccess }: { onSuccess?: () => void }) {
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerEmail, setCustomerEmail] = useState('');
   const [address, setAddress] = useState('');
+  const [source, setSource] = useState('inbound_call');
 
   // Selections
   const [selectedPackage, setSelectedPackage] = useState<PackageType>('standard_clean');
@@ -65,7 +73,7 @@ export function CRMPricingModal({ onSuccess }: { onSuccess?: () => void }) {
   // Reset form when modal opens/closes
   const handleOpenChange = (newOpen: boolean) => {
     if (!newOpen) {
-      setCustomerName(''); setCustomerPhone(''); setCustomerEmail(''); setAddress('');
+      setCustomerName(''); setCustomerPhone(''); setCustomerEmail(''); setAddress(''); setSource('inbound_call');
       setSelectedPackage('standard_clean');
       setBedrooms(1); setBathrooms(1); setSqft(1000);
       setSelectedTasks({}); setSameDay(false); setAfterHours(false);
@@ -173,6 +181,7 @@ Estimated duration: ~${breakdown.estimatedHours} hours
           customer_phone: customerPhone,
           customer_email: customerEmail,
           address: address,
+          source: source,
           package_name: selectedPackage,
           selected_tasks: activeTaskIds,
           bedrooms,
@@ -229,6 +238,21 @@ Estimated duration: ~${breakdown.estimatedHours} hours
                 <div><Label>Phone</Label><Input value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} placeholder="(555) 555-5555" /></div>
                 <div><Label>Email</Label><Input type="email" value={customerEmail} onChange={e => setCustomerEmail(e.target.value)} placeholder="john@example.com" /></div>
                 <div><Label>Address/City</Label><Input value={address} onChange={e => setAddress(e.target.value)} placeholder="123 Main St" /></div>
+                <div>
+                  <Label>Lead Source *</Label>
+                  <Select value={source} onValueChange={setSource}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select source" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="inbound_call">Inbound Call</SelectItem>
+                      <SelectItem value="website">Website</SelectItem>
+                      <SelectItem value="referral">Referral</SelectItem>
+                      <SelectItem value="realtor">Realtor</SelectItem>
+                      <SelectItem value="lsa">Local Service Ads (LSA)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </section>
 

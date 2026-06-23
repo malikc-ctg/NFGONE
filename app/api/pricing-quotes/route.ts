@@ -7,6 +7,7 @@ const schema = z.object({
   customer_phone: z.string().optional(),
   customer_email: z.string().optional(),
   address: z.string().optional(),
+  source: z.string().optional().default('inbound_call'),
   package_name: z.string(),
   selected_tasks: z.array(z.string()),
   bedrooms: z.number().min(1),
@@ -41,7 +42,7 @@ export async function POST(req: Request) {
         service_type: data.package_name,
         quoted_price: data.calculated_price,
         status: 'new',
-        source: 'inbound_call',
+        source: data.source,
         notes: `Quote: ${data.package_name} - ${data.bedrooms} Bed, ${data.bathrooms} Bath, ${data.sqft} Sqft. Extras: ${data.selected_tasks.join(', ')}`,
       })
       .select()
