@@ -59,6 +59,9 @@ export function CRMPricingModal({ onSuccess }: { onSuccess?: () => void }) {
   const [sameDay, setSameDay] = useState(false);
   const [afterHours, setAfterHours] = useState(false);
 
+  // Manual Override
+  const [manualPrice, setManualPrice] = useState<number | null>(null);
+
   // Reset form when modal opens/closes
   const handleOpenChange = (newOpen: boolean) => {
     if (!newOpen) {
@@ -66,6 +69,7 @@ export function CRMPricingModal({ onSuccess }: { onSuccess?: () => void }) {
       setSelectedPackage('standard_clean');
       setBedrooms(1); setBathrooms(1); setSqft(1000);
       setSelectedTasks({}); setSameDay(false); setAfterHours(false);
+      setManualPrice(null);
     }
     setOpen(newOpen);
   };
@@ -118,6 +122,13 @@ export function CRMPricingModal({ onSuccess }: { onSuccess?: () => void }) {
     };
   }, [selectedPackage, bedrooms, bathrooms, sqft, selectedTasks, sameDay, afterHours]);
 
+  // Clear manual price if they change the calculator inputs
+  useMemo(() => {
+    setManualPrice(null);
+  }, [breakdown?.calculatedPrice]);
+
+  const finalPrice = manualPrice !== null ? manualPrice : (breakdown?.calculatedPrice || 0);
+
   const handleCopy = () => {
     if (!breakdown || !selectedPackage) return;
     
@@ -135,7 +146,7 @@ ${breakdown.activeTasks.length > 0 ? breakdown.activeTasks.map(t => `- ${t.label
 Service Modifiers:
 ${sameDay ? '- Same-day rush: +$100.00\n' : ''}${afterHours ? '- After-hours: +$50.00\n' : ''}
 ------------------------------------------
-SUBTOTAL: $${breakdown.calculatedPrice.toFixed(2)}
+${manualPrice !== null ? `ORIGINAL CALCULATED: $${breakdown.calculatedPrice.toFixed(2)}\nCUSTOM DISCOUNT/OVERRIDE APPLIED\n------------------------------------------\n` : ''}SUBTOTAL: $${finalPrice.toFixed(2)}
 
 Estimated duration: ~${breakdown.estimatedHours} hours
 `.trim();
@@ -170,7 +181,7 @@ Estimated duration: ~${breakdown.estimatedHours} hours
           conditions: [], // deprecated from UI but kept in schema array
           modifiers: { sameDay, afterHours },
           add_ons: [], // deprecated
-          calculated_price: breakdown?.calculatedPrice,
+          calculated_price: finalPrice,
           breakdown: breakdown,
           estimated_hours: breakdown?.estimatedHours,
         })
@@ -370,7 +381,15 @@ Estimated duration: ~${breakdown.estimatedHours} hours
                   <div>
                     <div className="flex justify-between items-center text-3xl font-bold text-primary mb-4">
                       <span>TOTAL</span>
-                      <span>${breakdown.calculatedPrice.toFixed(2)}</span>
+                      <div className="flex items-center">
+                        <span className="mr-1">$</span>
+                        <Input 
+                          type="number" 
+                          className="w-32 text-2xl font-bold h-12 text-right focus-visible:ring-1"
+                          value={manualPrice !== null ? manualPrice : breakdown.calculatedPrice}
+                          onChange={(e) => setManualPrice(e.target.value === '' ? null : (parseFloat(e.target.value) || 0))}
+                        />
+                      </div>
                     </div>
                     
                     {needsReview && (
