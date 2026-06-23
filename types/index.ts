@@ -480,7 +480,9 @@ export interface ContractorExpense {
 
 export const MIN_PHOTOS: Record<string, number> = {
   standard_clean: 4,
+  standard_plus_clean: 5,
   deep_clean: 6,
+  reset_clean: 8,
   move_out_clean: 8,
   move_in_clean: 8,
   recurring_standard: 4,
@@ -490,8 +492,10 @@ export const MIN_PHOTOS: Record<string, number> = {
 // ---------- Default pricing (CAD) ----------
 
 export const DEFAULT_PRICING: Record<ServiceType, number> = {
-  standard_clean: 180,
-  deep_clean: 280,
+  standard_clean: 250,
+  standard_plus_clean: 350,
+  deep_clean: 500,
+  reset_clean: 750,
   move_in_clean: 350,
   move_out_clean: 350,
   recurring_standard: 160,
