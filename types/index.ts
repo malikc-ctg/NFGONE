@@ -847,7 +847,7 @@ export interface ZoneExpansionScore {
 export interface PricingQuote {
   id: string;
   lead_id: string | null;
-  package_name: string;
+  selected_tasks: string[];
   bedrooms: number;
   bathrooms: number;
   sqft: number;
@@ -865,7 +865,7 @@ export interface PricingQuote {
     sqftAdjustment: number;
     conditionAdjustments: number;
     modifierAdjustments: number;
-    addOnTotal: number;
+    tasksTotal: number;
   };
   estimated_hours: number;
   generated_at: string;

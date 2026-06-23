@@ -7,7 +7,7 @@ const schema = z.object({
   customer_phone: z.string().optional(),
   customer_email: z.string().optional(),
   address: z.string().optional(),
-  package_name: z.string(),
+  selected_tasks: z.array(z.string()),
   bedrooms: z.number().min(1),
   bathrooms: z.number().min(1),
   sqft: z.number().min(0),
@@ -17,7 +17,7 @@ const schema = z.object({
     afterHours: z.boolean(),
   }),
   add_ons: z.array(z.string()),
-  calculated_price: z.number().min(250),
+  calculated_price: z.number(),
   breakdown: z.any(),
   estimated_hours: z.number()
 });
@@ -37,11 +37,11 @@ export async function POST(req: Request) {
         customer_phone: data.customer_phone || null,
         customer_email: data.customer_email || null,
         city: data.address || null,
-        service_type: data.package_name,
+        service_type: 'standard_clean', // Defaulting as custom a-la-carte doesn't have a single type
         quoted_price: data.calculated_price,
         status: 'new',
         source: 'inbound_call',
-        notes: `Auto-generated quote: ${data.package_name} - ${data.bedrooms} Bed, ${data.bathrooms} Bath, ${data.sqft} Sqft`,
+        notes: `Custom Quote - ${data.bedrooms} Bed, ${data.bathrooms} Bath, ${data.sqft} Sqft. Tasks: ${data.selected_tasks.join(', ')}`,
       })
       .select()
       .single();
@@ -53,7 +53,7 @@ export async function POST(req: Request) {
       .from('pricing_quotes')
       .insert({
         lead_id: lead.id,
-        package_name: data.package_name,
+        selected_tasks: data.selected_tasks,
         bedrooms: data.bedrooms,
         bathrooms: data.bathrooms,
         sqft: data.sqft,
