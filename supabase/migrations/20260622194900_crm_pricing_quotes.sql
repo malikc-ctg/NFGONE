@@ -21,6 +21,9 @@ CREATE TABLE IF NOT EXISTS pricing_quotes (
 -- Enable RLS
 ALTER TABLE pricing_quotes ENABLE ROW LEVEL SECURITY;
 
+-- Drop policy if it exists so we can re-run safely
+DROP POLICY IF EXISTS "Admins can manage pricing quotes" ON pricing_quotes;
+
 -- Admins can do anything
 CREATE POLICY "Admins can manage pricing quotes" ON pricing_quotes
     FOR ALL

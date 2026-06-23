@@ -199,8 +199,8 @@ Estimated duration: ${breakdown.estimatedHours} hours
     }
   };
 
-  const needsReview = breakdown && breakdown.calculatedPrice > 2000;
-  const isExtreme = breakdown && breakdown.calculatedPrice > 5000;
+  const needsReview = breakdown ? breakdown.calculatedPrice > 2000 : false;
+  const isExtreme = breakdown ? breakdown.calculatedPrice > 5000 : false;
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
