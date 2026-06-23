@@ -18,8 +18,8 @@ import { toast } from 'sonner';
 type PackageType = 'standard_clean' | 'standard_plus_clean' | 'deep_clean' | 'reset_clean';
 
 const PACKAGES = {
-  standard_clean: { label: 'Standard Clean', base: 250, hours: 2.5 },
-  standard_plus_clean: { label: 'Standard Plus', base: 350, hours: 3.5 },
+  standard_clean: { label: 'Standard Clean', base: 200, hours: 2.5 },
+  standard_plus_clean: { label: 'Standard Plus', base: 300, hours: 3.5 },
   deep_clean: { label: 'Deep Clean', base: 500, hours: 4.5 },
   reset_clean: { label: 'Reset Clean', base: 750, hours: 7.5 },
 };
@@ -79,17 +79,15 @@ export function CRMPricingModal({ onSuccess }: { onSuccess?: () => void }) {
     // Size logic
     // Extra beds over 1
     const extraBeds = Math.max(0, bedrooms - 1);
-    const bedMultiplier = (selectedPackage === 'standard_clean' || selectedPackage === 'standard_plus_clean') ? 40 : 60;
-    const bedroomAdjustment = extraBeds * bedMultiplier;
+    const bedroomAdjustment = extraBeds * 20;
 
     // Extra baths over 1
     const extraBaths = Math.max(0, bathrooms - 1);
-    const bathMultiplier = (selectedPackage === 'standard_clean' || selectedPackage === 'standard_plus_clean') ? 30 : 50;
-    const bathroomAdjustment = extraBaths * bathMultiplier;
+    const bathroomAdjustment = extraBaths * 15;
 
-    // Extra sqft
-    const extraSqftBlocks = Math.ceil(Math.max(0, sqft - 1000) / 500);
-    const sqftAdjustment = extraSqftBlocks * 15;
+    // Extra sqft (12c per sqft over 1000)
+    const extraSqft = Math.max(0, sqft - 1000);
+    const sqftAdjustment = extraSqft * 0.12;
 
     // Tasks logic
     let tasksTotal = 0;
