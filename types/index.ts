@@ -847,6 +847,7 @@ export interface ZoneExpansionScore {
 export interface PricingQuote {
   id: string;
   lead_id: string | null;
+  package_name: string;
   selected_tasks: string[];
   bedrooms: number;
   bathrooms: number;
