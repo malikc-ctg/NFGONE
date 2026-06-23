@@ -136,7 +136,7 @@ export default function LeadDetailPage() {
         </Select>
 
         {lead.status !== 'converted' && (
-          <Dialog open={convertOpen} onOpenChange={setConvertOpen}>
+          <Dialog modal={false} open={convertOpen} onOpenChange={setConvertOpen}>
             <DialogTrigger asChild>
               <Button><ArrowRight className="h-4 w-4 mr-2" />Convert to Job</Button>
             </DialogTrigger>
