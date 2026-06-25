@@ -225,12 +225,7 @@ Estimated duration: ~${breakdown.estimatedHours} hours
       </DialogTrigger>
       <DialogContent 
         className="max-w-6xl w-full h-[90vh] flex flex-col p-0 gap-0 overflow-hidden bg-background"
-        onInteractOutside={(e) => {
-          const target = e.target as HTMLElement;
-          if (target.closest('mapbox-address-autofill') || target.closest('mapbox-search-list-box') || target.closest('ul')) {
-            e.preventDefault();
-          }
-        }}
+        onInteractOutside={(e) => e.preventDefault()}
       >
         <DialogHeader className="px-6 py-4 border-b">
           <DialogTitle className="text-xl">Generate Pricing Quote</DialogTitle>

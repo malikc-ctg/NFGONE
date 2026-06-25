@@ -180,12 +180,7 @@ export default function LeadDetailPage() {
           </DialogTrigger>
           <DialogContent 
             className="max-h-[90vh] overflow-y-auto"
-            onInteractOutside={(e) => {
-              const target = e.target as HTMLElement;
-              if (target.closest('mapbox-address-autofill') || target.closest('mapbox-search-list-box') || target.closest('ul')) {
-                e.preventDefault();
-              }
-            }}
+            onInteractOutside={(e) => e.preventDefault()}
           >
             <DialogHeader>
               <DialogTitle>Edit Lead</DialogTitle>
@@ -224,14 +219,7 @@ export default function LeadDetailPage() {
             <DialogTrigger asChild>
               <Button><ArrowRight className="h-4 w-4 mr-2" />Convert to Job</Button>
             </DialogTrigger>
-            <DialogContent
-              onInteractOutside={(e) => {
-                const target = e.target as HTMLElement;
-                if (target.closest('mapbox-address-autofill') || target.closest('mapbox-search-list-box') || target.closest('ul')) {
-                  e.preventDefault();
-                }
-              }}
-            >
+            <DialogContent onInteractOutside={(e) => e.preventDefault()}>
               <DialogHeader>
                 <DialogTitle>Convert Lead to Job</DialogTitle>
                 <DialogDescription className="sr-only">
