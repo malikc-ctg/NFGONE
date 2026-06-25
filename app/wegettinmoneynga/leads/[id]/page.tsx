@@ -82,7 +82,10 @@ export default function LeadDetailPage() {
     if (!confirm('Are you sure you want to delete this lead? This action cannot be undone.')) return;
     try {
       const res = await fetch(`/api/leads/${params.id}`, { method: 'DELETE' });
-      if (!res.ok) throw new Error('Failed to delete lead');
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'Failed to delete lead');
+      }
       toast.success('Lead deleted successfully');
       router.push('/wegettinmoneynga/leads');
     } catch (err: any) {

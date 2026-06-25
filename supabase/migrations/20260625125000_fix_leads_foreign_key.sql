@@ -1,0 +1,2 @@
+ALTER TABLE jobs DROP CONSTRAINT IF EXISTS jobs_lead_id_fkey;
+ALTER TABLE jobs ADD CONSTRAINT jobs_lead_id_fkey FOREIGN KEY (lead_id) REFERENCES leads(id) ON DELETE SET NULL;

@@ -1,0 +1,15 @@
+
+> sob-init@0.1.0 dev
+> next dev
+
+  ▲ Next.js 14.2.35
+  - Local:        http://localhost:3000
+  - Environments: .env.local
+
+ ✓ Starting...
+ ✓ Ready in 1216ms
+ ✓ Compiled /middleware in 303ms (169 modules)
+ ✓ Compiled /api/leads/[id] in 229ms (163 modules)
+ DELETE /api/leads/123 401 in 453ms
+<w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (101kiB) impacts deserialization performance (consider using Buffer instead and decode when needed)
+<w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (231kiB) impacts deserialization performance (consider using Buffer instead and decode when needed)
