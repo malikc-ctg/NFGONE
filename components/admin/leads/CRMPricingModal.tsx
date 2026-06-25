@@ -19,6 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { AddressAutocomplete } from '@/components/ui/address-autocomplete';
 import { Calculator, Copy, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -215,7 +216,7 @@ Estimated duration: ~${breakdown.estimatedHours} hours
   const isExtreme = breakdown ? breakdown.calculatedPrice > 5000 : false;
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
+    <Dialog modal={false} open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button size="lg" className="font-bold text-md">
           <Calculator className="h-5 w-5 mr-2" /> New Lead / Quote
@@ -237,7 +238,7 @@ Estimated duration: ~${breakdown.estimatedHours} hours
                 <div><Label>Full Name *</Label><Input value={customerName} onChange={e => setCustomerName(e.target.value)} placeholder="John Doe" /></div>
                 <div><Label>Phone</Label><Input value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} placeholder="(555) 555-5555" /></div>
                 <div><Label>Email</Label><Input type="email" value={customerEmail} onChange={e => setCustomerEmail(e.target.value)} placeholder="john@example.com" /></div>
-                <div><Label>Address/City</Label><Input value={address} onChange={e => setAddress(e.target.value)} placeholder="123 Main St" /></div>
+                <div><Label>Address/City</Label><AddressAutocomplete value={address} onChange={e => setAddress(e.target.value)} onAddressSelect={addr => setAddress(`${addr.address_line1}, ${addr.city}`)} /></div>
                 <div>
                   <Label>Lead Source *</Label>
                   <Select value={source} onValueChange={setSource}>
