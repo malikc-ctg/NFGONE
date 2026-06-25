@@ -178,9 +178,20 @@ export default function LeadDetailPage() {
           <DialogTrigger asChild>
             <Button variant="outline"><Pencil className="h-4 w-4 mr-2" /> Edit</Button>
           </DialogTrigger>
-          <DialogContent className="max-h-[90vh] overflow-y-auto">
+          <DialogContent 
+            className="max-h-[90vh] overflow-y-auto"
+            onInteractOutside={(e) => {
+              const target = e.target as HTMLElement;
+              if (target.closest('mapbox-address-autofill') || target.closest('mapbox-search-list-box') || target.closest('ul')) {
+                e.preventDefault();
+              }
+            }}
+          >
             <DialogHeader>
               <DialogTitle>Edit Lead</DialogTitle>
+              <DialogDescription className="sr-only">
+                Edit the contact information and job details for this lead.
+              </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
               <div><Label>Customer Name</Label><Input value={editForm.customer_name || ''} onChange={e => setEditForm({ ...editForm, customer_name: e.target.value })} /></div>
@@ -213,7 +224,14 @@ export default function LeadDetailPage() {
             <DialogTrigger asChild>
               <Button><ArrowRight className="h-4 w-4 mr-2" />Convert to Job</Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent
+              onInteractOutside={(e) => {
+                const target = e.target as HTMLElement;
+                if (target.closest('mapbox-address-autofill') || target.closest('mapbox-search-list-box') || target.closest('ul')) {
+                  e.preventDefault();
+                }
+              }}
+            >
               <DialogHeader>
                 <DialogTitle>Convert Lead to Job</DialogTitle>
                 <DialogDescription className="sr-only">

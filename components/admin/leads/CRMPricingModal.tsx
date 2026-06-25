@@ -222,9 +222,20 @@ Estimated duration: ~${breakdown.estimatedHours} hours
           <Calculator className="h-5 w-5 mr-2" /> New Lead / Quote
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-6xl w-full h-[90vh] flex flex-col p-0 gap-0 overflow-hidden bg-background">
+      <DialogContent 
+        className="max-w-6xl w-full h-[90vh] flex flex-col p-0 gap-0 overflow-hidden bg-background"
+        onInteractOutside={(e) => {
+          const target = e.target as HTMLElement;
+          if (target.closest('mapbox-address-autofill') || target.closest('mapbox-search-list-box') || target.closest('ul')) {
+            e.preventDefault();
+          }
+        }}
+      >
         <DialogHeader className="px-6 py-4 border-b">
           <DialogTitle className="text-xl">Generate Pricing Quote</DialogTitle>
+          <DialogDescription className="sr-only">
+            Generate a new pricing quote by selecting service packages, extras, and entering customer details.
+          </DialogDescription>
         </DialogHeader>
         
         <div className="flex-1 overflow-hidden flex flex-col md:flex-row">
