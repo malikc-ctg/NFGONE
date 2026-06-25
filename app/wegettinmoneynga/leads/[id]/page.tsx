@@ -10,7 +10,7 @@ import { AddressAutocomplete } from '@/components/ui/address-autocomplete';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, ArrowRight, Trash2 } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Trash2, Pencil } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { SERVICE_TYPE_LABELS, TIME_WINDOW_LABELS } from '@/types';
@@ -23,6 +23,8 @@ export default function LeadDetailPage() {
   const [lead, setLead] = useState<Lead | null>(null);
   const [loading, setLoading] = useState(true);
   const [convertOpen, setConvertOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editForm, setEditForm] = useState<Partial<Lead>>({});
   const [zones, setZones] = useState<any[]>([]);
   const [convertForm, setConvertForm] = useState({
     zone_id: '', scheduled_date: '', scheduled_window: '',
@@ -40,6 +42,7 @@ export default function LeadDetailPage() {
         scheduled_window: data.preferred_window ?? '',
         quoted_price: data.quoted_price?.toString() ?? '',
       }));
+      setEditForm(data);
       setLoading(false);
     }
     async function fetchZones() {
@@ -107,6 +110,23 @@ export default function LeadDetailPage() {
     }
   }
 
+  async function handleEditLead() {
+    try {
+      const res = await fetch(`/api/leads/${params.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editForm),
+      });
+      if (!res.ok) throw new Error('Failed to update lead');
+      const updatedLead = await res.json();
+      setLead(updatedLead);
+      setEditOpen(false);
+      toast.success('Lead updated successfully');
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  }
+
   if (loading) return <p className="text-muted-foreground">Loading...</p>;
   if (!lead) return <p className="text-red-500">Lead not found</p>;
 
@@ -153,6 +173,36 @@ export default function LeadDetailPage() {
             <SelectItem value="lost">Lost</SelectItem>
           </SelectContent>
         </Select>
+
+        <Dialog modal={false} open={editOpen} onOpenChange={setEditOpen}>
+          <DialogTrigger asChild>
+            <Button variant="outline"><Pencil className="h-4 w-4 mr-2" /> Edit</Button>
+          </DialogTrigger>
+          <DialogContent className="max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Edit Lead</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div><Label>Customer Name</Label><Input value={editForm.customer_name || ''} onChange={e => setEditForm({ ...editForm, customer_name: e.target.value })} /></div>
+              <div><Label>Phone</Label><Input value={editForm.customer_phone || ''} onChange={e => setEditForm({ ...editForm, customer_phone: e.target.value })} /></div>
+              <div><Label>Email</Label><Input value={editForm.customer_email || ''} onChange={e => setEditForm({ ...editForm, customer_email: e.target.value })} /></div>
+              <div><Label>City</Label><Input value={editForm.city || ''} onChange={e => setEditForm({ ...editForm, city: e.target.value })} /></div>
+              <div>
+                <Label>Service Type</Label>
+                <Select value={editForm.service_type || ''} onValueChange={v => setEditForm({ ...editForm, service_type: v as any })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(SERVICE_TYPE_LABELS).map(([val, label]) => (
+                      <SelectItem key={val} value={val}>{label as string}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div><Label>Quoted Price</Label><Input type="number" value={editForm.quoted_price || ''} onChange={e => setEditForm({ ...editForm, quoted_price: e.target.value ? parseFloat(e.target.value) : undefined })} /></div>
+              <Button onClick={handleEditLead} className="w-full">Save Changes</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         <Button variant="destructive" onClick={handleDelete}>
           <Trash2 className="h-4 w-4 mr-2" /> Delete
