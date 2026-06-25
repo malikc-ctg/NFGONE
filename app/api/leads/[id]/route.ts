@@ -53,3 +53,24 @@ export async function GET(
     return NextResponse.json({ error: (err as Error).message }, { status: 500 });
   }
 }
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const auth = await requireRole(['admin']);
+    if (auth instanceof NextResponse) return auth;
+
+    const supabase = await createServiceClient();
+    const { error } = await supabase
+      .from('leads')
+      .delete()
+      .eq('id', params.id);
+
+    if (error) throw error;
+    return NextResponse.json({ success: true });
+  } catch (err: unknown) {
+    return NextResponse.json({ error: (err as Error).message }, { status: 500 });
+  }
+}

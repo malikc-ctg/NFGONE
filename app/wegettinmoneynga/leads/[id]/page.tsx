@@ -10,7 +10,7 @@ import { AddressAutocomplete } from '@/components/ui/address-autocomplete';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, ArrowRight } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { SERVICE_TYPE_LABELS, TIME_WINDOW_LABELS } from '@/types';
@@ -71,21 +71,37 @@ export default function LeadDetailPage() {
         throw new Error(errorData.error || 'Failed to convert');
       }
       const job = await res.json();
-      toast.success('Lead converted to job');
-      router.push(`/wegettinmoneynga/jobs/${job.id}`);
-    } catch (err: unknown) {
-      toast.error((err as Error).message);
+      toast.success('Lead converted successfully');
+      router.push('/wegettinmoneynga/jobs');
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  }
+
+  async function handleDelete() {
+    if (!confirm('Are you sure you want to delete this lead? This action cannot be undone.')) return;
+    try {
+      const res = await fetch(`/api/leads/${params.id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Failed to delete lead');
+      toast.success('Lead deleted successfully');
+      router.push('/wegettinmoneynga/leads');
+    } catch (err: any) {
+      toast.error(err.message);
     }
   }
 
   async function updateStatus(status: string) {
-    await fetch(`/api/leads/${params.id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status }),
-    });
-    setLead(l => l ? { ...l, status: status as any } : l);
-    toast.success(`Status updated to ${status}`);
+    try {
+      await fetch(`/api/leads/${params.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status }),
+      });
+      setLead(l => l ? { ...l, status: status as any } : l);
+      toast.success(`Status updated to ${status}`);
+    } catch (err: any) {
+      toast.error(err.message);
+    }
   }
 
   if (loading) return <p className="text-muted-foreground">Loading...</p>;
@@ -134,6 +150,10 @@ export default function LeadDetailPage() {
             <SelectItem value="lost">Lost</SelectItem>
           </SelectContent>
         </Select>
+
+        <Button variant="destructive" onClick={handleDelete}>
+          <Trash2 className="h-4 w-4 mr-2" /> Delete
+        </Button>
 
         {lead.status !== 'converted' && (
           <Dialog modal={false} open={convertOpen} onOpenChange={setConvertOpen}>
