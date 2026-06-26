@@ -129,6 +129,9 @@ export async function GET(request: NextRequest) {
 
     const contractor_id = searchParams.get('contractor_id');
     if (contractor_id) query = query.eq('assigned_contractor_id', contractor_id);
+
+    const customer_id = searchParams.get('customer_id');
+    if (customer_id) query = query.eq('customer_id', customer_id);
     
     // Security check for non-admins
     if (!isAdmin) {

@@ -11,15 +11,32 @@ import Link from 'next/link';
 export default function CustomerDetailPage() {
   const params = useParams();
   const [customer, setCustomer] = useState<Customer | null>(null);
+  const [jobs, setJobs] = useState<any[]>([]);
+  const [jobsLoading, setJobsLoading] = useState(true);
 
   useEffect(() => {
-    async function fetchCustomer() {
+    async function fetchCustomerData() {
+      // Fetch customer details
       const res = await fetch('/api/customers');
       const data = await res.json();
       const found = (Array.isArray(data) ? data : []).find((c: any) => c.id === params.id);
       setCustomer(found ?? null);
+
+      // Fetch customer service history
+      if (found) {
+        try {
+          const jobsRes = await fetch(`/api/jobs?customer_id=${params.id}`);
+          if (jobsRes.ok) {
+            const jobsData = await jobsRes.json();
+            setJobs(Array.isArray(jobsData) ? jobsData : []);
+          }
+        } catch (e) {
+          console.error("Failed to load service history", e);
+        }
+      }
+      setJobsLoading(false);
     }
-    fetchCustomer();
+    fetchCustomerData();
   }, [params.id]);
 
   if (!customer) return <p className="text-muted-foreground">Loading...</p>;
@@ -72,6 +89,54 @@ export default function CustomerDetailPage() {
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader><CardTitle>Service History</CardTitle></CardHeader>
+        <CardContent>
+          {jobsLoading ? (
+            <p className="text-muted-foreground text-sm">Loading service history...</p>
+          ) : jobs.length === 0 ? (
+            <p className="text-muted-foreground text-sm">No jobs found for this customer.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm text-left">
+                <thead className="bg-slate-50 text-slate-500 uppercase text-xs">
+                  <tr>
+                    <th className="px-4 py-3 rounded-tl-lg">Date</th>
+                    <th className="px-4 py-3">Service</th>
+                    <th className="px-4 py-3">Status</th>
+                    <th className="px-4 py-3">Price</th>
+                    <th className="px-4 py-3 rounded-tr-lg text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {jobs.map((job) => (
+                    <tr key={job.id} className="hover:bg-slate-50 transition-colors">
+                      <td className="px-4 py-3 whitespace-nowrap">{new Date(job.scheduled_date).toLocaleDateString()}</td>
+                      <td className="px-4 py-3 whitespace-nowrap capitalize">{job.service_type?.replace(/_/g, ' ')}</td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          job.status === 'completed' || job.status === 'paid_out' ? 'bg-green-100 text-green-800' :
+                          job.status === 'cancelled' || job.status === 'no_show' ? 'bg-red-100 text-red-800' :
+                          'bg-blue-100 text-blue-800'
+                        }`}>
+                          {job.status.replace(/_/g, ' ')}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap font-medium">${job.quoted_price}</td>
+                      <td className="px-4 py-3 whitespace-nowrap text-right">
+                        <Link href={`/wegettinmoneynga/jobs/${job.id}`}>
+                          <Button variant="ghost" size="sm">View</Button>
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
