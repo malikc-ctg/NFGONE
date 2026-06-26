@@ -40,6 +40,7 @@ export default function LeadDetailPage() {
         ...f,
         scheduled_date: data.preferred_date ?? '',
         scheduled_window: data.preferred_window ?? '',
+        address_line1: data.city ?? '',
         quoted_price: data.quoted_price?.toString() ?? '',
       }));
       setEditForm(data);
