@@ -64,13 +64,13 @@ export default function CustomerDetailPage() {
             <div className="space-y-3 text-sm bg-slate-50 p-3 rounded-lg border border-slate-100">
               <h3 className="font-semibold text-slate-800 text-xs uppercase tracking-wider mb-2">Home Details</h3>
               <div className="grid grid-cols-2 gap-2">
-                <div className="flex justify-between"><span className="text-muted-foreground">Bedrooms</span><span className="font-medium">{(() => { try { return JSON.parse(customer.notes || '{}').bedrooms || 'Not set'; } catch { return 'Not set'; } })()}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">Bathrooms</span><span className="font-medium">{(() => { try { return JSON.parse(customer.notes || '{}').bathrooms || 'Not set'; } catch { return 'Not set'; } })()}</span></div>
-                <div className="flex justify-between col-span-2"><span className="text-muted-foreground">Pets</span><span className="font-medium">{(() => { try { const p = JSON.parse(customer.notes || '{}'); return p.has_pets ? p.pets_description || 'Yes' : 'No'; } catch { return 'No'; } })()}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Bedrooms</span><span className="font-medium">{jobs[0]?.home_bedrooms ?? 'Not set'}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Bathrooms</span><span className="font-medium">{jobs[0]?.home_bathrooms ?? 'Not set'}</span></div>
+                <div className="flex justify-between col-span-2"><span className="text-muted-foreground">Pets</span><span className="font-medium">{jobs.length > 0 ? (jobs[0].has_pets ? 'Yes' : 'No') : 'No'}</span></div>
               </div>
               <div className="pt-2 border-t border-slate-200">
                 <span className="text-muted-foreground block mb-1">Entry Instructions</span>
-                <span className="text-xs bg-white p-2 rounded block border border-slate-200">{(() => { try { return JSON.parse(customer.notes || '{}').entry_instructions || 'None provided'; } catch { return 'None provided'; } })()}</span>
+                <span className="text-xs bg-white p-2 rounded block border border-slate-200">{jobs[0]?.access_instructions || 'None provided'}</span>
               </div>
             </div>
 
@@ -84,7 +84,7 @@ export default function CustomerDetailPage() {
             
             <div className="pt-2">
               <h3 className="font-semibold text-slate-800 text-xs uppercase tracking-wider mb-2">Internal Admin Notes</h3>
-              <p className="text-xs text-muted-foreground">{(() => { try { return JSON.parse(customer.notes || '{}').admin_notes || 'No admin notes'; } catch { return customer.notes || 'No admin notes'; } })()}</p>
+              <p className="text-xs text-muted-foreground">{customer.notes || 'No admin notes'}</p>
             </div>
           </CardContent>
         </Card>
