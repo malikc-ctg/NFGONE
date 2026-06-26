@@ -24,6 +24,45 @@ export async function PATCH(
 
     if (error) throw error;
 
+    // Cascade updates to Job and Customer if lead is already converted
+    if (data.converted_job_id) {
+      const { data: job } = await supabase
+        .from('jobs')
+        .select('id, customer_id')
+        .eq('id', data.converted_job_id)
+        .single();
+        
+      if (job) {
+        // Update job
+        const jobUpdate: any = {};
+        if (body.service_type !== undefined) jobUpdate.service_type = body.service_type;
+        if (body.quoted_price !== undefined) jobUpdate.quoted_price = body.quoted_price;
+        if (body.home_bedrooms !== undefined) jobUpdate.home_bedrooms = body.home_bedrooms;
+        if (body.home_bathrooms !== undefined) jobUpdate.home_bathrooms = body.home_bathrooms;
+        if (body.home_size_sqft !== undefined) jobUpdate.home_size_sqft = body.home_size_sqft;
+        if (body.has_pets !== undefined) jobUpdate.has_pets = body.has_pets;
+        if (body.notes !== undefined) jobUpdate.scope_notes = body.notes;
+        
+        if (Object.keys(jobUpdate).length > 0) {
+          await supabase.from('jobs').update(jobUpdate).eq('id', job.id);
+        }
+
+        // Update customer
+        if (job.customer_id) {
+          const custUpdate: any = {};
+          if (body.customer_name !== undefined) custUpdate.full_name = body.customer_name;
+          if (body.customer_phone !== undefined) custUpdate.phone = body.customer_phone;
+          // Note: we don't safely overwrite email if it's already set to prevent login issues, but we can if requested
+          if (body.customer_email) custUpdate.email = body.customer_email;
+          if (body.city !== undefined) custUpdate.city = body.city;
+          
+          if (Object.keys(custUpdate).length > 0) {
+            await supabase.from('customers').update(custUpdate).eq('id', job.customer_id);
+          }
+        }
+      }
+    }
+
     return NextResponse.json(data);
   } catch (err: unknown) {
     return NextResponse.json({ error: (err as Error).message }, { status: 500 });

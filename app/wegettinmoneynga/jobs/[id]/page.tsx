@@ -8,12 +8,17 @@ import { StatusBadge } from '@/components/shared/StatusBadge';
 import { Separator } from '@/components/ui/separator';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
-  Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle,
+  Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger,
 } from '@/components/ui/dialog';
 import {
   ArrowLeft, Send, MapPin, DollarSign,
-  User, Star, AlertTriangle
+  User, Star, AlertTriangle, Pencil
 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
+import { DatePicker } from '@/components/ui/date-picker';
+import { AddressAutocomplete } from '@/components/ui/address-autocomplete';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { SERVICE_TYPE_LABELS, TIME_WINDOW_LABELS, JOB_STATUS_LABELS } from '@/types';
@@ -29,6 +34,13 @@ export default function JobDetailPage() {
   const [availableContractors, setAvailableContractors] = useState<Contractor[]>([]);
   const [selectedContractors, setSelectedContractors] = useState<string[]>([]);
   const [dispatching, setDispatching] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editForm, setEditForm] = useState<Partial<Job>>({});
+  const [zones, setZones] = useState<any[]>([]);
+
+  useEffect(() => {
+    fetch('/api/zones').then(r => r.json()).then(z => setZones(Array.isArray(z) ? z : []));
+  }, []);
 
   async function fetchJob() {
     try {
@@ -105,6 +117,22 @@ export default function JobDetailPage() {
     }
   }
 
+  async function handleEditJob() {
+    try {
+      const res = await fetch(`/api/jobs/${params.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editForm),
+      });
+      if (!res.ok) throw new Error('Failed to update job');
+      toast.success('Job updated successfully');
+      setEditOpen(false);
+      fetchJob();
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  }
+
   if (loading) return <p className="text-muted-foreground p-8">Loading...</p>;
   if (!job) return <p className="text-red-500 p-8">Job not found</p>;
 
@@ -140,6 +168,71 @@ export default function JobDetailPage() {
             <Send className="h-4 w-4 mr-2" />Dispatch
           </Button>
         )}
+        
+        <Dialog modal={false} open={editOpen} onOpenChange={(open) => {
+          if (open) setEditForm(job);
+          setEditOpen(open);
+        }}>
+          <DialogTrigger asChild>
+            <Button variant="outline" size="sm"><Pencil className="h-4 w-4 mr-2" /> Edit</Button>
+          </DialogTrigger>
+          <DialogContent 
+            className="max-h-[90vh] overflow-y-auto"
+            onInteractOutside={(e) => e.preventDefault()}
+          >
+            <DialogHeader>
+              <DialogTitle>Edit Job</DialogTitle>
+              <DialogDescription className="sr-only">
+                Edit the job details.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label>Service Type</Label>
+                <Select value={editForm.service_type || ''} onValueChange={v => setEditForm({ ...editForm, service_type: v as any })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(SERVICE_TYPE_LABELS).map(([val, label]) => (
+                      <SelectItem key={val} value={val}>{label as string}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div><Label>Scheduled Date</Label><DatePicker value={editForm.scheduled_date || ''} onChange={(val) => setEditForm({ ...editForm, scheduled_date: val })} /></div>
+              <div>
+                <Label>Window</Label>
+                <Select value={editForm.scheduled_window || ''} onValueChange={v => setEditForm({ ...editForm, scheduled_window: v as any })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="morning">Morning</SelectItem>
+                    <SelectItem value="afternoon">Afternoon</SelectItem>
+                    <SelectItem value="evening">Evening</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Zone</Label>
+                <Select value={editForm.zone_id || ''} onValueChange={(v) => setEditForm({ ...editForm, zone_id: v })}>
+                  <SelectTrigger><SelectValue placeholder="Select zone" /></SelectTrigger>
+                  <SelectContent>
+                    {zones.map(z => <SelectItem key={z.id} value={z.id}>{z.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div><Label>Address</Label><AddressAutocomplete value={editForm.address_line1 || ''} onChange={e => setEditForm({ ...editForm, address_line1: e.target.value })} onAddressSelect={addr => setEditForm(f => ({ ...f, address_line1: addr.address_line1, city: addr.city || f.city, postal_code: addr.postal_code || f.postal_code }))} /></div>
+              <div className="grid grid-cols-2 gap-2">
+                <div><Label>City</Label><Input value={editForm.city || ''} onChange={e => setEditForm({ ...editForm, city: e.target.value })} /></div>
+                <div><Label>Postal Code</Label><Input value={editForm.postal_code || ''} onChange={e => setEditForm({ ...editForm, postal_code: e.target.value })} /></div>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div><Label>Bedrooms</Label><Input type="number" value={editForm.home_bedrooms || ''} onChange={e => setEditForm({ ...editForm, home_bedrooms: parseInt(e.target.value) || undefined })} /></div>
+                <div><Label>Bathrooms</Label><Input type="number" value={editForm.home_bathrooms || ''} onChange={e => setEditForm({ ...editForm, home_bathrooms: parseInt(e.target.value) || undefined })} /></div>
+              </div>
+              <div><Label>Quoted Price ($)</Label><Input type="number" value={editForm.quoted_price || ''} onChange={e => setEditForm({ ...editForm, quoted_price: parseFloat(e.target.value) || 0 })} /></div>
+              <Button onClick={handleEditJob} className="w-full">Save Changes</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
 
       {/* Home Profile Alerts */}

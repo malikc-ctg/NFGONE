@@ -90,6 +90,17 @@ export async function PATCH(
 
     if (error) throw error;
 
+    // Cascade relevant updates to Customer
+    if (data.customer_id) {
+      const custUpdate: any = {};
+      if (body.city !== undefined) custUpdate.city = body.city;
+      // You can expand this if jobs start tracking customer name/phone directly
+      
+      if (Object.keys(custUpdate).length > 0) {
+        await supabase.from('customers').update(custUpdate).eq('id', data.customer_id);
+      }
+    }
+
     return NextResponse.json(data);
   } catch (err: unknown) {
     console.error(`Error updating job ${params.id}:`, err);
