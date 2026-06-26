@@ -38,31 +38,34 @@ export async function POST(
     }
 
     // Find or create customer
-    let customerId: string;
-    const { data: existingCustomer, error: findError } = await supabase
-      .from('customers')
-      .select('id')
-      .eq('email', lead.customer_email)
-      .maybeSingle();
+    let customerId: string | undefined;
+    
+    if (lead.customer_email) {
+      const { data: existingCustomer, error: findError } = await supabase
+        .from('customers')
+        .select('id')
+        .eq('email', lead.customer_email)
+        .maybeSingle();
 
-    if (findError) {
-      console.error('Error finding customer:', findError);
-      throw findError;
+      if (findError) {
+        console.error('Error finding customer:', findError);
+        throw findError;
+      }
+      
+      if (existingCustomer) {
+        customerId = existingCustomer.id;
+      }
     }
 
-    if (existingCustomer) {
-      customerId = existingCustomer.id;
-    } else {
-      // Basic validation for new customer
-      if (!lead.customer_email) {
-        throw new Error('Lead must have an email address to be converted.');
-      }
+    if (!customerId) {
+      // If no email exists, generate a placeholder so the DB NOT NULL UNIQUE constraint passes
+      const targetEmail = lead.customer_email || `no-email-${Date.now()}@seaofblue.local`;
 
       const { data: newCustomer, error: custError } = await supabase
         .from('customers')
         .insert({
           full_name: lead.customer_name ?? 'Unnamed Customer',
-          email: lead.customer_email,
+          email: targetEmail,
           phone: lead.customer_phone ?? '—',
           city: lead.city,
           zone_id: body.zone_id,
