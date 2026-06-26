@@ -80,10 +80,11 @@ export async function PATCH(
 
     const supabase = await createServiceClient();
     const body = await request.json();
+    const { customer, contractor, zone, ...updateData } = body;
 
     const { data, error } = await supabase
       .from('jobs')
-      .update({ ...body, updated_at: new Date().toISOString() })
+      .update({ ...updateData, updated_at: new Date().toISOString() })
       .eq('id', params.id)
       .select()
       .single();
