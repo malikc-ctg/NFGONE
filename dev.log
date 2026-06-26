@@ -14,3 +14,124 @@
 <w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (101kiB) impacts deserialization performance (consider using Buffer instead and decode when needed)
 <w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (231kiB) impacts deserialization performance (consider using Buffer instead and decode when needed)
  ✓ Compiled in 18ms
+ ✓ Compiled /api/cron/refresh-pnl-view in 189ms (162 modules)
+ ⨯ Error: Cannot find module './chunks/vendor-chunks/@supabase.js'
+Require stack:
+- /Users/malikcampbell/SeaOfBlue/.next/server/webpack-runtime.js
+- /Users/malikcampbell/SeaOfBlue/.next/server/app/api/cron/refresh-pnl-view/route.js
+- /Users/malikcampbell/SeaOfBlue/node_modules/next/dist/server/require.js
+- /Users/malikcampbell/SeaOfBlue/node_modules/next/dist/server/load-components.js
+- /Users/malikcampbell/SeaOfBlue/node_modules/next/dist/build/utils.js
+- /Users/malikcampbell/SeaOfBlue/node_modules/next/dist/server/dev/hot-middleware.js
+- /Users/malikcampbell/SeaOfBlue/node_modules/next/dist/server/dev/hot-reloader-webpack.js
+- /Users/malikcampbell/SeaOfBlue/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js
+- /Users/malikcampbell/SeaOfBlue/node_modules/next/dist/server/lib/router-server.js
+- /Users/malikcampbell/SeaOfBlue/node_modules/next/dist/server/lib/start-server.js
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1207:15)
+    at /Users/malikcampbell/SeaOfBlue/node_modules/next/dist/server/require-hook.js:55:36
+    at Module._load (node:internal/modules/cjs/loader:1038:27)
+    at Module.require (node:internal/modules/cjs/loader:1289:19)
+    at mod.require (/Users/malikcampbell/SeaOfBlue/node_modules/next/dist/server/require-hook.js:65:28)
+    at require (node:internal/modules/helpers:182:18)
+    at t.f.require (/Users/malikcampbell/SeaOfBlue/.next/server/webpack-runtime.js:1:2359)
+    at /Users/malikcampbell/SeaOfBlue/.next/server/webpack-runtime.js:1:1818
+    at Array.reduce (<anonymous>)
+    at t.e (/Users/malikcampbell/SeaOfBlue/.next/server/webpack-runtime.js:1:1797)
+    at Array.map (<anonymous>)
+    at t.X (/Users/malikcampbell/SeaOfBlue/.next/server/webpack-runtime.js:1:2118)
+    at /Users/malikcampbell/SeaOfBlue/.next/server/app/api/cron/refresh-pnl-view/route.js:103:47
+    at Object.<anonymous> (/Users/malikcampbell/SeaOfBlue/.next/server/app/api/cron/refresh-pnl-view/route.js:106:3)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Module.require (node:internal/modules/cjs/loader:1289:19)
+    at mod.require (/Users/malikcampbell/SeaOfBlue/node_modules/next/dist/server/require-hook.js:65:28)
+    at require (node:internal/modules/helpers:182:18)
+    at requirePage (/Users/malikcampbell/SeaOfBlue/node_modules/next/dist/server/require.js:109:84)
+    at /Users/malikcampbell/SeaOfBlue/node_modules/next/dist/server/load-components.js:103:84
+    at async loadComponentsImpl (/Users/malikcampbell/SeaOfBlue/node_modules/next/dist/server/load-components.js:103:26)
+    at async DevServer.findPageComponentsImpl (/Users/malikcampbell/SeaOfBlue/node_modules/next/dist/server/next-server.js:714:36)
+    at async DevServer.findPageComponents (/Users/malikcampbell/SeaOfBlue/node_modules/next/dist/server/dev/next-dev-server.js:577:20)
+    at async DevServer.renderPageComponent (/Users/malikcampbell/SeaOfBlue/node_modules/next/dist/server/base-server.js:1910:24)
+    at async DevServer.renderToResponseImpl (/Users/malikcampbell/SeaOfBlue/node_modules/next/dist/server/base-server.js:1962:32)
+    at async DevServer.pipeImpl (/Users/malikcampbell/SeaOfBlue/node_modules/next/dist/server/base-server.js:922:25)
+    at async NextNodeServer.handleCatchallRenderRequest (/Users/malikcampbell/SeaOfBlue/node_modules/next/dist/server/next-server.js:272:17)
+    at async DevServer.handleRequestImpl (/Users/malikcampbell/SeaOfBlue/node_modules/next/dist/server/base-server.js:818:17)
+    at async /Users/malikcampbell/SeaOfBlue/node_modules/next/dist/server/dev/next-dev-server.js:339:20
+    at async Span.traceAsyncFn (/Users/malikcampbell/SeaOfBlue/node_modules/next/dist/trace/trace.js:154:20)
+    at async DevServer.handleRequest (/Users/malikcampbell/SeaOfBlue/node_modules/next/dist/server/dev/next-dev-server.js:336:24)
+    at async invokeRender (/Users/malikcampbell/SeaOfBlue/node_modules/next/dist/server/lib/router-server.js:179:21)
+    at async handleRequest (/Users/malikcampbell/SeaOfBlue/node_modules/next/dist/server/lib/router-server.js:359:24)
+    at async requestHandlerImpl (/Users/malikcampbell/SeaOfBlue/node_modules/next/dist/server/lib/router-server.js:383:13)
+    at async Server.requestListener (/Users/malikcampbell/SeaOfBlue/node_modules/next/dist/server/lib/start-server.js:141:13) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/Users/malikcampbell/SeaOfBlue/.next/server/webpack-runtime.js',
+    '/Users/malikcampbell/SeaOfBlue/.next/server/app/api/cron/refresh-pnl-view/route.js',
+    '/Users/malikcampbell/SeaOfBlue/node_modules/next/dist/server/require.js',
+    '/Users/malikcampbell/SeaOfBlue/node_modules/next/dist/server/load-components.js',
+    '/Users/malikcampbell/SeaOfBlue/node_modules/next/dist/build/utils.js',
+    '/Users/malikcampbell/SeaOfBlue/node_modules/next/dist/server/dev/hot-middleware.js',
+    '/Users/malikcampbell/SeaOfBlue/node_modules/next/dist/server/dev/hot-reloader-webpack.js',
+    '/Users/malikcampbell/SeaOfBlue/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js',
+    '/Users/malikcampbell/SeaOfBlue/node_modules/next/dist/server/lib/router-server.js',
+    '/Users/malikcampbell/SeaOfBlue/node_modules/next/dist/server/lib/start-server.js'
+  ],
+  page: '/api/cron/refresh-pnl-view'
+}
+ ○ Compiling /_error ...
+ ✓ Compiled /_error in 826ms (593 modules)
+ ⨯ Error: Cannot find module './chunks/vendor-chunks/next.js'
+Require stack:
+- /Users/malikcampbell/SeaOfBlue/.next/server/webpack-runtime.js
+- /Users/malikcampbell/SeaOfBlue/.next/server/pages/_document.js
+- /Users/malikcampbell/SeaOfBlue/node_modules/next/dist/server/require.js
+- /Users/malikcampbell/SeaOfBlue/node_modules/next/dist/server/load-components.js
+- /Users/malikcampbell/SeaOfBlue/node_modules/next/dist/build/utils.js
+- /Users/malikcampbell/SeaOfBlue/node_modules/next/dist/server/dev/hot-middleware.js
+- /Users/malikcampbell/SeaOfBlue/node_modules/next/dist/server/dev/hot-reloader-webpack.js
+- /Users/malikcampbell/SeaOfBlue/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js
+- /Users/malikcampbell/SeaOfBlue/node_modules/next/dist/server/lib/router-server.js
+- /Users/malikcampbell/SeaOfBlue/node_modules/next/dist/server/lib/start-server.js
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1207:15)
+    at /Users/malikcampbell/SeaOfBlue/node_modules/next/dist/server/require-hook.js:55:36
+    at Module._load (node:internal/modules/cjs/loader:1038:27)
+    at Module.require (node:internal/modules/cjs/loader:1289:19)
+    at mod.require (/Users/malikcampbell/SeaOfBlue/node_modules/next/dist/server/require-hook.js:65:28)
+    at require (node:internal/modules/helpers:182:18)
+    at t.f.require (/Users/malikcampbell/SeaOfBlue/.next/server/webpack-runtime.js:1:2359)
+    at /Users/malikcampbell/SeaOfBlue/.next/server/webpack-runtime.js:1:1818
+    at Array.reduce (<anonymous>)
+    at t.e (/Users/malikcampbell/SeaOfBlue/.next/server/webpack-runtime.js:1:1797)
+    at Array.map (<anonymous>)
+    at t.X (/Users/malikcampbell/SeaOfBlue/.next/server/webpack-runtime.js:1:2118)
+    at /Users/malikcampbell/SeaOfBlue/.next/server/pages/_document.js:63:47
+    at Object.<anonymous> (/Users/malikcampbell/SeaOfBlue/.next/server/pages/_document.js:66:3)
+    at Module._compile (node:internal/modules/cjs/loader:1521:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+    at Module.load (node:internal/modules/cjs/loader:1266:32)
+    at Module._load (node:internal/modules/cjs/loader:1091:12)
+    at Module.require (node:internal/modules/cjs/loader:1289:19)
+    at mod.require (/Users/malikcampbell/SeaOfBlue/node_modules/next/dist/server/require-hook.js:65:28)
+    at require (node:internal/modules/helpers:182:18)
+    at requirePage (/Users/malikcampbell/SeaOfBlue/node_modules/next/dist/server/require.js:109:84)
+    at /Users/malikcampbell/SeaOfBlue/node_modules/next/dist/server/load-components.js:72:65
+    at async Promise.all (index 0)
+    at async loadComponentsImpl (/Users/malikcampbell/SeaOfBlue/node_modules/next/dist/server/load-components.js:71:33)
+    at async DevServer.findPageComponentsImpl (/Users/malikcampbell/SeaOfBlue/node_modules/next/dist/server/next-server.js:714:36) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/Users/malikcampbell/SeaOfBlue/.next/server/webpack-runtime.js',
+    '/Users/malikcampbell/SeaOfBlue/.next/server/pages/_document.js',
+    '/Users/malikcampbell/SeaOfBlue/node_modules/next/dist/server/require.js',
+    '/Users/malikcampbell/SeaOfBlue/node_modules/next/dist/server/load-components.js',
+    '/Users/malikcampbell/SeaOfBlue/node_modules/next/dist/build/utils.js',
+    '/Users/malikcampbell/SeaOfBlue/node_modules/next/dist/server/dev/hot-middleware.js',
+    '/Users/malikcampbell/SeaOfBlue/node_modules/next/dist/server/dev/hot-reloader-webpack.js',
+    '/Users/malikcampbell/SeaOfBlue/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js',
+    '/Users/malikcampbell/SeaOfBlue/node_modules/next/dist/server/lib/router-server.js',
+    '/Users/malikcampbell/SeaOfBlue/node_modules/next/dist/server/lib/start-server.js'
+  ]
+}
+ POST /api/cron/refresh-pnl-view 500 in 1647ms
