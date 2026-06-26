@@ -99,6 +99,7 @@ export async function POST(
         home_size_sqft: lead.home_size_sqft,
         has_pets: lead.has_pets ?? false,
         add_ons: lead.add_ons ?? [],
+        scope_notes: lead.notes,
         status: 'lead_received',
         deposit_amount: body.deposit_amount ?? 0,
       })

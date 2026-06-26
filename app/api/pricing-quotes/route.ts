@@ -43,6 +43,9 @@ export async function POST(req: Request) {
         quoted_price: data.calculated_price,
         status: 'new',
         source: data.source,
+        home_bedrooms: data.bedrooms,
+        home_bathrooms: data.bathrooms,
+        home_size_sqft: data.sqft,
         notes: `Quote: ${data.package_name} - ${data.bedrooms} Bed, ${data.bathrooms} Bath, ${data.sqft} Sqft. Extras: ${data.selected_tasks.join(', ')}`,
       })
       .select()
