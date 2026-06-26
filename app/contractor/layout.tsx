@@ -2,7 +2,8 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { CalendarDays, Clock, DollarSign, Waves, User, ReceiptText, Briefcase } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { CalendarDays, Clock, DollarSign, Waves, User, ReceiptText, Briefcase, WifiOff } from 'lucide-react';
 
 const navItems = [
   { href: '/contractor', label: 'Dashboard', icon: CalendarDays },
@@ -19,6 +20,31 @@ export default function ContractorLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const [isOffline, setIsOffline] = useState(false);
+
+  useEffect(() => {
+    // Register Service Worker
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(console.error);
+    }
+
+    // Track online/offline status
+    function handleOnline() { setIsOffline(false); }
+    function handleOffline() { setIsOffline(true); }
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    // Initial check
+    if (!navigator.onLine) {
+      setIsOffline(true);
+    }
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   // Don't show layout on login or onboarding pages
   if (pathname === '/contractor/login' || pathname === '/contractor/onboarding') {
@@ -28,9 +54,19 @@ export default function ContractorLayout({
   return (
     <div className="flex flex-col min-h-screen bg-background max-w-lg mx-auto">
       {/* Top bar */}
-      <header className="flex items-center gap-3 px-4 py-3 border-b border-border bg-card sticky top-0 z-40">
-        <img src="/logo.png" alt="Sea of Blue Logo" className="w-40 h-20 object-contain" />
-        <span className="font-bold text-sm">Sea of Blue</span>
+      <header className="flex flex-col border-b border-border bg-card sticky top-0 z-40">
+        <div className="flex items-center gap-3 px-4 py-3">
+          <img src="/logo.png" alt="Sea of Blue Logo" className="w-40 h-20 object-contain" />
+          <span className="font-bold text-sm">Sea of Blue</span>
+        </div>
+        
+        {/* Offline Banner */}
+        {isOffline && (
+          <div className="bg-red-500 text-white text-xs font-bold py-1.5 px-4 flex items-center justify-center gap-2">
+            <WifiOff className="h-3.5 w-3.5" />
+            You're offline. Changes will sync when reconnected.
+          </div>
+        )}
       </header>
 
       {/* Main content */}

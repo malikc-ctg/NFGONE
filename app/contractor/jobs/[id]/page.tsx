@@ -23,6 +23,7 @@ import { LocationPermissionPrompt } from '@/components/contractor/LocationPermis
 import { startLocationTracking, stopLocationTracking } from '@/lib/location-service';
 import { PhotoUpload } from '@/components/contractor/PhotoUpload';
 import { SupplyCheck } from '@/components/contractor/SupplyCheck';
+import { smartFetch } from '@/lib/offline-queue';
 
 function RoomChecklist({ title, items, onItemChange, jobId }: { title: string, items: Record<string, boolean>, onItemChange: (key: string, checked: boolean) => void, jobId: string }) {
   const [beforeDone, setBeforeDone] = useState(false);
@@ -164,7 +165,7 @@ export default function ContractorJobDetailPage() {
     setSubmitting(true);
     try {
       if (newStatus === 'completed' && checklist) {
-        const checkRes = await fetch(`/api/jobs/${params.id}/checklist`, {
+        const checkRes = await smartFetch(`/api/jobs/${params.id}/checklist`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(checklist),
@@ -172,7 +173,7 @@ export default function ContractorJobDetailPage() {
         if (!checkRes.ok) throw new Error('Failed to save checklist');
       }
 
-      const res = await fetch(`/api/jobs/${params.id}/status`, {
+      const res = await smartFetch(`/api/jobs/${params.id}/status`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus }),
@@ -194,7 +195,7 @@ export default function ContractorJobDetailPage() {
     if (!pendingOffer) return;
     setSubmitting(true);
     try {
-      const res = await fetch(`/api/offers/${pendingOffer.id}/respond`, {
+      const res = await smartFetch(`/api/offers/${pendingOffer.id}/respond`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action }),
@@ -215,7 +216,7 @@ export default function ContractorJobDetailPage() {
     if (!extraChargeAmount || !extraChargeDesc) return;
     setSubmitting(true);
     try {
-      const res = await fetch(`/api/jobs/${params.id}/charges`, {
+      const res = await smartFetch(`/api/jobs/${params.id}/charges`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ amount: extraChargeAmount, description: extraChargeDesc }),

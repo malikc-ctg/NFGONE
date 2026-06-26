@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import type { JobStatus } from '@/types';
 import { requireRole, requireAuth } from '@/lib/api-auth';
 import { sendEmail } from '@/lib/resend';
+import { logAudit } from '@/lib/audit';
 import ContractorAssigned from '@/emails/customer/ContractorAssigned';
 import JobAssigned from '@/emails/contractor/JobAssigned';
 import ContractorEnRoute from '@/emails/customer/ContractorEnRoute';
@@ -107,6 +108,20 @@ export async function PATCH(
       .single();
 
     if (error) throw error;
+
+    // ----- AUDIT LOG -----
+    logAudit({
+      actorId: auth.id,
+      actorEmail: auth.email,
+      actorRole: isAdmin ? 'admin' : 'contractor',
+      action: 'job.status_changed',
+      entityType: 'job',
+      entityId: id,
+      oldValues: { status: job.status },
+      newValues: { status: newStatus },
+      request,
+      metadata: extraFields.cancellation_reason ? { cancellation_reason: extraFields.cancellation_reason } : undefined,
+    });
 
     // ----- EMAIL DISPATCH LOGIC -----
     try {

@@ -2,6 +2,7 @@ import { createServiceClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { requireRole } from '@/lib/api-auth';
 import { sendEmail } from '@/lib/resend';
+import { logAudit } from '@/lib/audit';
 import BookingConfirmed from '@/emails/customer/BookingConfirmed';
 import React from 'react';
 
@@ -137,6 +138,18 @@ export async function POST(
         })
       });
     }
+
+    logAudit({
+      actorId: auth.id,
+      actorEmail: auth.email,
+      actorRole: 'admin',
+      action: 'lead.converted',
+      entityType: 'lead',
+      entityId: params.id,
+      newValues: { job_id: job.id, status: 'converted' },
+      request,
+      metadata: { customer_name: lead.customer_name },
+    });
 
     return NextResponse.json(job, { status: 201 });
   } catch (err: unknown) {

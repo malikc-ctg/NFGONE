@@ -31,7 +31,8 @@ export default function JobDetailPage() {
   const [job, setJob] = useState<Job | null>(null);
   const [loading, setLoading] = useState(true);
   const [dispatchOpen, setDispatchOpen] = useState(false);
-  const [availableContractors, setAvailableContractors] = useState<Contractor[]>([]);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+  const [availableContractors, setAvailableContractors] = useState<any[]>([]);
   const [selectedContractors, setSelectedContractors] = useState<string[]>([]);
   const [dispatching, setDispatching] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
@@ -79,14 +80,15 @@ export default function JobDetailPage() {
   async function openDispatch() {
     if (!job) return;
     setDispatchOpen(true);
+    setLoadingSuggestions(true);
     try {
-      const res = await fetch(
-        `/api/contractors/available?date=${job.scheduled_date}&window=${job.scheduled_window}${job.zone_id ? `&zone_id=${job.zone_id}` : ''}`
-      );
+      const res = await fetch(`/api/jobs/${params.id}/dispatch`);
       const data = await res.json();
-      setAvailableContractors(Array.isArray(data) ? data : []);
+      setAvailableContractors(data.suggestions || []);
     } catch {
       setAvailableContractors([]);
+    } finally {
+      setLoadingSuggestions(false);
     }
   }
 
@@ -99,10 +101,15 @@ export default function JobDetailPage() {
     try {
       // First ensure status is right for dispatch
       if (job?.status === 'confirmed' || job?.status === 'rescheduled') {
+        const driveTimes = selectedContractors.map(id => {
+          const c = availableContractors.find(ac => ac.contractor_id === id);
+          return c ? c.drive_minutes : null;
+        });
+
         const res = await fetch(`/api/jobs/${params.id}/dispatch`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ contractor_ids: selectedContractors }),
+          body: JSON.stringify({ contractor_ids: selectedContractors, drive_times: driveTimes }),
         });
         if (!res.ok) throw new Error('Dispatch failed');
         toast.success('Offers sent to contractors');
@@ -358,32 +365,45 @@ export default function JobDetailPage() {
               <p>Payout: <strong>${payoutAmount.toFixed(2)}</strong></p>
             </div>
             <Separator />
-            <p className="text-sm font-medium">Available Contractors ({availableContractors.length})</p>
-            {availableContractors.length === 0 ? (
+            <p className="text-sm font-medium">Smart Suggestions</p>
+            {loadingSuggestions ? (
+              <p className="text-sm text-muted-foreground">Calculating routes and scoring...</p>
+            ) : availableContractors.length === 0 ? (
               <p className="text-sm text-muted-foreground">No contractors available for this slot.</p>
             ) : (
               <div className="space-y-2 max-h-64 overflow-y-auto">
-                {availableContractors.map((c) => (
+                {availableContractors.map((c, idx) => (
                   <div
-                    key={c.id}
+                    key={c.contractor_id}
                     className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-colors ${
-                      selectedContractors.includes(c.id) ? 'border-primary bg-primary/5' : 'hover:bg-muted'
+                      selectedContractors.includes(c.contractor_id) ? 'border-primary bg-primary/5' : 'hover:bg-muted'
                     }`}
                     onClick={() => {
                       setSelectedContractors((prev) =>
-                        prev.includes(c.id)
-                          ? prev.filter((id) => id !== c.id)
-                          : prev.length < 5 ? [...prev, c.id] : prev
+                        prev.includes(c.contractor_id)
+                          ? prev.filter((id) => id !== c.contractor_id)
+                          : prev.length < 5 ? [...prev, c.contractor_id] : prev
                       );
                     }}
                   >
-                    <div>
-                      <p className="font-medium text-sm">{c.full_name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        Score: {c.score}/5 · {c.brings_own_supplies ? 'Own supplies' : 'Needs supplies'} · {(c as any).zone?.name ?? 'No zone'}
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-sm">{c.full_name}</span>
+                        {idx === 0 && <span className="bg-green-100 text-green-700 text-[10px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">Best Match</span>}
+                        {c.drive_minutes !== null && (
+                          <span className="bg-blue-100 text-blue-700 text-[10px] px-1.5 py-0.5 rounded font-medium flex items-center gap-1">
+                            <MapPin className="h-3 w-3" /> {c.drive_minutes}m drive
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Score: {c.score}/5 · {c.jobs_today} jobs today
+                      </p>
+                      <p className="text-[10px] text-muted-foreground italic mt-0.5 opacity-80">
+                        {c.reason}
                       </p>
                     </div>
-                    <Checkbox checked={selectedContractors.includes(c.id)} />
+                    <Checkbox checked={selectedContractors.includes(c.contractor_id)} />
                   </div>
                 ))}
               </div>

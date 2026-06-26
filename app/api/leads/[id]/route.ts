@@ -1,6 +1,7 @@
 import { createServiceClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { requireRole } from '@/lib/api-auth';
+import { logAudit } from '@/lib/audit';
 
 export async function PATCH(
   request: NextRequest,
@@ -63,6 +64,17 @@ export async function PATCH(
       }
     }
 
+    logAudit({
+      actorId: auth.id,
+      actorEmail: auth.email,
+      actorRole: 'admin',
+      action: 'lead.updated',
+      entityType: 'lead',
+      entityId: id,
+      newValues: body,
+      request,
+    });
+
     return NextResponse.json(data);
   } catch (err: unknown) {
     return NextResponse.json({ error: (err as Error).message }, { status: 500 });
@@ -108,6 +120,17 @@ export async function DELETE(
       .eq('id', params.id);
 
     if (error) throw error;
+
+    logAudit({
+      actorId: auth.id,
+      actorEmail: auth.email,
+      actorRole: 'admin',
+      action: 'lead.deleted',
+      entityType: 'lead',
+      entityId: params.id,
+      request,
+    });
+
     return NextResponse.json({ success: true });
   } catch (err: unknown) {
     return NextResponse.json({ error: (err as Error).message }, { status: 500 });

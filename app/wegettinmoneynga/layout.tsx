@@ -7,7 +7,7 @@ import {
   LayoutDashboard, Users, Briefcase, UserCheck,
   Receipt, Settings, ClipboardList, Waves,
   Building2, AlertTriangle, Package,
-  UsersRound, TrendingUp, Globe,
+  UsersRound, TrendingUp, Globe, Shield,
   Menu, X, LogOut,
 } from 'lucide-react';
 
@@ -27,6 +27,7 @@ const sidebarItems = [
   { href: '/wegettinmoneynga/partners', label: 'Partners', icon: Building2 },
   { href: '/wegettinmoneynga/zones', label: 'Zones', icon: Globe },
   { href: '/wegettinmoneynga/finance', label: 'Finance', icon: TrendingUp },
+  { href: '/wegettinmoneynga/audit', label: 'Audit Trail', icon: Shield },
   { href: '/wegettinmoneynga/settings', label: 'Settings', icon: Settings },
 ];
 
