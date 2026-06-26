@@ -316,10 +316,12 @@ export default function DispatchMap({ onBack }: Props) {
 
   const supabase = createClient();
 
+  const [selectedDate, setSelectedDate] = useState<string>(() => new Date().toISOString().split('T')[0]);
+
   // ── Data Fetch ───────────────────────────────────────────────────────────────
   const fetchData = useCallback(async () => {
     try {
-      const res = await fetch('/api/operations/map-data');
+      const res = await fetch(`/api/operations/map-data?date=${selectedDate}`);
       if (!res.ok) throw new Error('Failed');
       const data = await res.json();
       setMapData(data);
@@ -329,7 +331,7 @@ export default function DispatchMap({ onBack }: Props) {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [selectedDate]);
 
   useEffect(() => {
     fetchData();
@@ -679,6 +681,14 @@ export default function DispatchMap({ onBack }: Props) {
         </button>
 
         <div className="w-px h-5 bg-white/10 shrink-0" />
+
+        {/* Date Picker */}
+        <input
+          type="date"
+          value={selectedDate}
+          onChange={(e) => setSelectedDate(e.target.value)}
+          className="bg-white/6 border border-white/10 rounded-lg text-xs text-white px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500/50 [color-scheme:dark]"
+        />
 
         {/* Search */}
         <div className="relative min-w-[180px] flex-1 max-w-xs">

@@ -1,24 +1,27 @@
 import { createServiceClient } from '@/lib/supabase/server';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { requireRole } from '@/lib/api-auth';
 import { format } from 'date-fns';
 
 const ACTIVE_STATUSES = ['confirmed', 'offered', 'assigned', 'on_the_way', 'in_progress'];
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const auth = await requireRole(['admin']);
     if (auth instanceof NextResponse) return auth;
 
     const supabase = await createServiceClient();
-    const today = format(new Date(), 'yyyy-MM-dd');
+    
+    // Parse date from query string, default to today
+    const { searchParams } = new URL(request.url);
+    const targetDate = searchParams.get('date') || format(new Date(), 'yyyy-MM-dd');
 
     const [jobsRes, contractorLocsRes, zonesRes, activeContractorsRes, allTodayJobsRes] = await Promise.all([
       // Jobs with geo coords for map pins
       supabase
         .from('jobs')
         .select('id, job_number, status, service_type, scheduled_date, scheduled_window, address_line1, city, postal_code, quoted_price, final_price, add_ons, latitude, longitude, customer:customers(full_name, phone), contractor:contractors(id, full_name, phone, tier)')
-        .eq('scheduled_date', today)
+        .eq('scheduled_date', targetDate)
         .not('latitude', 'is', null)
         .not('longitude', 'is', null),
 
@@ -44,7 +47,7 @@ export async function GET() {
       supabase
         .from('jobs')
         .select('id, status, quoted_price, final_price, city, latitude, longitude, contractor_id, zone_id')
-        .eq('scheduled_date', today),
+        .eq('scheduled_date', targetDate),
     ]);
 
     if (jobsRes.error) throw jobsRes.error;
