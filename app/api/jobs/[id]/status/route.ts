@@ -211,6 +211,17 @@ export async function PATCH(
     }
     // --------------------------------
 
+    // Refresh finance PnL if status changed to something that affects financials
+    if (newStatus && newStatus !== job.status) {
+      if (['completed', 'reviewed', 'paid_out', 'refunded', 'cancelled'].includes(newStatus)) {
+        try {
+          await supabase.rpc('refresh_zone_monthly_pnl');
+        } catch (pnlError) {
+          console.error('Failed to refresh PnL view:', pnlError);
+        }
+      }
+    }
+
     return NextResponse.json(data);
   } catch (err: unknown) {
     return NextResponse.json({ error: (err as Error).message }, { status: 500 });

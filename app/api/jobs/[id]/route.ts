@@ -102,6 +102,13 @@ export async function PATCH(
       }
     }
 
+    // Refresh finance PnL if price or status might have changed
+    try {
+      await supabase.rpc('refresh_zone_monthly_pnl');
+    } catch (pnlError) {
+      console.error('Failed to refresh PnL view:', pnlError);
+    }
+
     return NextResponse.json(data);
   } catch (err: unknown) {
     console.error(`Error updating job ${params.id}:`, err);

@@ -41,6 +41,13 @@ export async function POST(request: Request, { params }: { params: { id: string 
       return NextResponse.json({ error: updateError.message }, { status: 500 });
     }
 
+    // Refresh finance PnL because job price increased
+    try {
+      await supabase.rpc('refresh_zone_monthly_pnl');
+    } catch (pnlError) {
+      console.error('Failed to refresh PnL view:', pnlError);
+    }
+
     return NextResponse.json({ success: true, newPrice, newAddOns });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
