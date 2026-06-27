@@ -64,7 +64,7 @@ export default function ContractorLayout({
         {isOffline && (
           <div className="bg-red-500 text-white text-xs font-bold py-1.5 px-4 flex items-center justify-center gap-2">
             <WifiOff className="h-3.5 w-3.5" />
-            You're offline. Changes will sync when reconnected.
+            You&apos;re offline. Changes will sync when reconnected.
           </div>
         )}
       </header>
