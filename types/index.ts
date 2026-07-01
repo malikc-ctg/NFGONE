@@ -47,9 +47,19 @@ export type LeadSource = 'lsa' | 'referral' | 'realtor' | 'inbound_call' | 'webs
 
 export type HomeCondition = 'well_maintained' | 'average' | 'heavy_clean_needed';
 
-export type AddOn = 
+export type AddOn =
+  // Legacy values (kept for backward compatibility)
   | 'inside_fridge' | 'inside_oven' | 'inside_cabinets' | 'baseboards' | 'interior_windows'
-  | 'exterior_windows' | 'pressure_washing' | 'carpet_stain' | 'laundry' | 'closet_org' | 'kitchen_cabinet_detail';
+  | 'exterior_windows' | 'pressure_washing' | 'carpet_stain' | 'laundry' | 'closet_org' | 'kitchen_cabinet_detail'
+  // New rate card add-ons
+  | 'balcony' | 'heavy_pet_hair' | 'garage'
+  | 'upholstery_sofa' | 'upholstery_chair' | 'mattress_clean'
+  | 'carpet_steam_room' | 'carpet_steam_unit' | 'linen_change'
+  | 'blinds_detail' | 'curtain_dusting' | 'full_wall_wash' | 'ceiling_fan'
+  | 'grout_deep_clean' | 'wine_fridge' | 'fireplace_surround' | 'bbq_exterior'
+  | 'exterior_windows_ground' | 'exterior_windows_elevated'
+  | 'dishes' | 'rush_booking' | 'after_hours' | 'key_pickup'
+  | 'eco_upgrade' | 'pet_odor' | 'sanitizing_pass';
 
 export type PhotoType = 'before' | 'after' | 'issue' | 'supply_kit';
 

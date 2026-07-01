@@ -3,25 +3,46 @@ import { createServiceClient } from '@/lib/supabase/server';
 import { z } from 'zod';
 
 const schema = z.object({
+  // Contact info
   customer_name: z.string().min(1),
   customer_phone: z.string().optional(),
   customer_email: z.string().optional(),
   address: z.string().optional(),
   source: z.string().optional().default('inbound_call'),
+
+  // Pricing engine fields
+  property_type: z.enum(['condo', 'basement', 'house']),
   package_name: z.string(),
-  selected_tasks: z.array(z.string()),
-  bedrooms: z.number().min(1),
-  bathrooms: z.number().min(1),
+  frequency: z.enum(['one_time', 'monthly', 'biweekly', 'weekly']).default('one_time'),
+  selected_add_ons: z.array(z.string()),
+  add_on_quantities: z.record(z.string(), z.number()).optional().default({}),
+  custom_add_on_prices: z.record(z.string(), z.number()).optional().default({}),
+
+  // Property details
+  bedrooms: z.number().min(0),
+  bathrooms: z.number().min(0),
+  half_bathrooms: z.number().min(0).optional().default(0),
   sqft: z.number().min(0),
-  conditions: z.array(z.string()),
-  modifiers: z.object({
-    sameDay: z.boolean(),
-    afterHours: z.boolean(),
-  }),
-  add_ons: z.array(z.string()),
+
+  // Quote result (calculated client-side, stored for audit)
   calculated_price: z.number(),
+  price_min: z.number().nullable().optional(),
+  price_max: z.number().nullable().optional(),
+  is_range: z.boolean().optional().default(false),
+  is_custom_quote: z.boolean().optional().default(false),
+  vacancy_confirmed: z.boolean().optional(),
   breakdown: z.any(),
-  estimated_hours: z.number()
+  estimated_hours: z.number().optional(),
+  scope_of_work_text: z.string().optional(),
+
+  // Legacy fields (kept for backward compat, optional)
+  selected_tasks: z.array(z.string()).optional().default([]),
+  conditions: z.array(z.string()).optional().default([]),
+  modifiers: z.object({
+    sameDay: z.boolean().optional(),
+    afterHours: z.boolean().optional(),
+  }).optional().default({}),
+  add_ons: z.array(z.string()).optional().default([]),
 });
 
 export async function POST(req: Request) {
@@ -44,9 +65,9 @@ export async function POST(req: Request) {
         status: 'new',
         source: data.source,
         home_bedrooms: data.bedrooms,
-        home_bathrooms: data.bathrooms,
+        home_bathrooms: data.bathrooms + (data.half_bathrooms || 0),
         home_size_sqft: data.sqft,
-        notes: `Quote: ${data.package_name} - ${data.bedrooms} Bed, ${data.bathrooms} Bath, ${data.sqft} Sqft. Extras: ${data.selected_tasks.join(', ')}`,
+        notes: `Quote: ${data.package_name} — ${data.property_type} ${data.sqft} sqft, ${data.bedrooms} Bed / ${data.bathrooms} Bath. Add-ons: ${data.selected_add_ons.join(', ') || 'None'}`,
       })
       .select()
       .single();
@@ -59,16 +80,25 @@ export async function POST(req: Request) {
       .insert({
         lead_id: lead.id,
         package_name: data.package_name,
-        selected_tasks: data.selected_tasks,
+        property_type: data.property_type,
+        frequency: data.frequency,
+        selected_tasks: data.selected_add_ons,
         bedrooms: data.bedrooms,
         bathrooms: data.bathrooms,
+        half_bathrooms: data.half_bathrooms || 0,
         sqft: data.sqft,
         conditions: data.conditions,
         modifiers: data.modifiers,
         add_ons: data.add_ons,
         calculated_price: data.calculated_price,
+        price_min: data.price_min || null,
+        price_max: data.price_max || null,
+        is_range: data.is_range || false,
+        is_custom_quote: data.is_custom_quote || false,
+        vacancy_confirmed: data.vacancy_confirmed ?? null,
         breakdown: data.breakdown,
         estimated_hours: data.estimated_hours,
+        scope_of_work_text: data.scope_of_work_text || null,
       })
       .select()
       .single();
