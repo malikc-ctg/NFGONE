@@ -241,6 +241,7 @@ function PricingModalContent({
   // --- Property ---
   const [propertyType, setPropertyType] = useState<PropertyType>('condo');
   const [sqft, setSqft] = useState(500);
+  const [bedrooms, setBedrooms] = useState(1);
   const [fullBathrooms, setFullBathrooms] = useState(1);
   const [halfBathrooms, setHalfBathrooms] = useState(0);
 
@@ -436,7 +437,7 @@ function PricingModalContent({
           selected_add_ons: selectedAddOnIds,
           add_on_quantities: addOnQuantities,
           custom_add_on_prices: customAddOnPrices,
-          bedrooms: 0, // not used for pricing anymore, kept for schema compat
+          bedrooms: bedrooms,
           bathrooms: fullBathrooms,
           half_bathrooms: halfBathrooms,
           sqft,
@@ -466,6 +467,26 @@ function PricingModalContent({
     } finally {
       setLoading(false);
     }
+  };
+
+  // Estimate Sqft from Bedrooms / Bathrooms fallback
+  const handleEstimateSqft = () => {
+    let estimated = 1000;
+    if (propertyType === 'condo') {
+      if (bedrooms <= 1) estimated = 600; // Studio/1BR midpoint
+      else if (bedrooms === 2) estimated = 1000; // 2BR/2BA midpoint
+      else estimated = 1250; // 3BR/2BA midpoint
+    } else if (propertyType === 'basement') {
+      if (bedrooms <= 1) estimated = 600;
+      else estimated = 800;
+    } else if (propertyType === 'house') {
+      if (bedrooms <= 2) estimated = 500; // Under 1000 sqft midpoint
+      else if (bedrooms === 3) estimated = (fullBathrooms + halfBathrooms >= 2) ? 1750 : 1250;
+      else estimated = (fullBathrooms + halfBathrooms >= 3) ? 2750 : 2250;
+    }
+    setSqft(estimated);
+    setManualPrice(null);
+    setQuoteFinalized(false);
   };
 
   // Determine house band hint
@@ -557,7 +578,18 @@ function PricingModalContent({
               2. Size & Bathrooms
             </h3>
             <div className="flex items-end gap-4 flex-wrap">
-              <Stepper label="Sqft" value={sqft} onChange={(v) => { setSqft(v); setManualPrice(null); setQuoteFinalized(false); }} min={0} max={5000} step={100} />
+              <div className="flex flex-col gap-1">
+                <Stepper label="Sqft" value={sqft} onChange={(v) => { setSqft(v); setManualPrice(null); setQuoteFinalized(false); }} min={0} max={5000} step={100} />
+                <Button
+                  type="button"
+                  variant="link"
+                  className="text-[10px] h-auto p-0 font-normal text-primary hover:underline text-left"
+                  onClick={handleEstimateSqft}
+                >
+                  Estimate sqft from Bed/Bath
+                </Button>
+              </div>
+              <Stepper label="Bedrooms" value={bedrooms} onChange={(v) => { setBedrooms(v); setManualPrice(null); setQuoteFinalized(false); }} min={1} max={10} />
               <Stepper label="Full Baths" value={fullBathrooms} onChange={(v) => { setFullBathrooms(v); setManualPrice(null); setQuoteFinalized(false); }} min={0} max={10} />
               <Stepper label="Half Baths" value={halfBathrooms} onChange={(v) => { setHalfBathrooms(v); setManualPrice(null); setQuoteFinalized(false); }} min={0} max={10} />
             </div>
