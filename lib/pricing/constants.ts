@@ -60,7 +60,7 @@ export const CONDO_RATES: SizeBand[] = [
 export const BASEMENT_RATES: SizeBand[] = [
   { label: 'Bachelor basement', sqftMin: 0, sqftMax: 500, standard: 130, standardPlus: 155, deepClean: 195, fullReset: 250, moveInOut: 275, hourlyBilled: false },
   { label: '1BR basement', sqftMin: 500, sqftMax: 700, standard: 150, standardPlus: 180, deepClean: 230, fullReset: 295, moveInOut: 315, hourlyBilled: false },
-  { label: '2BR basement', sqftMin: 700, sqftMax: 900, standard: 170, standardPlus: 205, deepClean: 265, fullReset: 340, moveInOut: 355, hourlyBilled: false },
+  { label: '2BR basement', sqftMin: 700, sqftMax: null, standard: 170, standardPlus: 205, deepClean: 265, fullReset: 340, moveInOut: 355, hourlyBilled: false },
 ];
 
 export const HOUSE_RATES: SizeBand[] = [

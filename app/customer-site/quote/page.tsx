@@ -8,7 +8,7 @@ import { DatePicker } from '@/components/ui/date-picker';
 import { AddressAutocomplete } from '@/components/ui/address-autocomplete';
 import { submitQuoteRequest, getLiveQuote, createCustomerAccountAndLinkQuote } from './actions';
 import { createClient } from '@/lib/supabase/client';
-import { CheckCircle2, MapPin, ChevronRight, ChevronLeft, Home, Sparkles, Calendar, User, Key, ArrowRight, Plus, Minus, Clock } from 'lucide-react';
+import { CheckCircle2, MapPin, ChevronRight, ChevronLeft, Home, Sparkles, Calendar, User, Key, ArrowRight, Plus, Minus, Clock, Building2, Warehouse } from 'lucide-react';
 
 export default function QuotePage() {
   const router = useRouter();
@@ -36,6 +36,7 @@ export default function QuotePage() {
     email: '',
     phone: '',
     password: '',
+    property_type: 'house',
   });
 
   const updateForm = (field: keyof typeof formData, value: any) => {
@@ -70,6 +71,7 @@ export default function QuotePage() {
       else if (formData.category === 'Recurring Deep') service_type = 'recurring_deep';
 
       const res = await getLiveQuote({
+        property_type: (formData as any).property_type,
         service_type,
         scheduled_date: formData.scheduled_date,
         scheduled_window: formData.scheduled_window,
@@ -251,6 +253,37 @@ export default function QuotePage() {
               <p className="text-white/60 mb-8">This helps us calculate the time needed for a pristine clean.</p>
               
               <div className="space-y-8 mb-10">
+                <div className="space-y-3">
+                  <span className="text-sm font-semibold text-white/70">Property Type</span>
+                  <div className="grid grid-cols-3 gap-3">
+                    {[
+                      { id: 'house', label: 'House', icon: Home },
+                      { id: 'condo', label: 'Condo/Apt', icon: Building2 },
+                      { id: 'basement', label: 'Basement', icon: Warehouse },
+                    ].map((pt) => {
+                      const Icon = pt.icon;
+                      const isSelected = (formData as any).property_type === pt.id;
+                      return (
+                        <button
+                          key={pt.id}
+                          type="button"
+                          onClick={() => updateForm('property_type' as any, pt.id)}
+                          className={`flex flex-col items-center gap-2.5 p-4 rounded-xl border text-center transition-all ${
+                            isSelected
+                              ? 'border-blue-500 bg-blue-500/20 shadow-[0_0_15px_rgba(59,130,246,0.2)]'
+                              : 'border-white/10 bg-white/5 hover:bg-white/10 hover:border-white/20'
+                          }`}
+                        >
+                          <Icon className={`w-6 h-6 ${isSelected ? 'text-blue-400' : 'text-white/60'}`} />
+                          <span className={`text-xs font-semibold ${isSelected ? 'text-white' : 'text-white/60'}`}>
+                            {pt.label}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
                 <div className="flex items-center justify-between bg-black/20 border border-white/10 rounded-2xl p-6">
                   <span className="text-lg text-white font-medium">Bedrooms</span>
                   <div className="flex items-center gap-6">

@@ -4,6 +4,8 @@ import { createServiceClient } from '@/lib/supabase/server';
 import { sendEmail } from '@/lib/resend';
 import BookingRequestReceived from '@/emails/customer/BookingRequestReceived';
 import React from 'react';
+import { calculateQuote } from '@/lib/pricing/calculator';
+import type { PackageType, Frequency, PropertyType } from '@/lib/pricing/constants';
 
 export async function submitQuoteRequest(data: {
   category: string;
@@ -80,6 +82,7 @@ import { applyDynamicPricing } from '@/lib/dynamic-pricing';
 import type { ServiceType, TimeWindow } from '@/types';
 
 export async function getLiveQuote(data: {
+  property_type?: string;
   service_type: string;
   scheduled_date: string;
   scheduled_window: string;
@@ -95,52 +98,97 @@ export async function getLiveQuote(data: {
     const { data: zone } = await supabase.from('zones').select('id').limit(1).single();
     if (!zone) return { error: 'No service zones available' };
 
-    // 2. Base pricing config
-    const { data: config } = await supabase
-      .from('pricing_config')
-      .select('*')
-      .eq('service_type', data.service_type)
-      .single();
+    // Map service_type back to PackageType
+    let selectedPackage: PackageType = 'standard';
+    if (data.service_type === 'deep_clean' || data.service_type === 'recurring_deep') selectedPackage = 'deep_clean';
+    else if (data.service_type === 'standard_plus_clean') selectedPackage = 'standard_plus';
+    else if (data.service_type === 'reset_clean') selectedPackage = 'full_reset';
+    else if (data.service_type === 'move_in_clean' || data.service_type === 'move_out_clean') selectedPackage = 'move_in_out';
 
-    const basePrice = config?.base_price ?? 180;
-    const bedroomAdder = config?.bedroom_adder ?? 15;
-    const bathroomAdder = config?.bathroom_adder ?? 10;
-    const petsAdder = config?.pets_surcharge ?? 20;
+    let frequency: Frequency = 'one_time';
+    if (data.service_type === 'recurring_standard') {
+      selectedPackage = 'standard';
+      frequency = 'biweekly'; // default to biweekly recurring discount (10%)
+    } else if (data.service_type === 'recurring_deep') {
+      selectedPackage = 'deep_clean';
+      frequency = 'biweekly';
+    }
 
+    // Fallback sqft estimation logic from bed/bath
+    let sqft = 1000;
     const bedrooms = data.home_bedrooms ?? 2;
-    const bathrooms = data.home_bathrooms ?? 1;
+    const fullBathrooms = data.home_bathrooms ?? 1;
+    const propertyType = (data.property_type as PropertyType) || 'house';
+    
+    if (propertyType === 'condo') {
+      if (bedrooms <= 1) sqft = 600;
+      else if (bedrooms === 2) sqft = 1000;
+      else sqft = 1250;
+    } else if (propertyType === 'basement') {
+      if (bedrooms <= 1) sqft = 600;
+      else sqft = 800;
+    } else if (propertyType === 'house') {
+      if (bedrooms <= 2) sqft = 500;
+      else if (bedrooms === 3) sqft = 1250;
+      else sqft = 2250;
+    }
+
+    // Call calculator
+    const quoteResult = calculateQuote({
+      propertyType,
+      sqft,
+      selectedPackage,
+      frequency,
+      fullBathrooms,
+      halfBathrooms: 0,
+      selectedAddOnIds: data.add_ons || [],
+      customAddOnPrices: {},
+      addOnQuantities: {},
+      vacancyConfirmed: selectedPackage === 'move_in_out' ? true : undefined,
+    });
+
+    if (quoteResult.requiresCustomQuote) {
+      return { error: 'A custom quote is required for this size of property' };
+    }
+
+    // Map calculator result to the legacy UI structure
+    const lineItems: Array<{ label: string; amount: number }> = [];
+    let basePrice = 0;
+
+    if (quoteResult.isRange) {
+      const range = quoteResult.basePrice as [number, number];
+      basePrice = (range[0] + range[1]) / 2;
+      lineItems.push({ label: 'Base price (Est. Average)', amount: basePrice });
+    } else {
+      basePrice = quoteResult.basePrice as number;
+      lineItems.push({ label: 'Base price', amount: basePrice });
+    }
+
+    if (quoteResult.bathroomAdjustment > 0) {
+      lineItems.push({ label: 'Bathroom adjustment', amount: quoteResult.bathroomAdjustment });
+    }
+
+    if (typeof quoteResult.frequencyDiscount === 'number' && quoteResult.frequencyDiscount < 0) {
+      lineItems.push({ label: 'Frequency discount', amount: quoteResult.frequencyDiscount });
+    }
 
     let addOnsPrice = 0;
-    const lineItems: Array<{ label: string; amount: number }> = [
-      { label: 'Base price', amount: basePrice },
-    ];
-
-    if (bedrooms > 2) {
-      const amt = (bedrooms - 2) * bedroomAdder;
-      addOnsPrice += amt;
-      lineItems.push({ label: `Extra bedrooms (${bedrooms - 2})`, amount: amt });
-    }
-    if (bathrooms > 1) {
-      const amt = (bathrooms - 1) * bathroomAdder;
-      addOnsPrice += amt;
-      lineItems.push({ label: `Extra bathrooms (${bathrooms - 1})`, amount: amt });
-    }
-    if (data.has_pets) {
-      addOnsPrice += petsAdder;
-      lineItems.push({ label: 'Pets surcharge', amount: petsAdder });
+    for (const addOn of quoteResult.addOns) {
+      if (typeof addOn.price === 'number') {
+        addOnsPrice += addOn.price;
+        lineItems.push({ label: addOn.label, amount: addOn.price });
+      }
     }
 
-    const addOnPrices: Record<string, number> = {
-      inside_fridge: 30, inside_oven: 30, inside_cabinets: 40,
-      baseboards: 25, interior_windows: 50,
-    };
-    for (const ao of data.add_ons || []) {
-      const p = addOnPrices[ao] ?? 0;
-      addOnsPrice += p;
-      lineItems.push({ label: ao.replace(/_/g, ' '), amount: p });
+    for (const surcharge of quoteResult.percentageSurcharges) {
+      addOnsPrice += surcharge.amount;
+      lineItems.push({ label: surcharge.label, amount: surcharge.amount });
     }
 
-    const finalPrice = basePrice + addOnsPrice;
+    const finalPrice = typeof quoteResult.total === 'number'
+      ? quoteResult.total
+      : (quoteResult.total[0] + quoteResult.total[1]) / 2;
+
     const deposit = Math.round(finalPrice * 0.3 * 100) / 100;
 
     const baseQuote = {

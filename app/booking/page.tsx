@@ -6,6 +6,9 @@ import { DatePicker } from '@/components/ui/date-picker';
 import { AddressAutocomplete } from '@/components/ui/address-autocomplete';
 import { DEFAULT_PRICING, SERVICE_TYPE_LABELS } from '@/types';
 import type { ServiceType } from '@/types';
+import { Home, Building2, Warehouse } from 'lucide-react';
+import { calculateQuote } from '@/lib/pricing/calculator';
+import type { PackageType, Frequency, PropertyType } from '@/lib/pricing/constants';
 
 const SERVICES = [
   { value: 'standard_clean', label: 'Standard Clean', desc: 'Full home regular cleaning', icon: '🏠' },
@@ -30,13 +33,61 @@ const WINDOWS = [
 
 const STEPS = ['Service', 'Home', 'Schedule', 'Contact', 'Confirm'];
 
-function calcEstimate(service: string, beds: number, baths: number, pets: boolean, addOns: string[]): number {
-  const base = DEFAULT_PRICING[service as ServiceType] ?? 180;
-  const bedMod = Math.max(0, beds - 2) * 20;
-  const bathMod = Math.max(0, baths - 1) * 15;
-  const addOnCost = addOns.length * 25;
-  const petMod = pets ? 15 : 0;
-  return base + bedMod + bathMod + addOnCost + petMod;
+function calcEstimate(
+  service: string,
+  beds: number,
+  baths: number,
+  pets: boolean,
+  addOns: string[],
+  propertyType: 'condo' | 'basement' | 'house'
+): number {
+  let selectedPackage: PackageType = 'standard';
+  if (service === 'deep_clean') selectedPackage = 'deep_clean';
+  else if (service === 'move_out_clean' || service === 'move_in_clean') selectedPackage = 'move_in_out';
+
+  // Fallback sqft estimation logic from bed/bath
+  let sqft = 1000;
+  if (propertyType === 'condo') {
+    if (beds <= 1) sqft = 600;
+    else if (beds === 2) sqft = 1000;
+    else sqft = 1250;
+  } else if (propertyType === 'basement') {
+    if (beds <= 1) sqft = 600;
+    else sqft = 800;
+  } else if (propertyType === 'house') {
+    if (beds <= 2) sqft = 500;
+    else if (beds === 3) sqft = 1250;
+    else sqft = 2250;
+  }
+
+  // Include heavy pet hair add-on if pets is true
+  const selectedAddOnIds = [...addOns];
+  if (pets && !selectedAddOnIds.includes('heavy_pet_hair')) {
+    selectedAddOnIds.push('heavy_pet_hair');
+  }
+
+  const quoteResult = calculateQuote({
+    propertyType,
+    sqft,
+    selectedPackage,
+    frequency: 'one_time',
+    fullBathrooms: baths,
+    halfBathrooms: 0,
+    selectedAddOnIds,
+    customAddOnPrices: {},
+    addOnQuantities: {},
+    vacancyConfirmed: selectedPackage === 'move_in_out' ? true : undefined,
+  });
+
+  if (quoteResult.requiresCustomQuote) {
+    return 0; // custom quote required
+  }
+
+  const finalPrice = typeof quoteResult.total === 'number'
+    ? quoteResult.total
+    : (quoteResult.total[0] + quoteResult.total[1]) / 2;
+
+  return Math.round(finalPrice);
 }
 
 export default function BookingPage() {
@@ -61,9 +112,10 @@ export default function BookingPage() {
     city: '',
     postal_code: '',
     access_instructions: '',
+    property_type: 'house',
   });
 
-  const estimate = calcEstimate(form.service_type, form.home_bedrooms, form.home_bathrooms, form.has_pets, form.add_ons);
+  const estimate = calcEstimate(form.service_type, form.home_bedrooms, form.home_bathrooms, form.has_pets, form.add_ons, form.property_type as any);
 
   const update = (k: string, v: unknown) => setForm(f => ({ ...f, [k]: v }));
 
@@ -252,6 +304,34 @@ export default function BookingPage() {
           <div className="space-y-5">
             <h2 className="text-2xl font-bold text-gray-900">Tell us about your home</h2>
             <div className="bg-white rounded-2xl border border-gray-100 p-5 space-y-5">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-3">Property Type</label>
+                <div className="flex gap-2">
+                  {[
+                    { id: 'house', label: 'House', icon: Home },
+                    { id: 'condo', label: 'Condo/Apt', icon: Building2 },
+                    { id: 'basement', label: 'Basement', icon: Warehouse },
+                  ].map((pt) => {
+                    const Icon = pt.icon;
+                    const isSelected = (form as any).property_type === pt.id;
+                    return (
+                      <button
+                        key={pt.id}
+                        type="button"
+                        onClick={() => update('property_type', pt.id)}
+                        className={`flex-1 py-3 px-2 rounded-xl border flex flex-col items-center gap-1.5 text-xs font-semibold transition-all ${
+                          isSelected
+                            ? 'border-blue-500 bg-blue-50 text-blue-700'
+                            : 'border-gray-100 bg-gray-50 hover:border-blue-200'
+                        }`}
+                      >
+                        <Icon className="w-5 h-5" />
+                        {pt.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-3">Bedrooms</label>
                 <div className="flex gap-2">
