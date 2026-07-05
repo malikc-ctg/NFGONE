@@ -1,4 +1,6 @@
-// ============================================================
+const fs = require('fs');
+
+const CODE = `// ============================================================
 // Sea of Blue — Scope of Work Generator
 // Generates customer-facing quote + scope of work text.
 // ============================================================
@@ -183,20 +185,20 @@ function flattenScopeText(tiers: ScopeItems[], notIncluded: string, requires?: s
     for (const tier of tiers) {
       if (tier[room]) {
         for (const item of tier[room]) {
-          lines.push(`• ${item}`);
+          lines.push(\`• \${item}\`);
         }
       }
     }
     lines.push(''); // blank line
   }
 
-  lines.push(`NOT INCLUDED: ${notIncluded}`);
+  lines.push(\`NOT INCLUDED: \${notIncluded}\`);
   if (requires) {
     lines.push('');
-    lines.push(`REQUIRES: ${requires}`);
+    lines.push(\`REQUIRES: \${requires}\`);
   }
 
-  return lines.join('\n');
+  return lines.join('\\n');
 }
 
 const SCOPE_STANDARD = flattenScopeText(
@@ -263,11 +265,11 @@ export function generateScopeOfWork(input: ScopeOfWorkInput): string {
   const packageLabel = PACKAGE_LABELS[selectedPackage];
   const propertyLabel = PROPERTY_TYPE_LABELS[propertyType];
 
-  let propertySummary = `${propertyLabel}, ${sizeBandLabel}`;
+  let propertySummary = \`\${propertyLabel}, \${sizeBandLabel}\`;
   if (bedrooms !== undefined && bathrooms !== undefined) {
     // For houses, sizeBandLabel is sqft (e.g. "1,000-1,500 sqft"), so explicitly add bed/bath.
     // For condos/basements, sizeBandLabel is already bed/bath (e.g. "1BR/1BA"), but appending it makes it completely clear.
-    propertySummary = `${propertyLabel} (${bedrooms} Bed / ${bathrooms} Bath), ${sizeBandLabel}`;
+    propertySummary = \`\${propertyLabel} (\${bedrooms} Bed / \${bathrooms} Bath), \${sizeBandLabel}\`;
   }
 
   // Price line
@@ -276,20 +278,20 @@ export function generateScopeOfWork(input: ScopeOfWorkInput): string {
     priceLine = 'Price: Custom quote — to be confirmed after assessment';
   } else if (quote.isRange) {
     const [min, max] = quote.total as [number, number];
-    priceLine = `Estimated price: $${min.toFixed(2)}–$${max.toFixed(2)}, final price confirmed once our team assesses the property on arrival`;
+    priceLine = \`Estimated price: $\${min.toFixed(2)}–$\${max.toFixed(2)}, final price confirmed once our team assesses the property on arrival\`;
   } else {
     const total = quote.total as number;
     const suffix =
       frequency !== 'one_time'
-        ? ` / per visit`
+        ? \` / per visit\`
         : '';
-    priceLine = `Price: $${total.toFixed(2)}${suffix}`;
+    priceLine = \`Price: $\${total.toFixed(2)}\${suffix}\`;
   }
 
   // Frequency line
   const frequencyLine =
     frequency !== 'one_time'
-      ? `Frequency: ${FREQUENCY_LABELS[frequency]}`
+      ? \`Frequency: \${FREQUENCY_LABELS[frequency]}\`
       : '';
 
   // Add-ons list
@@ -302,13 +304,13 @@ export function generateScopeOfWork(input: ScopeOfWorkInput): string {
   } else {
     const lines: string[] = [];
     for (const a of pricedAddOns) {
-      const qtyLabel = a.quantity > 1 ? ` (×${a.quantity})` : '';
-      lines.push(`- ${a.label}${qtyLabel}: $${(a.price as number).toFixed(2)}`);
+      const qtyLabel = a.quantity > 1 ? \` (×\${a.quantity})\` : '';
+      lines.push(\`- \${a.label}\${qtyLabel}: $\${(a.price as number).toFixed(2)}\`);
     }
     for (const s of quote.percentageSurcharges) {
-      lines.push(`- ${s.label} (${(s.percent * 100).toFixed(1)}%): $${s.amount.toFixed(2)}`);
+      lines.push(\`- \${s.label} (\${(s.percent * 100).toFixed(1)}%): $\${s.amount.toFixed(2)}\`);
     }
-    addOnsSection = lines.join('\n');
+    addOnsSection = lines.join('\\n');
   }
 
   // Scope of work body
@@ -317,26 +319,29 @@ export function generateScopeOfWork(input: ScopeOfWorkInput): string {
   // Vacancy confirmation line
   const vacancyLine =
     selectedPackage === 'move_in_out' && vacancyConfirmed
-      ? '\nConfirmed vacant unit service.'
+      ? '\\nConfirmed vacant unit service.'
       : '';
 
-  const output = `Hi ${customerName || 'there'},
+  const output = \`Hi \${customerName || 'there'},
 
-Here's your confirmed quote for ${propertySummary}:
+Here's your confirmed quote for \${propertySummary}:
 
-Package: ${packageLabel}
-${priceLine}${frequencyLine ? '\n' + frequencyLine : ''}
+Package: \${packageLabel}
+\${priceLine}\${frequencyLine ? '\\n' + frequencyLine : ''}
 
 Add-ons included:
-${addOnsSection}
+\${addOnsSection}
 
-What's included in your ${packageLabel} clean:
+What's included in your \${packageLabel} clean:
 
-${scopeBody}${vacancyLine}
+\${scopeBody}\${vacancyLine}
 
 Questions before your appointment? Just reply to this message.
 
-— Sea of Blue`;
+— Sea of Blue\`;
 
   return output.trim();
 }
+`;
+
+fs.writeFileSync('lib/pricing/scope-of-work.ts', CODE);
