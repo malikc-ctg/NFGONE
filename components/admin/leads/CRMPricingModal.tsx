@@ -385,6 +385,8 @@ function PricingModalContent({
       frequency: frequencyEnabled ? frequency : 'one_time',
       quote,
       vacancyConfirmed,
+      bedrooms,
+      bathrooms: fullBathrooms + halfBathrooms,
     });
     setScopeText(text);
     navigator.clipboard.writeText(text);
