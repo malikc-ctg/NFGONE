@@ -207,6 +207,8 @@ export interface ScopeOfWorkInput {
   frequency: Frequency;
   quote: QuoteResult;
   vacancyConfirmed?: boolean;
+  bedrooms?: number;
+  bathrooms?: number;
 }
 
 export function generateScopeOfWork(input: ScopeOfWorkInput): string {
@@ -218,10 +220,19 @@ export function generateScopeOfWork(input: ScopeOfWorkInput): string {
     frequency,
     quote,
     vacancyConfirmed,
+    bedrooms,
+    bathrooms,
   } = input;
 
   const packageLabel = PACKAGE_LABELS[selectedPackage];
   const propertyLabel = PROPERTY_TYPE_LABELS[propertyType];
+
+  let propertySummary = `${propertyLabel}, ${sizeBandLabel}`;
+  if (bedrooms !== undefined && bathrooms !== undefined) {
+    // For houses, sizeBandLabel is sqft (e.g. "1,000-1,500 sqft"), so explicitly add bed/bath.
+    // For condos/basements, sizeBandLabel is already bed/bath (e.g. "1BR/1BA"), but appending it makes it completely clear.
+    propertySummary = `${propertyLabel} (${bedrooms} Bed / ${bathrooms} Bath), ${sizeBandLabel}`;
+  }
 
   // Price line
   let priceLine: string;
@@ -275,7 +286,7 @@ export function generateScopeOfWork(input: ScopeOfWorkInput): string {
 
   const output = `Hi ${customerName || 'there'},
 
-Here's your confirmed quote for ${propertyLabel}, ${sizeBandLabel}:
+Here's your confirmed quote for ${propertySummary}:
 
 Package: ${packageLabel}
 ${priceLine}${frequencyLine ? '\n' + frequencyLine : ''}

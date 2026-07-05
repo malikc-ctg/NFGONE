@@ -420,6 +420,8 @@ function PricingModalContent({
         frequency: frequencyEnabled ? frequency : 'one_time',
         quote,
         vacancyConfirmed,
+        bedrooms,
+        bathrooms: fullBathrooms + halfBathrooms,
       });
 
       const res = await fetch('/api/pricing-quotes', {
