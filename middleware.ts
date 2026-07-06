@@ -5,9 +5,9 @@ export async function middleware(request: NextRequest) {
   const url = request.nextUrl;
   const hostname = request.headers.get('host') || '';
 
-  // Rewrite seaofblue.xyz requests to the /customer-site folder
+  // Rewrite seaofblue.ca requests to the /customer-site folder
   // Also support localhost testing with a specific subdomain/host (e.g., customer.localhost:3000)
-  if (hostname.includes('seaofblue.xyz') || hostname.includes('customer.localhost')) {
+  if (hostname.includes('seaofblue.ca') || hostname.includes('customer.localhost')) {
     // Do not prefix API routes or global shared pages
     const isApi = url.pathname.startsWith('/api');
     const isGlobalPage = /^\/(contact|terms|privacy|contractors|apply|sitemap\.xml|robots\.txt)(\/|$)/.test(url.pathname);

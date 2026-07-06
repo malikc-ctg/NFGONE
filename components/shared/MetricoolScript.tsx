@@ -7,8 +7,8 @@ export default function MetricoolScript() {
   const [shouldTrack, setShouldTrack] = useState(false);
 
   useEffect(() => {
-    // Only enable tracking on the customer-facing site (seaofblue.xyz)
-    if (window.location.hostname.includes('seaofblue.xyz')) {
+    // Only enable tracking on the customer-facing site (seaofblue.ca)
+    if (window.location.hostname.includes('seaofblue.ca')) {
       setShouldTrack(true);
     }
   }, []);

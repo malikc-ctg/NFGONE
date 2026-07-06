@@ -14,6 +14,6 @@ export default function robots(): MetadataRoute.Robots {
         '/api/',
       ],
     },
-    sitemap: 'https://seaofblue.xyz/sitemap.xml',
+    sitemap: 'https://seaofblue.ca/sitemap.xml',
   };
 }
