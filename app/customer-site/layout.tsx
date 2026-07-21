@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import './customer-site.css';
 
 const LOGO_IMG = (
@@ -16,6 +16,24 @@ const CHECK_SVG = (
 export default function CustomerSiteLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [hideHeader, setHideHeader] = useState(false);
+
+  useEffect(() => {
+    let lastScrollY = window.scrollY;
+    
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      if (currentScrollY > lastScrollY && currentScrollY > 100) {
+        setHideHeader(true);
+      } else if (currentScrollY < lastScrollY) {
+        setHideHeader(false);
+      }
+      lastScrollY = currentScrollY;
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   // These paths get the full public layout (header/footer/mobile bar)
   const isPublicPage =
@@ -40,7 +58,7 @@ export default function CustomerSiteLayout({ children }: { children: React.React
   return (
     <div className="cs-root">
       {/* Header */}
-      <header className="cs-header">
+      <header className={`cs-header${hideHeader ? ' hide' : ''}`}>
         <div className="wrap hd">
           <Link className="logo" href="/customer-site">
             {LOGO_IMG}
