@@ -32,7 +32,7 @@ export async function sendEmail({
     const html = await render(react);
     
     const { data, error } = await resend.emails.send({
-      from: 'Sea of Blue <support@seaofblue.app>',
+      from: 'Sea of Blue <info@seaofblue.app>',
       to,
       subject,
       html,

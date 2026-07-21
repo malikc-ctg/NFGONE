@@ -45,7 +45,7 @@ export default function BaseLayout({ previewText, heading, children }: BaseLayou
               <Text className="text-[#666666] text-xs leading-6 m-0 text-center">
                 Sea of Blue Home Services
                 <br />
-                support@seaofblue.app
+                info@seaofblue.app
               </Text>
             </Section>
           </Container>

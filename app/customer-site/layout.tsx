@@ -5,10 +5,8 @@ import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 import './customer-site.css';
 
-const LOGO_SVG = (
-  <svg viewBox="0 0 120 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M4 30 C10 30 12 22 22 24 C30 25.5 30 20 40 18 C52 15.5 58 26 70 22 C80 18.7 84 14 88 10 L88 34 L4 34 Z" fill="#3E6DA5" />
-  </svg>
+const LOGO_IMG = (
+  <img src="/nav-logo.png?v=2" alt="Sea of Blue" style={{ height: '22px', width: 'auto', display: 'block' }} />
 );
 
 const CHECK_SVG = (
@@ -44,8 +42,7 @@ export default function CustomerSiteLayout({ children }: { children: React.React
       <header className="cs-header">
         <div className="wrap hd">
           <Link className="logo" href="/customer-site">
-            {LOGO_SVG}
-            <span>Sea of Blue</span>
+            {LOGO_IMG}
           </Link>
 
           <nav className={`cs-nav${menuOpen ? ' open' : ''}`}>
@@ -80,8 +77,7 @@ export default function CustomerSiteLayout({ children }: { children: React.React
           <div className="ft">
             <div>
               <Link className="logo" href="/customer-site" style={{ marginBottom: 16 }}>
-                {LOGO_SVG}
-                <span>Sea of Blue</span>
+                {LOGO_IMG}
               </Link>
               <p>Tech-enabled residential and commercial cleaning across the Greater Toronto Area. Liability insured, WSIB registered, background-checked, and guaranteed in writing.</p>
             </div>
@@ -95,7 +91,7 @@ export default function CustomerSiteLayout({ children }: { children: React.React
               <h4>Contact</h4>
               <a href="tel:4374751622">437 475 1622</a>
               <a href="sms:4374751622">Text Us</a>
-              <a href="mailto:jc@seaofblue.xyz">jc@seaofblue.xyz</a>
+              <a href="mailto:info@seaofblue.app">info@seaofblue.app</a>
             </div>
             <div>
               <h4>Service Areas</h4>

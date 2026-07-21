@@ -128,7 +128,7 @@ export default function PrivacyPolicyPage() {
               <h2 className="text-white text-xl font-bold tracking-tight">8. Contact Us</h2>
               <p>If you have any questions or concerns regarding this Privacy Policy, please reach out to us:</p>
               <p className="text-white/95">
-                Email: <a href="mailto:support@seaofblue.app" className="underline hover:text-white transition-colors">support@seaofblue.app</a>
+                Email: <a href="mailto:info@seaofblue.app" className="underline hover:text-white transition-colors">info@seaofblue.app</a>
               </p>
             </section>
           </div>

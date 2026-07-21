@@ -134,15 +134,15 @@ export default function CustomerHomePage() {
             <ScrollReveal>
               <div className="rv">
                 <div className="stars">★★★★★</div>
-                <p>&ldquo;The instant quote tool was what sold me, but the actual clean is why I'm rebooking. They did a deep clean before my in-laws visited and got into corners I haven't seen since we moved in. The texting updates were super convenient.&rdquo;</p>
-                <b>Sarah M.</b><small>Mississauga, Deep Clean</small>
+                <p>&ldquo;Excellent service! The team was friendly, efficient, and did a great job. I was especially impressed with the deep cleaning of the kitchen and bathroom—they looked fresh and spotless. Highly recommended!&rdquo;</p>
+                <b>Bushra M. Khan</b><small>Deep Clean</small>
               </div>
             </ScrollReveal>
             <ScrollReveal>
               <div className="rv">
                 <div className="stars">★★★★★</div>
-                <p>&ldquo;We've been through three different services that all started strong and got lazy after a month. Sea of Blue is different. They hold the exact same standard every single visit. Love getting the text that they're on the way.&rdquo;</p>
-                <b>David T.</b><small>Oakville, Bi-weekly Standard Plus</small>
+                <p>&ldquo;Professional, fast response, and amazing job. Will definitely use again.&rdquo;</p>
+                <b>Nathalie Toussaint</b><small>Standard Clean</small>
               </div>
             </ScrollReveal>
             <ScrollReveal>

@@ -38,7 +38,11 @@ export default function CommercialPage() {
         <div className="wrap">
           <span className="kicker" style={{ color: 'var(--mist)' }}>Commercial Cleaning</span>
           <h1>Small commercial. Big accountability.</h1>
-          <p>The national players chase towers. We serve the spaces under 5,000 sqft they treat as too small to care about: retail, automotive, offices, and managed properties across the GTA, with every visit verified and every scope in writing.</p>
+          <p>
+            Enterprise-grade cleaning and facility services for retail, automotive, offices, medical spaces, and managed properties, with scoped agreements, verified visit logs, and a dedicated account contact for every client.
+            <br /><br />
+            Trusted by hundreds across the GTA.
+          </p>
           <div className="hero-ctas" style={{ marginTop: 28 }}>
             <a className="btn btn-cream" href="#cform">Book a Walkthrough</a>
             <a className="btn btn-ghost" href="tel:4374751622">Call 437 475 1622</a>

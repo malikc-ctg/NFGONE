@@ -119,7 +119,7 @@ export default function TermsOfServicePage() {
               <h2 className="text-white text-xl font-bold tracking-tight">8. Contact Us</h2>
               <p>If you have any questions about these Terms of Service, please contact our legal counsel:</p>
               <p className="text-white/95">
-                Email: <a href="mailto:legal@seaofblue.app" className="underline hover:text-white transition-colors">legal@seaofblue.app</a>
+                Email: <a href="mailto:info@seaofblue.app" className="underline hover:text-white transition-colors">info@seaofblue.app</a>
               </p>
             </section>
           </div>
