@@ -4,7 +4,7 @@ import { Hero } from '@/components/landing/Hero';
 import { BrandStatement } from '@/components/landing/BrandStatement';
 import { Services } from '@/components/landing/Services';
 import { KineticTypography } from '@/components/landing/KineticTypography';
-import { ContractorComparison } from '@/components/landing/ContractorComparison';
+import { EmployeeComparison } from '@/components/landing/EmployeeComparison';
 import { Contact } from '@/components/landing/Contact';
 import { Navigation } from '@/components/landing/Navigation';
 import { Footer } from '@/components/landing/Footer';
@@ -18,7 +18,7 @@ export default function LandingPage() {
       <BrandStatement />
       <Services />
       <KineticTypography />
-      <ContractorComparison />
+      <EmployeeComparison />
       <Contact />
       <Footer />
     </main>

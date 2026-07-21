@@ -49,7 +49,7 @@ function mkJobMarker(status: string) {
   return el;
 }
 
-function mkContractorMarker() {
+function mkEmployeeMarker() {
   const el = document.createElement('div');
   el.style.cssText = 'width:30px;height:30px;cursor:pointer;display:flex;align-items:center;justify-content:center;';
   const inner = document.createElement('div');
@@ -83,23 +83,23 @@ interface ZoneMetric {
   completed_jobs: number;
   total_revenue: number;
   active_revenue: number;
-  total_contractors: number;
-  online_contractors: number;
+  total_employees: number;
+  online_employees: number;
   assigned_jobs: number;
   coverage_status: 'high' | 'medium' | 'low' | 'idle';
   // Dominance
-  in_house_contractors: number;
-  independent_contractors: number;
+  in_house_employees: number;
+  independent_employees: number;
   in_house_jobs_today: number;
-  contractor_jobs_today: number;
-  dominance_mode: 'in_house' | 'contractor' | 'mixed' | 'none';
+  employee_jobs_today: number;
+  dominance_mode: 'in_house' | 'employee' | 'mixed' | 'none';
 }
 
 interface FilterState {
   status: string;
   search: string;
   showJobs: boolean;
-  showContractors: boolean;
+  showEmployees: boolean;
   showHQs: boolean;
   showZones: boolean;
   showLines: boolean;
@@ -107,8 +107,8 @@ interface FilterState {
 
 interface MapData {
   jobs: any[];
-  contractorLocations: any[];
-  contractorHQs: any[];
+  employeeLocations: any[];
+  employeeHQs: any[];
   zoneMetrics: ZoneMetric[];
   assignmentLines: any[];
 }
@@ -206,7 +206,7 @@ function ZoneSidebar({
                     {[
                       { label: 'Jobs', value: zone.total_jobs_today, color: 'text-blue-400' },
                       { label: 'Active', value: zone.active_jobs, color: 'text-purple-400' },
-                      { label: 'Online', value: zone.online_contractors, color: 'text-emerald-400' },
+                      { label: 'Online', value: zone.online_employees, color: 'text-emerald-400' },
                       { label: 'Rev', value: `$${zone.total_revenue >= 1000 ? (zone.total_revenue / 1000).toFixed(1) + 'k' : zone.total_revenue.toFixed(0)}`, color: 'text-green-400' },
                     ].map(m => (
                       <div key={m.label} className="bg-white/5 rounded p-1 text-center">
@@ -223,21 +223,21 @@ function ZoneSidebar({
                         <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-blue-500/15 border border-blue-500/30">
                           <div className="w-1.5 h-1.5 rounded-full bg-blue-400" />
                           <span className="text-blue-300 text-[8px] font-black uppercase">SOB Staff</span>
-                          <span className="text-blue-400/60 text-[8px]">{zone.in_house_contractors}↑</span>
+                          <span className="text-blue-400/60 text-[8px]">{zone.in_house_employees}↑</span>
                         </div>
                       )}
-                      {zone.dominance_mode === 'contractor' && (
+                      {zone.dominance_mode === 'employee' && (
                         <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-orange-500/15 border border-orange-500/30">
                           <div className="w-1.5 h-1.5 rounded-full bg-orange-400" />
-                          <span className="text-orange-300 text-[8px] font-black uppercase">Contractor</span>
-                          <span className="text-orange-400/60 text-[8px]">{zone.independent_contractors}↑</span>
+                          <span className="text-orange-300 text-[8px] font-black uppercase">Employee</span>
+                          <span className="text-orange-400/60 text-[8px]">{zone.independent_employees}↑</span>
                         </div>
                       )}
                       {zone.dominance_mode === 'mixed' && (
                         <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-purple-500/15 border border-purple-500/30">
                           <div className="w-1.5 h-1.5 rounded-full bg-purple-400" />
                           <span className="text-purple-300 text-[8px] font-black uppercase">Mixed</span>
-                          <span className="text-purple-400/60 text-[8px]">{zone.in_house_contractors}+{zone.independent_contractors}</span>
+                          <span className="text-purple-400/60 text-[8px]">{zone.in_house_employees}+{zone.independent_employees}</span>
                         </div>
                       )}
                     </div>
@@ -247,7 +247,7 @@ function ZoneSidebar({
                     <div className="flex items-center gap-1 mt-1">
                       <AlertTriangle className="h-2.5 w-2.5 text-red-400 shrink-0" />
                       <p className="text-red-400 text-[9px] font-medium">
-                        {zone.active_jobs} job{zone.active_jobs > 1 ? 's' : ''}, {zone.online_contractors} online
+                        {zone.active_jobs} job{zone.active_jobs > 1 ? 's' : ''}, {zone.online_employees} online
                       </p>
                     </div>
                   )}
@@ -274,7 +274,7 @@ function ZoneSidebar({
               <p className="text-[9px] text-white/30 font-black uppercase tracking-widest mb-1">Dominance</p>
               {[
                 { color: '#60a5fa', label: 'SOB Staff dominant' },
-                { color: '#fb923c', label: 'Contractor dominant' },
+                { color: '#fb923c', label: 'Employee dominant' },
                 { color: '#c084fc', label: 'Mixed workforce' },
               ].map(l => (
                 <div key={l.label} className="flex items-center gap-2">
@@ -303,7 +303,7 @@ export default function DispatchMap({ onBack }: Props) {
   const [mapLoaded, setMapLoaded] = useState(false);
   const [mapToken, setMapToken] = useState('');
   const [mapData, setMapData] = useState<MapData>({
-    jobs: [], contractorLocations: [], contractorHQs: [], zoneMetrics: [], assignmentLines: [],
+    jobs: [], employeeLocations: [], employeeHQs: [], zoneMetrics: [], assignmentLines: [],
   });
   const [loading, setLoading] = useState(true);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
@@ -311,7 +311,7 @@ export default function DispatchMap({ onBack }: Props) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [filters, setFilters] = useState<FilterState>({
     status: 'all', search: '',
-    showJobs: true, showContractors: true, showHQs: true, showZones: true, showLines: true,
+    showJobs: true, showEmployees: true, showHQs: true, showZones: true, showLines: true,
   });
 
   const supabase = createClient();
@@ -342,7 +342,7 @@ export default function DispatchMap({ onBack }: Props) {
   useEffect(() => {
     const ch = supabase
       .channel('dispatch-map-realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'contractor_locations' }, fetchData)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'employee_locations' }, fetchData)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'jobs' }, fetchData)
       .subscribe();
     return () => { supabase.removeChannel(ch); };
@@ -504,7 +504,7 @@ export default function DispatchMap({ onBack }: Props) {
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapLoaded) return;
-    const { jobs, contractorLocations, contractorHQs } = mapData;
+    const { jobs, employeeLocations, employeeHQs } = mapData;
 
     const filteredJobs = jobs.filter(job => {
       if (filters.status !== 'all' && job.status !== filters.status) return false;
@@ -517,8 +517,8 @@ export default function DispatchMap({ onBack }: Props) {
       return true;
     });
 
-    const filteredContractors = contractorLocations.filter(loc =>
-      !filters.search || loc.contractor?.full_name?.toLowerCase().includes(filters.search.toLowerCase())
+    const filteredEmployees = employeeLocations.filter(loc =>
+      !filters.search || loc.employee?.full_name?.toLowerCase().includes(filters.search.toLowerCase())
     );
 
     // Job markers
@@ -540,7 +540,7 @@ export default function DispatchMap({ onBack }: Props) {
             <span style="font-size:11px;color:#aaa;">${(job.service_type ?? '').replace(/_/g, ' ')}</span>
             <span style="font-size:13px;font-weight:800;color:#22c55e;">$${(job.final_price ?? job.quoted_price)?.toFixed(0) ?? '—'}</span>
           </div>
-          ${job.contractor ? `<p style="font-size:10px;color:#666;">Assigned: <strong style="color:#bbb">${job.contractor.full_name}</strong></p>` : ''}
+          ${job.employee ? `<p style="font-size:10px;color:#666;">Assigned: <strong style="color:#bbb">${job.employee.full_name}</strong></p>` : ''}
           <a href="/wegettinmoneynga/jobs/${job.id}" target="_blank" style="display:inline-flex;align-items:center;gap:4px;font-size:11px;color:#60a5fa;margin-top:6px;text-decoration:none;font-weight:700;">View Job Details ↗</a>
         </div>`;
         if (!jobMarkersRef.current[job.id]) {
@@ -555,27 +555,27 @@ export default function DispatchMap({ onBack }: Props) {
       });
     }
 
-    // Contractor markers
-    const locIds = new Set(filteredContractors.map((l: any) => l.id));
+    // Employee markers
+    const locIds = new Set(filteredEmployees.map((l: any) => l.id));
     Object.keys(locMarkersRef.current).forEach(id => {
-      if (!locIds.has(id) || !filters.showContractors) { locMarkersRef.current[id].remove(); delete locMarkersRef.current[id]; }
+      if (!locIds.has(id) || !filters.showEmployees) { locMarkersRef.current[id].remove(); delete locMarkersRef.current[id]; }
     });
-    if (filters.showContractors) {
-      filteredContractors.forEach((loc: any) => {
+    if (filters.showEmployees) {
+      filteredEmployees.forEach((loc: any) => {
         if (!loc.longitude || !loc.latitude) return;
-        const c = loc.contractor;
+        const c = loc.employee;
         const popupHtml = `<div style="font-family:system-ui,sans-serif;padding:4px 2px;">
           <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
             <div style="width:7px;height:7px;background:#22c55e;border-radius:50%;"></div>
             <span style="font-size:10px;color:#22c55e;font-weight:800;">LIVE</span>
           </div>
-          <p style="font-weight:800;font-size:14px;margin:0 0 2px;color:#fff;">${c?.full_name ?? 'Contractor'}</p>
+          <p style="font-weight:800;font-size:14px;margin:0 0 2px;color:#fff;">${c?.full_name ?? 'Employee'}</p>
           <p style="font-size:10px;color:#999;margin:0 0 6px;text-transform:capitalize;">${c?.tier ?? ''} Tier</p>
           ${c?.phone ? `<p style="font-size:10px;color:#666;margin:0 0 6px;">📞 ${c.phone}</p>` : ''}
-          <a href="/wegettinmoneynga/contractors/${c?.id}" target="_blank" style="display:inline-flex;align-items:center;gap:4px;font-size:11px;color:#60a5fa;text-decoration:none;font-weight:700;">View Profile ↗</a>
+          <a href="/wegettinmoneynga/employees/${c?.id}" target="_blank" style="display:inline-flex;align-items:center;gap:4px;font-size:11px;color:#60a5fa;text-decoration:none;font-weight:700;">View Profile ↗</a>
         </div>`;
         if (!locMarkersRef.current[loc.id]) {
-          locMarkersRef.current[loc.id] = new mapboxgl.Marker({ element: mkContractorMarker() })
+          locMarkersRef.current[loc.id] = new mapboxgl.Marker({ element: mkEmployeeMarker() })
             .setLngLat([loc.longitude, loc.latitude])
             .setPopup(new mapboxgl.Popup({ offset: 18, closeButton: true, maxWidth: '240px' }).setHTML(popupHtml))
             .addTo(map);
@@ -586,12 +586,12 @@ export default function DispatchMap({ onBack }: Props) {
     }
 
     // HQ markers
-    const hqIds = new Set(contractorHQs.map((h: any) => h.id));
+    const hqIds = new Set(employeeHQs.map((h: any) => h.id));
     Object.keys(hqMarkersRef.current).forEach(id => {
       if (!hqIds.has(id) || !filters.showHQs) { hqMarkersRef.current[id].remove(); delete hqMarkersRef.current[id]; }
     });
     if (filters.showHQs) {
-      contractorHQs.forEach((hq: any) => {
+      employeeHQs.forEach((hq: any) => {
         if (!hq.longitude || !hq.latitude) return;
         const popupHtml = `<div style="font-family:system-ui,sans-serif;padding:4px 2px;">
           <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
@@ -599,7 +599,7 @@ export default function DispatchMap({ onBack }: Props) {
             <span style="font-size:10px;color:#93c5fd;font-weight:800;">HEADQUARTERS</span>
           </div>
           <p style="font-weight:800;font-size:14px;margin:0 0 6px;color:#fff;">${hq.full_name}</p>
-          <a href="/wegettinmoneynga/contractors/${hq.id}" target="_blank" style="display:inline-flex;align-items:center;gap:4px;font-size:11px;color:#60a5fa;text-decoration:none;font-weight:700;">View Profile ↗</a>
+          <a href="/wegettinmoneynga/employees/${hq.id}" target="_blank" style="display:inline-flex;align-items:center;gap:4px;font-size:11px;color:#60a5fa;text-decoration:none;font-weight:700;">View Profile ↗</a>
         </div>`;
         if (!hqMarkersRef.current[hq.id]) {
           hqMarkersRef.current[hq.id] = new mapboxgl.Marker({ element: mkHQMarker() })
@@ -616,7 +616,7 @@ export default function DispatchMap({ onBack }: Props) {
     if (!initialFrameDone.current && filteredJobs.length > 0) {
       const allCoords: [number, number][] = [
         ...filteredJobs.filter((j: any) => j.longitude && j.latitude).map((j: any) => [j.longitude, j.latitude] as [number, number]),
-        ...filteredContractors.filter((l: any) => l.longitude && l.latitude).map((l: any) => [l.longitude, l.latitude] as [number, number]),
+        ...filteredEmployees.filter((l: any) => l.longitude && l.latitude).map((l: any) => [l.longitude, l.latitude] as [number, number]),
       ];
       if (allCoords.length >= 2) {
         const bounds = allCoords.reduce((b, c) => b.extend(c), new mapboxgl.LngLatBounds(allCoords[0], allCoords[0]));
@@ -630,7 +630,7 @@ export default function DispatchMap({ onBack }: Props) {
   const metrics = {
     jobsToday: mapData.jobs.length,
     revenueToday: mapData.jobs.reduce((s, j) => s + (j.quoted_price || 0), 0),
-    contractorsOnline: mapData.contractorLocations.length,
+    employeesOnline: mapData.employeeLocations.length,
     active: mapData.jobs.filter(j => ['on_the_way', 'in_progress'].includes(j.status)).length,
     completed: mapData.jobs.filter(j => j.status === 'completed').length,
     issues: mapData.jobs.filter(j => ['disputed', 'refunded'].includes(j.status)).length,
@@ -647,7 +647,7 @@ export default function DispatchMap({ onBack }: Props) {
 
   const layerToggles = [
     { key: 'showJobs' as const, label: 'Jobs', icon: Briefcase },
-    { key: 'showContractors' as const, label: 'Live', icon: Radio },
+    { key: 'showEmployees' as const, label: 'Live', icon: Radio },
     { key: 'showHQs' as const, label: 'HQs', icon: Home },
     { key: 'showZones' as const, label: 'Zones', icon: Map },
     { key: 'showLines' as const, label: 'Routes', icon: GitBranch },
@@ -749,7 +749,7 @@ export default function DispatchMap({ onBack }: Props) {
         {[
           { label: 'Jobs Today', value: metrics.jobsToday, icon: Briefcase, color: 'text-blue-400' },
           { label: 'Revenue', value: `$${metrics.revenueToday.toFixed(0)}`, icon: DollarSign, color: 'text-green-400' },
-          { label: 'Live', value: metrics.contractorsOnline, icon: Radio, color: 'text-emerald-400' },
+          { label: 'Live', value: metrics.employeesOnline, icon: Radio, color: 'text-emerald-400' },
           { label: 'Active', value: metrics.active, icon: Zap, color: 'text-purple-400' },
           { label: 'Done', value: metrics.completed, icon: CheckCircle, color: 'text-green-400' },
           { label: 'Issues', value: metrics.issues, icon: AlertTriangle, color: 'text-red-400' },

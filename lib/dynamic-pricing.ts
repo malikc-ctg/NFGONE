@@ -15,9 +15,9 @@ interface PricingContext {
 }
 
 interface DemandSnapshot {
-  available_contractors: number;
+  available_employees: number;
   jobs_already_booked_in_window: number;
-  contractor_capacity_in_window: number;
+  employee_capacity_in_window: number;
   utilization_rate: number;
 }
 
@@ -28,9 +28,9 @@ async function getDemandSnapshot(
 ): Promise<DemandSnapshot> {
   const supabase = await createServiceClient();
 
-  const [contractorsResult, bookedJobsResult] = await Promise.all([
-    // Contractors available in this zone on this day/window
-    supabase.rpc('get_available_contractors_count', {
+  const [employeesResult, bookedJobsResult] = await Promise.all([
+    // Employees available in this zone on this day/window
+    supabase.rpc('get_available_employees_count', {
       p_zone_id: zone_id,
       p_date: date,
       p_window: window,
@@ -45,15 +45,15 @@ async function getDemandSnapshot(
       .not('status', 'in', '(cancelled,refunded)'),
   ]);
 
-  const availableContractors = (contractorsResult.data as number | null) ?? 2;
+  const availableEmployees = (employeesResult.data as number | null) ?? 2;
   const bookedJobs = bookedJobsResult.count ?? 0;
-  const capacity = availableContractors * 2; // each contractor handles ~2 jobs per window
+  const capacity = availableEmployees * 2; // each employee handles ~2 jobs per window
   const utilization = capacity > 0 ? bookedJobs / capacity : 0;
 
   return {
-    available_contractors: availableContractors,
+    available_employees: availableEmployees,
     jobs_already_booked_in_window: bookedJobs,
-    contractor_capacity_in_window: capacity,
+    employee_capacity_in_window: capacity,
     utilization_rate: Math.min(utilization, 1),
   };
 }
@@ -113,7 +113,7 @@ export async function applyDynamicPricing(context: PricingContext): Promise<Pric
   }
 
   // Last available slot
-  if (demand.available_contractors === 1) {
+  if (demand.available_employees === 1) {
     surgeMultiplier = Math.max(surgeMultiplier, 1.20);
     surgeReason = 'Last available slot';
   }

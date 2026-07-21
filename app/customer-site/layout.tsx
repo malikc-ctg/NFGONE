@@ -2,91 +2,123 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useState } from 'react';
+import './customer-site.css';
 
-export default function CustomerSiteLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+const LOGO_SVG = (
+  <svg viewBox="0 0 120 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M4 30 C10 30 12 22 22 24 C30 25.5 30 20 40 18 C52 15.5 58 26 70 22 C80 18.7 84 14 88 10 L88 34 L4 34 Z" fill="#3E6DA5" />
+  </svg>
+);
+
+const CHECK_SVG = (
+  <svg viewBox="0 0 16 16" fill="none"><path d="M2 8.5L6 12.5L14 3.5" stroke="#F4EFE3" strokeWidth="2.4" strokeLinecap="square" /></svg>
+);
+
+export default function CustomerSiteLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const isPortal = pathname?.startsWith('/customer-site/portal');
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  // These paths get the full public layout (header/footer/mobile bar)
+  const isPublicPage =
+    pathname === '/customer-site' ||
+    pathname === '/customer-site/residential' ||
+    pathname === '/customer-site/commercial';
+
+  // Portal, login, forgot-password, quote — render children only (they have their own chrome)
+  if (!isPublicPage) {
+    return <>{children}</>;
+  }
+
+  const navLinks = [
+    { href: '/customer-site', label: 'Home' },
+    { href: '/customer-site/residential', label: 'Residential' },
+    { href: '/customer-site/commercial', label: 'Commercial' },
+  ];
+
+  const isActive = (href: string) => pathname === href;
 
   return (
-    <div className="bg-[#001a36] min-h-screen text-white selection:bg-white/20 selection:text-white flex flex-col font-sans overflow-x-clip">
-      
-      {/* Immersive Header - Hidden in Portal */}
-      {!isPortal && (
-        <header className="fixed top-0 left-0 right-0 z-50 w-full bg-[#001a36]/80 backdrop-blur-md border-b border-white/5">
-          <div className="container max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-            <Link href="/" className="flex items-center group">
-              <img 
-                src="/nav-logo.png?v=2" 
-                alt="Sea of Blue" 
-                className="h-5 w-auto object-contain opacity-90 group-hover:opacity-100 transition-opacity"
-              />
-            </Link>
-            <nav className="hidden md:flex items-center gap-8 text-sm font-medium tracking-wide">
-              <Link href="/#services" className="text-white/60 hover:text-white transition-colors">
-                Services
-              </Link>
-              <Link href="/#dispatch" className="text-white/60 hover:text-white transition-colors">
-                Dispatch Network
-              </Link>
-              <Link href="/customer-site/login" className="text-white/60 hover:text-white transition-colors">
-                Sign In
-              </Link>
-              <Link 
-                href="/customer-site/quote" 
-                className="bg-white text-[#001a36] px-6 py-2.5 rounded-full hover:bg-white/90 transition-colors font-semibold"
+    <div className="cs-root">
+      {/* Header */}
+      <header className="cs-header">
+        <div className="wrap hd">
+          <Link className="logo" href="/customer-site">
+            {LOGO_SVG}
+            <span>Sea of Blue</span>
+          </Link>
+
+          <nav className={`cs-nav${menuOpen ? ' open' : ''}`}>
+            {navLinks.map((l) => (
+              <Link
+                key={l.href}
+                href={l.href}
+                className={isActive(l.href) ? 'active' : ''}
+                onClick={() => setMenuOpen(false)}
               >
-                Get a Quote
+                {l.label}
               </Link>
-            </nav>
-            
-            {/* Mobile menu placeholder */}
-            <button className="md:hidden text-white/80 p-2">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+            ))}
+          </nav>
+
+          <div className="hd-cta">
+            <a className="hd-phone" href="tel:4374751622">437 475 1622</a>
+            <Link className="btn btn-solid" href="/customer-site#quote">Get My Price</Link>
+            <button className="burger" onClick={() => setMenuOpen(!menuOpen)} aria-label="Menu">
+              <i /><i /><i />
             </button>
           </div>
-        </header>
-      )}
+        </div>
+      </header>
 
       {/* Main Content */}
-      <main className={`flex-1 ${!isPortal ? 'pt-20' : ''}`}>
-        {children}
-      </main>
+      <main>{children}</main>
 
-      {/* Minimal Footer - Hidden in Portal */}
-      {!isPortal && (
-        <footer className="bg-[#010A14] pt-20 pb-10 border-t border-white/5 text-sm">
-          <div className="container max-w-7xl mx-auto px-6">
-            <div className="flex flex-col md:flex-row items-center justify-between gap-8 mb-16">
-              <Link href="/">
-                <img 
-                  src="/nav-logo.png?v=2" 
-                  alt="Sea of Blue" 
-                  className="h-4 w-auto object-contain opacity-50 hover:opacity-100 transition-opacity"
-                />
+      {/* Footer */}
+      <footer className="cs-footer">
+        <div className="wrap">
+          <div className="ft">
+            <div>
+              <Link className="logo" href="/customer-site" style={{ marginBottom: 16 }}>
+                {LOGO_SVG}
+                <span>Sea of Blue</span>
               </Link>
-              <nav className="flex flex-wrap justify-center gap-x-8 gap-y-4 text-white/40">
-                <Link href="/" className="hover:text-white transition-colors">Home</Link>
-                <Link href="/#services" className="hover:text-white transition-colors">Services</Link>
-                <Link href="/#coverage" className="hover:text-white transition-colors">Coverage</Link>
-                <Link href="/contractors" className="hover:text-white transition-colors">Contractors</Link>
-                <Link href="/privacy" className="hover:text-white transition-colors">Privacy</Link>
-                <Link href="/terms" className="hover:text-white transition-colors">Terms</Link>
-                <Link href="/contact" className="hover:text-white transition-colors">Contact</Link>
-              </nav>
+              <p>Tech-enabled residential and commercial cleaning across the Greater Toronto Area. Liability insured, WSIB registered, background-checked, and guaranteed in writing.</p>
             </div>
-            
-            <div className="text-center text-white/20 text-xs">
-              <p className="mb-2">Sea of Blue &copy; {new Date().getFullYear()}. All rights reserved.</p>
-              <p>Home Services, Dispatched.</p>
+            <div>
+              <h4>Company</h4>
+              {navLinks.map((l) => (
+                <Link key={l.href} href={l.href}>{l.label}</Link>
+              ))}
+            </div>
+            <div>
+              <h4>Contact</h4>
+              <a href="tel:4374751622">437 475 1622</a>
+              <a href="sms:4374751622">Text Us</a>
+              <a href="mailto:jc@seaofblue.xyz">jc@seaofblue.xyz</a>
+            </div>
+            <div>
+              <h4>Service Areas</h4>
+              <a href="/customer-site">Mississauga</a>
+              <a href="/customer-site">Oakville</a>
+              <a href="/customer-site">Brampton</a>
+              <a href="/customer-site">Toronto and GTA</a>
+              <a href="/customer-site">Guelph</a>
             </div>
           </div>
-        </footer>
-      )}
-      
+          <div className="copyright">
+            <span>&copy; 2026 Sea of Blue. All rights reserved.</span>
+            <span>Ontario, Canada</span>
+          </div>
+        </div>
+      </footer>
+
+      {/* Mobile Bottom Bar */}
+      <div className="mbar">
+        <a href="tel:4374751622">Call</a>
+        <a href="sms:4374751622">Text</a>
+        <Link href="/customer-site#quote">Quote</Link>
+      </div>
     </div>
   );
 }

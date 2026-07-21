@@ -13,7 +13,7 @@ export interface AuditLogParams {
   actorEmail?: string;
   actorRole?: string;
   action: string;           // e.g., 'job.status_changed'
-  entityType: string;       // e.g., 'job', 'lead', 'contractor'
+  entityType: string;       // e.g., 'job', 'lead', 'employee'
   entityId?: string;
   oldValues?: Record<string, any>;
   newValues?: Record<string, any>;

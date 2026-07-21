@@ -1,14 +1,14 @@
 /**
  * Sea of Blue — Smart Dispatch Engine
  * 
- * Ranks contractors by proximity (drive time via Mapbox), score, and availability.
- * Used by the admin dispatch UI to suggest the optimal contractor for each job.
+ * Ranks employees by proximity (drive time via Mapbox), score, and availability.
+ * Used by the admin dispatch UI to suggest the optimal employee for each job.
  */
 
 import { createServiceClient } from '@/lib/supabase/server';
 
 export interface DispatchSuggestion {
-  contractor_id: string;
+  employee_id: string;
   full_name: string;
   phone: string | null;
   tier: string;
@@ -23,7 +23,7 @@ export interface DispatchSuggestion {
 
 /**
  * Get smart dispatch suggestions for a job.
- * Ranks contractors by: proximity (30%), score (40%), availability (30%)
+ * Ranks employees by: proximity (30%), score (40%), availability (30%)
  */
 export async function getSmartDispatchSuggestions(
   job: any
@@ -32,30 +32,30 @@ export async function getSmartDispatchSuggestions(
 
   if (!job.zone_id) return [];
 
-  // 1. Get all active contractors in this zone
-  const { data: contractors } = await supabase
-    .from('contractors')
+  // 1. Get all active employees in this zone
+  const { data: employees } = await supabase
+    .from('employees')
     .select('id, full_name, phone, tier, score, zone_id, notes, status')
     .eq('zone_id', job.zone_id)
     .eq('status', 'active');
 
-  if (!contractors || contractors.length === 0) return [];
+  if (!employees || employees.length === 0) return [];
 
-  // 2. Get live locations for these contractors
-  const contractorIds = contractors.map(c => c.id);
+  // 2. Get live locations for these employees
+  const employeeIds = employees.map(c => c.id);
   const { data: liveLocations } = await supabase
-    .from('contractor_locations')
-    .select('contractor_id, latitude, longitude')
-    .in('contractor_id', contractorIds)
+    .from('employee_locations')
+    .select('employee_id, latitude, longitude')
+    .in('employee_id', employeeIds)
     .eq('is_active', true);
 
   const liveLocMap = new Map(
-    (liveLocations ?? []).map(l => [l.contractor_id, { lat: l.latitude, lng: l.longitude }])
+    (liveLocations ?? []).map(l => [l.employee_id, { lat: l.latitude, lng: l.longitude }])
   );
 
   // 3. Get HQ locations from notes JSON
   const hqMap = new Map<string, { lat: number; lng: number }>();
-  for (const c of contractors) {
+  for (const c of employees) {
     try {
       if (c.notes) {
         const n = JSON.parse(c.notes);
@@ -66,29 +66,29 @@ export async function getSmartDispatchSuggestions(
     } catch { /* ignore */ }
   }
 
-  // 4. Count today's assigned jobs per contractor
+  // 4. Count today's assigned jobs per employee
   const today = new Date().toISOString().split('T')[0];
   const { data: todaysJobs } = await supabase
     .from('jobs')
-    .select('assigned_contractor_id')
+    .select('assigned_employee_id')
     .eq('scheduled_date', today)
     .not('status', 'in', '(cancelled,refunded)')
-    .not('assigned_contractor_id', 'is', null);
+    .not('assigned_employee_id', 'is', null);
 
   const jobCountMap = new Map<string, number>();
   for (const j of todaysJobs ?? []) {
-    const cid = j.assigned_contractor_id;
+    const cid = j.assigned_employee_id;
     jobCountMap.set(cid, (jobCountMap.get(cid) ?? 0) + 1);
   }
 
   // 5. Check for pending/active offers on this specific job
   const { data: existingOffers } = await supabase
     .from('job_offers')
-    .select('contractor_id')
+    .select('employee_id')
     .eq('job_id', job.id)
     .in('status', ['pending', 'accepted']);
 
-  const alreadyOfferedIds = new Set((existingOffers ?? []).map(o => o.contractor_id));
+  const alreadyOfferedIds = new Set((existingOffers ?? []).map(o => o.employee_id));
 
   // 6. Calculate drive times via Mapbox (batch)
   const jobLat = job.latitude;
@@ -97,11 +97,11 @@ export async function getSmartDispatchSuggestions(
 
   const suggestions: DispatchSuggestion[] = [];
 
-  for (const contractor of contractors) {
-    // Skip contractors already offered this job
-    if (alreadyOfferedIds.has(contractor.id)) continue;
+  for (const employee of employees) {
+    // Skip employees already offered this job
+    if (alreadyOfferedIds.has(employee.id)) continue;
 
-    const origin = liveLocMap.get(contractor.id) ?? hqMap.get(contractor.id) ?? null;
+    const origin = liveLocMap.get(employee.id) ?? hqMap.get(employee.id) ?? null;
     let driveMinutes: number | null = null;
 
     // Calculate drive time if we have both origin and destination
@@ -121,8 +121,8 @@ export async function getSmartDispatchSuggestions(
     }
 
     // Score calculation
-    const scoreNorm = (contractor.score ?? 5) / 5;  // 0-1
-    const jobsToday = jobCountMap.get(contractor.id) ?? 0;
+    const scoreNorm = (employee.score ?? 5) / 5;  // 0-1
+    const jobsToday = jobCountMap.get(employee.id) ?? 0;
     const maxJobs = 4; // Assume 4 max per day
     const availabilityFactor = Math.max(0, 1 - (jobsToday / maxJobs));
 
@@ -137,17 +137,17 @@ export async function getSmartDispatchSuggestions(
     // Build reason string
     const reasons: string[] = [];
     if (driveMinutes !== null) reasons.push(`${driveMinutes}min drive`);
-    reasons.push(`${contractor.score?.toFixed(1) ?? '5.0'}★`);
+    reasons.push(`${employee.score?.toFixed(1) ?? '5.0'}★`);
     if (jobsToday > 0) reasons.push(`${jobsToday} jobs today`);
-    if (liveLocMap.has(contractor.id)) reasons.push('📍 Live GPS');
+    if (liveLocMap.has(employee.id)) reasons.push('📍 Live GPS');
 
     suggestions.push({
-      contractor_id: contractor.id,
-      full_name: contractor.full_name,
-      phone: contractor.phone,
-      tier: contractor.tier,
-      score: contractor.score ?? 5,
-      zone_id: contractor.zone_id,
+      employee_id: employee.id,
+      full_name: employee.full_name,
+      phone: employee.phone,
+      tier: employee.tier,
+      score: employee.score ?? 5,
+      zone_id: employee.zone_id,
       drive_minutes: driveMinutes,
       jobs_today: jobsToday,
       dispatch_score: Math.round(dispatchScore * 100) / 100,

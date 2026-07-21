@@ -1,11 +1,11 @@
 // Sea of Blue — Team Dispatch
-// Extends the existing dispatch engine to rank contractor teams alongside solo contractors.
+// Extends the existing dispatch engine to rank employee teams alongside solo employees.
 
 import { createServiceClient } from '@/lib/supabase/server';
-import type { ContractorTeam, TimeWindow } from '@/types';
+import type { EmployeeTeam, TimeWindow } from '@/types';
 
 export interface RankedTeam {
-  team: ContractorTeam;
+  team: EmployeeTeam;
   dispatch_score: number;
   jobs_today: number;
   team_score: number;
@@ -29,16 +29,16 @@ export async function getAvailableTeams(
 
   // Get active teams in this zone
   const { data: teams } = await supabase
-    .from('contractor_teams')
+    .from('employee_teams')
     .select(`
       *,
       zone:zones(name),
-      lead_contractor:contractors!contractor_teams_lead_contractor_id_fkey(
+      lead_employee:employees!employee_teams_lead_employee_id_fkey(
         id, full_name, score, max_jobs_per_day
       ),
-      members:contractor_team_members(
-        contractor_id,
-        contractor:contractors(id, full_name, score)
+      members:employee_team_members(
+        employee_id,
+        employee:employees(id, full_name, score)
       )
     `)
     .eq('zone_id', zoneId)
@@ -49,14 +49,14 @@ export async function getAvailableTeams(
   const ranked: RankedTeam[] = [];
 
   for (const team of teams) {
-    const leadContractor = team.lead_contractor as { id: string; score: number; max_jobs_per_day: number } | null;
-    if (!leadContractor) continue;
+    const leadEmployee = team.lead_employee as { id: string; score: number; max_jobs_per_day: number } | null;
+    if (!leadEmployee) continue;
 
-    // Check lead contractor availability
+    // Check lead employee availability
     const { data: availability } = await supabase
-      .from('contractor_availability')
+      .from('employee_availability')
       .select('is_available')
-      .eq('contractor_id', leadContractor.id)
+      .eq('employee_id', leadEmployee.id)
       .eq('day_of_week', dayOfWeek)
       .eq('time_window', window)
       .single();
@@ -65,9 +65,9 @@ export async function getAvailableTeams(
 
     // Check for date override
     const { data: override } = await supabase
-      .from('contractor_availability_overrides')
+      .from('employee_availability_overrides')
       .select('is_available')
-      .eq('contractor_id', leadContractor.id)
+      .eq('employee_id', leadEmployee.id)
       .eq('override_date', date)
       .eq('time_window', window)
       .single();
@@ -85,9 +85,9 @@ export async function getAvailableTeams(
     if ((jobsToday ?? 0) >= team.max_jobs_per_day) continue;
 
     // Calculate team score = weighted average of member scores
-    const members = (team.members as Array<{ contractor: { score: number } }>) ?? [];
-    const memberScores = members.map((m) => m.contractor.score);
-    const allScores = [leadContractor.score, ...memberScores];
+    const members = (team.members as Array<{ employee: { score: number } }>) ?? [];
+    const memberScores = members.map((m) => m.employee.score);
+    const allScores = [leadEmployee.score, ...memberScores];
     const teamScore = allScores.reduce((a, b) => a + b, 0) / allScores.length;
 
     // Dispatch score: team score × capacity remaining ratio
@@ -95,7 +95,7 @@ export async function getAvailableTeams(
     const dispatchScore = teamScore * capacityRatio;
 
     ranked.push({
-      team: team as unknown as ContractorTeam,
+      team: team as unknown as EmployeeTeam,
       dispatch_score: Math.round(dispatchScore * 100) / 100,
       jobs_today: jobsToday ?? 0,
       team_score: Math.round(teamScore * 100) / 100,

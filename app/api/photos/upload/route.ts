@@ -10,14 +10,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { data: contractor } = await supabase
-      .from('contractors')
+    const { data: employee } = await supabase
+      .from('employees')
       .select('id')
       .eq('profile_id', user.id)
       .single();
 
-    if (!contractor) {
-      return NextResponse.json({ error: 'Contractor profile not found' }, { status: 404 });
+    if (!employee) {
+      return NextResponse.json({ error: 'Employee profile not found' }, { status: 404 });
     }
 
     const formData = await request.formData();
@@ -30,14 +30,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    // Verify job belongs to contractor
+    // Verify job belongs to employee
     const { data: job } = await supabase
       .from('jobs')
-      .select('assigned_contractor_id')
+      .select('assigned_employee_id')
       .eq('id', jobId)
       .single();
 
-    if (!job || job.assigned_contractor_id !== contractor.id) {
+    if (!job || job.assigned_employee_id !== employee.id) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
       .from('job_photos')
       .insert({
         job_id: jobId,
-        contractor_id: contractor.id,
+        employee_id: employee.id,
         photo_type: photoType,
         file_url: publicUrl,
         caption: caption || '',

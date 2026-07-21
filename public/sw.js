@@ -2,7 +2,7 @@
 const CACHE_NAME = 'sob-enterprise-v2';
 
 const STATIC_ASSETS = [
-  '/contractor',
+  '/employee',
   '/manifest.json',
   '/logo.png',
   '/favicon.png',
@@ -74,7 +74,7 @@ self.addEventListener('fetch', (event) => {
       }).catch(() => {
         // If fetch fails and no cache, and it's a navigation request, show a generic offline page or fallback to the app shell
         if (!cachedResponse && event.request.mode === 'navigate') {
-          return caches.match('/contractor');
+          return caches.match('/employee');
         }
       });
       return cachedResponse || fetchPromise;

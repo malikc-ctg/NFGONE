@@ -25,7 +25,7 @@ export default function ResetPasswordPage() {
   // Determine where to send them back based on portal param
   const loginLink = (() => {
     switch(portal) {
-      case 'contractor': return '/contractor/login';
+      case 'employee': return '/employee/login';
       case 'admin': return '/wegettinmoneynga/login';
       default: return '/customer-site/login';
     }

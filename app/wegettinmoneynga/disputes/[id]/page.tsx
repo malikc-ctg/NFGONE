@@ -12,20 +12,20 @@ const CATEGORY_LABELS: Record<string, string> = {
   no_show: 'No Show', billing: 'Billing', other: 'Other',
 };
 
-function MessageThread({ messages, role }: { messages: DisputeMessage[]; role: 'customer' | 'contractor' }) {
+function MessageThread({ messages, role }: { messages: DisputeMessage[]; role: 'customer' | 'employee' }) {
   const [msg, setMsg] = useState('');
 
   const filtered = messages.filter((m) =>
     role === 'customer'
       ? ['customer', 'admin'].includes(m.sender_role)
-      : ['contractor', 'admin'].includes(m.sender_role)
+      : ['employee', 'admin'].includes(m.sender_role)
   );
 
   return (
     <div className="bg-card border border-border rounded-xl overflow-hidden">
       <div className="px-5 py-3 border-b border-border bg-muted/30">
         <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          {role === 'customer' ? 'Customer Thread' : 'Contractor Thread'}
+          {role === 'customer' ? 'Customer Thread' : 'Employee Thread'}
         </h3>
       </div>
       <div className="p-4 space-y-3 min-h-[140px] max-h-60 overflow-y-auto">
@@ -71,7 +71,7 @@ export default function DisputeDetailPage() {
   const [loading, setLoading] = useState(true);
   const [resolving, setResolving] = useState(false);
   const [resolution, setResolution] = useState({
-    notes: '', refund_amount: '', contractor_penalty: '',
+    notes: '', refund_amount: '', employee_penalty: '',
     new_status: 'resolved_customer' as string,
   });
 
@@ -92,7 +92,7 @@ export default function DisputeDetailPage() {
         resolved_by: 'admin',
         resolution_notes: resolution.notes,
         refund_amount: resolution.refund_amount ? parseFloat(resolution.refund_amount) : undefined,
-        contractor_penalty: resolution.contractor_penalty ? parseFloat(resolution.contractor_penalty) : undefined,
+        employee_penalty: resolution.employee_penalty ? parseFloat(resolution.employee_penalty) : undefined,
         new_status: resolution.new_status,
       }),
     });
@@ -107,7 +107,7 @@ export default function DisputeDetailPage() {
 
   const job = dispute.job as unknown as Record<string, unknown> | null;
   const customer = dispute.customer as unknown as Record<string, unknown> | null;
-  const contractor = dispute.contractor as unknown as Record<string, unknown> | null;
+  const employee = dispute.employee as unknown as Record<string, unknown> | null;
   const isResolved = ['resolved_customer', 'resolved_company', 'escalated'].includes(dispute.status);
 
   return (
@@ -160,13 +160,13 @@ export default function DisputeDetailPage() {
               <p className="font-medium text-sm">{String(job?.job_number ?? '—')}</p>
               <p className="text-xs text-muted-foreground capitalize">{String(job?.service_type ?? '').replace(/_/g, ' ')}</p>
               <p className="text-xs text-muted-foreground">Final: ${Number(job?.final_price ?? 0).toFixed(2)}</p>
-              {contractor && <p className="text-xs text-muted-foreground mt-1">Contractor: {String(contractor.full_name ?? '—')}</p>}
+              {employee && <p className="text-xs text-muted-foreground mt-1">Employee: {String(employee.full_name ?? '—')}</p>}
             </div>
           </div>
 
           {/* Message threads — separate, never cross-visible */}
           <MessageThread messages={messages} role="customer" />
-          {contractor && <MessageThread messages={messages} role="contractor" />}
+          {employee && <MessageThread messages={messages} role="employee" />}
         </div>
 
         {/* Resolution panel */}
@@ -181,8 +181,8 @@ export default function DisputeDetailPage() {
               {dispute.refund_amount && (
                 <p className="text-xs text-green-700 mt-2">Refund issued: ${dispute.refund_amount.toFixed(2)}</p>
               )}
-              {dispute.contractor_penalty && (
-                <p className="text-xs text-amber-700 mt-1">Contractor penalty: ${dispute.contractor_penalty.toFixed(2)}</p>
+              {dispute.employee_penalty && (
+                <p className="text-xs text-amber-700 mt-1">Employee penalty: ${dispute.employee_penalty.toFixed(2)}</p>
               )}
             </div>
           ) : (
@@ -217,8 +217,8 @@ export default function DisputeDetailPage() {
                     <input type="number" step="0.01" min="0" className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background" placeholder="0.00" value={resolution.refund_amount} onChange={e => setResolution(r => ({ ...r, refund_amount: e.target.value }))} />
                   </div>
                   <div>
-                    <label className="block text-xs text-muted-foreground mb-1">Contractor Penalty</label>
-                    <input type="number" step="0.01" min="0" className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background" placeholder="0.00" value={resolution.contractor_penalty} onChange={e => setResolution(r => ({ ...r, contractor_penalty: e.target.value }))} />
+                    <label className="block text-xs text-muted-foreground mb-1">Employee Penalty</label>
+                    <input type="number" step="0.01" min="0" className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background" placeholder="0.00" value={resolution.employee_penalty} onChange={e => setResolution(r => ({ ...r, employee_penalty: e.target.value }))} />
                     <p className="text-[10px] text-muted-foreground mt-0.5">Deducted from next payout. Score adjusted proportionally.</p>
                   </div>
                   <div className="flex gap-2">

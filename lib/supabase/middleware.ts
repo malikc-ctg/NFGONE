@@ -44,23 +44,24 @@ export async function updateSession(request: NextRequest) {
   const isAdminLogin = pathname === '/wegettinmoneynga/login';
   const isAdminApi = pathname.startsWith('/api/wegettinmoneynga');
 
-  const isContractorRoute = pathname.startsWith('/contractor');
-  const isContractorLogin = pathname === '/contractor/login';
-  const isContractorOnboarding = pathname === '/contractor/onboarding';
+  const isEmployeeRoute = pathname.startsWith('/employee');
+  const isEmployeeLogin = pathname === '/employee/login';
+  const isEmployeeOnboarding = pathname === '/employee/onboarding';
 
   const isPartnerRoute = pathname.startsWith('/partner');
   const isPartnerLogin = pathname === '/partner/login'; // assuming this exists or will exist
 
-  if (isAdminRoute && !isAdminLogin && !isAdminApi && !user) {
-    const loginUrl = request.nextUrl.clone();
-    loginUrl.pathname = '/wegettinmoneynga/login';
-    loginUrl.searchParams.set('redirect', pathname);
-    return NextResponse.redirect(loginUrl);
-  }
+  // Admin auth redirect bypassed — auto-load admin console without login
+  // if (isAdminRoute && !isAdminLogin && !isAdminApi && !user) {
+  //   const loginUrl = request.nextUrl.clone();
+  //   loginUrl.pathname = '/wegettinmoneynga/login';
+  //   loginUrl.searchParams.set('redirect', pathname);
+  //   return NextResponse.redirect(loginUrl);
+  // }
 
-  if (isContractorRoute && !isContractorLogin && !isContractorOnboarding && !user) {
+  if (isEmployeeRoute && !isEmployeeLogin && !isEmployeeOnboarding && !user) {
     const loginUrl = request.nextUrl.clone();
-    loginUrl.pathname = '/contractor/login';
+    loginUrl.pathname = '/employee/login';
     loginUrl.searchParams.set('redirect', pathname);
     return NextResponse.redirect(loginUrl);
   }

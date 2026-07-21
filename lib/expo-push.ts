@@ -1,11 +1,11 @@
 // Sea of Blue — Expo Push Notifications (Server SDK)
-// Wraps the Expo server SDK for sending push notifications to the native contractor app.
+// Wraps the Expo server SDK for sending push notifications to the native employee app.
 
 import { Expo, ExpoPushMessage } from 'expo-server-sdk';
 
 const expo = new Expo({ accessToken: process.env.EXPO_ACCESS_TOKEN });
 
-export async function sendPushToContractor(
+export async function sendPushToEmployee(
   pushToken: string,
   title: string,
   body: string,
@@ -52,7 +52,7 @@ export async function sendJobOfferPush(
   const serviceLabel = serviceType.replace(/_/g, ' ');
   const windowLabel = window.charAt(0).toUpperCase() + window.slice(1);
 
-  await sendPushToContractor(
+  await sendPushToEmployee(
     pushToken,
     'New job offer 🧹',
     `${serviceLabel} in ${city} — ${windowLabel}. Payout: $${payout.toFixed(2)}`,
@@ -66,7 +66,7 @@ export async function sendJobReminderPush(
   address: string,
   window: string
 ): Promise<void> {
-  await sendPushToContractor(
+  await sendPushToEmployee(
     pushToken,
     'Job reminder',
     `Tomorrow: ${address} — ${window}`,

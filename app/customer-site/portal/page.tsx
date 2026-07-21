@@ -66,7 +66,7 @@ export default async function CustomerPortalPage() {
 
   const { data: upcomingJobs } = await supabase
     .from('jobs')
-    .select('*, contractor:contractors(*)')
+    .select('*, employee:employees(*)')
     .eq('customer_id', customer?.id || '00000000-0000-0000-0000-000000000000')
     .in('status', ['confirmed', 'offered', 'accepted', 'assigned', 'on_the_way', 'in_progress'])
     .order('scheduled_date', { ascending: true })
@@ -74,7 +74,7 @@ export default async function CustomerPortalPage() {
 
   const { data: pendingJobs } = await supabase
     .from('jobs')
-    .select('*, contractor:contractors(*)')
+    .select('*, employee:employees(*)')
     .eq('customer_id', customer?.id || '00000000-0000-0000-0000-000000000000')
     .in('status', ['lead_received', 'quoted', 'deposit_paid'])
     .order('created_at', { ascending: false });
@@ -109,7 +109,7 @@ export default async function CustomerPortalPage() {
 
   const { data: pastJobs } = await supabase
     .from('jobs')
-    .select('*, contractor:contractors(*)')
+    .select('*, employee:employees(*)')
     .eq('customer_id', customer?.id || '00000000-0000-0000-0000-000000000000')
     .in('status', ['completed', 'cancelled'])
     .order('scheduled_date', { ascending: false })
@@ -157,8 +157,8 @@ export default async function CustomerPortalPage() {
                     
                     <div className="relative z-10 flex flex-col sm:flex-row items-center sm:items-start lg:items-center gap-6 w-full text-center sm:text-left">
                       <div className="h-20 w-20 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center shrink-0 shadow-inner overflow-hidden border-2 border-white/20">
-                        {nextJob.contractor?.avatar_url ? (
-                          <img src={nextJob.contractor.avatar_url} alt={nextJob.contractor.full_name} className="h-full w-full object-cover" />
+                        {nextJob.employee?.avatar_url ? (
+                          <img src={nextJob.employee.avatar_url} alt={nextJob.employee.full_name} className="h-full w-full object-cover" />
                         ) : (
                           <User className="h-10 w-10" />
                         )}
@@ -173,7 +173,7 @@ export default async function CustomerPortalPage() {
                         </div>
                         <h2 className="text-2xl font-bold mb-1">Your technician is en route</h2>
                         <p className="text-blue-100/70">
-                          {nextJob.contractor?.full_name ? `${nextJob.contractor.full_name} is arriving around ` : 'Estimated arrival: '} 
+                          {nextJob.employee?.full_name ? `${nextJob.employee.full_name} is arriving around ` : 'Estimated arrival: '} 
                           {new Date(nextJob.scheduled_date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                         </p>
                       </div>
@@ -261,7 +261,7 @@ export default async function CustomerPortalPage() {
                           <h4 className="font-bold text-slate-900">{SERVICE_TYPE_LABELS[job.service_type as keyof typeof SERVICE_TYPE_LABELS] || job.service_type}</h4>
                           <p className="text-sm text-slate-500">
                             {job.status === 'completed' ? 'Completed' : 'Cancelled'} 
-                            {job.contractor?.full_name ? ` by ${job.contractor.full_name}` : ''} on {new Date(job.scheduled_date).toLocaleDateString()} at {new Date(job.scheduled_date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                            {job.employee?.full_name ? ` by ${job.employee.full_name}` : ''} on {new Date(job.scheduled_date).toLocaleDateString()} at {new Date(job.scheduled_date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                           </p>
                         </div>
                         <span className={`${job.status === 'completed' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'} px-2.5 py-1 rounded-md text-xs font-semibold capitalize`}>
@@ -291,8 +291,8 @@ export default async function CustomerPortalPage() {
             
             {/* Removed LiveJobTracker from here */}
 
-            {(nextJob?.contractor || pastJobs?.[0]?.contractor) && (
-              <MyCleanerWidget contractor={nextJob?.contractor || pastJobs?.[0]?.contractor} />
+            {(nextJob?.employee || pastJobs?.[0]?.employee) && (
+              <MyCleanerWidget employee={nextJob?.employee || pastJobs?.[0]?.employee} />
             )}
 
             <HomeProfileWidget customer={customer} />

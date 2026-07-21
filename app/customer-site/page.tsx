@@ -1,223 +1,160 @@
-'use client';
-
-import { useRef, useEffect } from 'react';
 import Link from 'next/link';
-import { useFadeIn, useLineReveal } from '@/lib/motion/hooks';
-import { gsap } from '@/lib/motion/index';
+import { QuoteWizard } from '@/components/customer-site/QuoteWizard';
+import { ScrollReveal } from '@/components/customer-site/ScrollReveal';
+import { WaveCut } from '@/components/customer-site/WaveCut';
+import { ServiceAreaChecker } from '@/components/customer-site/ServiceAreaChecker';
 
-export default function CustomerLandingPage() {
-  const heroRef = useRef<HTMLElement>(null);
-  const headlineRef = useRef<HTMLHeadingElement>(null);
-  const subRef = useRef<HTMLParagraphElement>(null);
-
-  useFadeIn(headlineRef, { delay: 0.2, duration: 1.2, y: 30 });
-  useLineReveal(subRef, { delay: 0.6, duration: 1.0 });
-
-  useEffect(() => {
-    // Basic reveal animations for all sections
-    const sections = document.querySelectorAll('.reveal-section');
-    sections.forEach((sec) => {
-      gsap.fromTo(
-        sec,
-        { opacity: 0, y: 50 },
-        {
-          opacity: 1,
-          y: 0,
-          duration: 1,
-          ease: 'power3.out',
-          scrollTrigger: {
-            trigger: sec,
-            start: 'top 85%',
-          },
-        }
-      );
-    });
-  }, []);
-
+export default function CustomerHomePage() {
   return (
-    <div className="w-full">
-      
-      {/* SECTION 1: HERO */}
-      <section 
-        ref={heroRef}
-        className="relative min-h-[90vh] flex flex-col items-center justify-center pt-20 px-6 text-center"
-      >
-        <div className="absolute inset-0 bg-[#001a36] z-0">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,40,80,0.5)_0%,transparent_70%)]" />
-        </div>
-        
-        <div className="relative z-10 max-w-4xl mx-auto">
-          <h1 ref={headlineRef} className="font-rustic text-6xl md:text-8xl lg:text-9xl tracking-tight mb-8">
-            Home Services, <br />
-            <span className="text-white/80">Dispatched.</span>
-          </h1>
-          
-          <div ref={subRef} className="text-lg md:text-2xl text-white/60 font-light max-w-2xl mx-auto leading-relaxed mb-12">
-            <p>Sea of Blue connects homeowners with vetted local professionals through a modern dispatch platform built for speed, transparency, and quality.</p>
-          </div>
-          
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-20 opacity-0 animate-[fadeIn_1s_ease-out_1s_forwards]">
-            <Link href="/quote" className="w-full sm:w-auto bg-white text-[#001a36] px-8 py-4 rounded-full font-bold text-sm tracking-wide uppercase hover:bg-white/90 transition-transform hover:scale-105">
-              Get a Quote
-            </Link>
-            <Link href="/quote" className="w-full sm:w-auto border border-white/20 text-white px-8 py-4 rounded-full font-bold text-sm tracking-wide uppercase hover:bg-white/5 transition-colors">
-              Book a Service
-            </Link>
-          </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8 border-t border-white/10 pt-10 text-left md:text-center opacity-0 animate-[fadeIn_1s_ease-out_1.5s_forwards]">
-            <div>
-              <div className="text-white font-bold text-lg">Vetted</div>
-              <div className="text-white/50 text-sm">Professionals</div>
-            </div>
-            <div>
-              <div className="text-white font-bold text-lg">Live</div>
-              <div className="text-white/50 text-sm">Dispatching</div>
-            </div>
-            <div>
-              <div className="text-white font-bold text-lg">Real-Time</div>
-              <div className="text-white/50 text-sm">Updates</div>
-            </div>
-            <div>
-              <div className="text-white font-bold text-lg">Ontario</div>
-              <div className="text-white/50 text-sm">Based</div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* SECTION 2: HOW IT WORKS */}
-      <section className="reveal-section py-32 bg-[#010A14] border-t border-white/5 relative z-10">
-        <div className="container max-w-6xl mx-auto px-6">
-          <h2 className="font-rustic text-4xl md:text-6xl mb-20 text-center">A Better Way To Book Home Services</h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-            {[
-              { step: '01', title: 'Request Service', desc: 'Tell us what you need and when you need it.' },
-              { step: '02', title: 'We Dispatch', desc: 'Our system matches your job with qualified professionals in your area.' },
-              { step: '03', title: 'Track Progress', desc: 'Receive updates from booking through completion.' },
-              { step: '04', title: 'Job Complete', desc: 'The work gets done and you stay informed every step of the way.' }
-            ].map((item) => (
-              <div key={item.step} className="border border-white/10 p-8 rounded-2xl bg-white/5 hover:bg-white/10 transition-colors">
-                <div className="text-blue-500 font-rustic text-4xl mb-4">{item.step}</div>
-                <h3 className="text-xl font-bold mb-3">{item.title}</h3>
-                <p className="text-white/60 text-sm leading-relaxed">{item.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* SECTION 3: THE DISPATCH DIFFERENCE */}
-      <section className="reveal-section py-32 bg-[#001a36] relative z-10">
-        <div className="container max-w-4xl mx-auto px-6 text-center">
-          <h2 className="font-rustic text-5xl md:text-7xl mb-12">Why Sea of Blue Exists</h2>
-          <div className="space-y-6 text-lg md:text-2xl text-white/70 font-light leading-relaxed">
-            <p>Most service platforms generate leads and leave the rest up to chance.</p>
-            <p className="text-white font-medium">Sea of Blue was built differently.</p>
-            <p>Every job enters a centralized dispatch system where professionals are matched, tracked, and managed through a dedicated operations platform.</p>
-            <p>That means faster response times, better communication, and greater accountability from start to finish.</p>
-          </div>
-        </div>
-      </section>
-
-      {/* SECTION 4: SERVICES */}
-      <section id="services" className="reveal-section py-32 bg-[#010A14] border-t border-white/5 relative z-10">
-        <div className="container max-w-6xl mx-auto px-6">
-          <h2 className="font-rustic text-4xl md:text-6xl mb-16">Services Available Through The Network</h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {['House Cleaning', 'Window Cleaning', 'Pressure Washing', 'Junk Removal', 'Lawn Care', 'Landscaping', 'Moving Services', 'Electrical', 'HVAC', 'Plumbing'].map((service) => (
-              <div key={service} className="p-6 border border-white/10 rounded-xl bg-white/5 flex items-center justify-center text-center hover:border-white/30 transition-colors">
-                <span className="font-medium text-white/90">{service}</span>
-              </div>
-            ))}
-            <div className="p-6 border border-transparent rounded-xl flex items-center justify-center text-center">
-              <span className="font-medium text-white/40 italic">And More</span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* SECTION 5: REAL-TIME VISIBILITY */}
-      <section className="reveal-section py-32 bg-[#001a36] border-t border-white/5 relative z-10">
-        <div className="container max-w-6xl mx-auto px-6 grid md:grid-cols-2 gap-16 items-center">
+    <>
+      {/* ========== HERO ========== */}
+      <section className="hero">
+        <div className="wrap hero-grid">
           <div>
-            <h2 className="font-rustic text-5xl md:text-6xl mb-8">Know What&apos;s Happening</h2>
-            <div className="space-y-4 text-xl text-white/70 mb-10">
-              <p>No wondering.</p>
-              <p>No chasing contractors.</p>
-              <p>No waiting for callbacks.</p>
-              <p className="text-white font-medium mt-8">Receive updates as your job progresses and stay informed from dispatch to completion.</p>
+            <span className="kicker rev" style={{ color: 'var(--mist)' }}>
+              Residential and Commercial Cleaning, GTA and West
+            </span>
+            <h1 className="rev d1">
+              Trusted Hands,<br /><em>Flawless Finish.</em>
+            </h1>
+            <p className="lede rev d2">
+              Background-checked cleaners, a standard held to every visit, and an exact price in under a minute. No booking an estimate just to hear a number.
+            </p>
+            <div className="hero-ctas rev d3">
+              <a className="btn btn-cream" href="#quote">Get an Instant Price</a>
+              <a className="btn btn-ghost" href="sms:4374751622">Text Us Instead</a>
             </div>
           </div>
-          <div className="bg-[#010A14] p-10 rounded-3xl border border-white/10">
-            <ul className="space-y-6">
-              {[
-                'Booking Confirmations',
-                'Dispatch Updates',
-                'Arrival Notifications',
-                'Job Completion Updates'
-              ].map((bullet, i) => (
-                <li key={i} className="flex items-center gap-4 text-lg">
-                  <div className="h-2 w-2 rounded-full bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.8)]" />
-                  {bullet}
-                </li>
+          <div className="rev d4" id="quote">
+            <QuoteWizard />
+          </div>
+        </div>
+
+        {/* Trust Bar */}
+        <div className="trust">
+          <div className="wrap">
+            <div className="t">
+              <span className="tick">
+                <svg viewBox="0 0 16 16" fill="none"><path d="M2 8.5L6 12.5L14 3.5" stroke="#F4EFE3" strokeWidth="2.4" strokeLinecap="square" /></svg>
+              </span>
+              <div><b>Liability Insured</b><small>Every job covered</small></div>
+            </div>
+            <div className="t">
+              <span className="tick">
+                <svg viewBox="0 0 16 16" fill="none"><path d="M2 8.5L6 12.5L14 3.5" stroke="#F4EFE3" strokeWidth="2.4" strokeLinecap="square" /></svg>
+              </span>
+              <div><b>Background-Checked</b><small>Every cleaner, no exceptions</small></div>
+            </div>
+            <div className="t">
+              <span className="tick">
+                <svg viewBox="0 0 16 16" fill="none"><path d="M2 8.5L6 12.5L14 3.5" stroke="#F4EFE3" strokeWidth="2.4" strokeLinecap="square" /></svg>
+              </span>
+              <div><b>WSIB Registered</b><small>Fully compliant in Ontario</small></div>
+            </div>
+            <div className="t">
+              <span className="tick">
+                <svg viewBox="0 0 16 16" fill="none"><path d="M2 8.5L6 12.5L14 3.5" stroke="#F4EFE3" strokeWidth="2.4" strokeLinecap="square" /></svg>
+              </span>
+              <div><b>Flawless Finish Guarantee</b><small>Not happy with a room, we re-clean it free</small></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <WaveCut from="var(--navy-deep)" to="#F4EFE3" />
+
+      {/* ========== SERVICES ========== */}
+      <section className="cs-block">
+        <div className="wrap">
+          <ScrollReveal>
+            <div className="sec-head">
+              <span className="kicker">Five Packages, One Standard</span>
+              <h2>Every clean, scoped in writing</h2>
+              <p>Each package includes everything in the tier below it. No vague checklists, no surprise upsells at the door.</p>
+            </div>
+          </ScrollReveal>
+          <div className="svc-grid">
+            <ScrollReveal><div className="svc"><span className="idx">01</span><h3>Standard</h3><span className="cat">Recurring Maintenance</span><p>Dusting, floors, kitchen surfaces, full bathrooms, trash, beds made. The clean that keeps a home held to standard week after week.</p><Link href="/customer-site/residential" className="svc-link">Full Scope</Link></div></ScrollReveal>
+            <ScrollReveal><div className="svc"><span className="idx">02</span><h3>Standard Plus</h3><span className="cat">Enhanced Maintenance</span><p>Everything in Standard plus baseboards, inside microwave, cabinet fronts, light fixtures, and detailed kitchen work. Our most-booked recurring tier.</p><Link href="/customer-site/residential" className="svc-link">Full Scope</Link></div></ScrollReveal>
+            <ScrollReveal><div className="svc feature"><span className="idx">03</span><h3>Deep Clean</h3><span className="cat">One-Time Reset</span><p>The baseline reset. Inside oven and fridge, behind furniture, grout, full interior windows, every baseboard washed. The right first visit before going recurring.</p><Link href="/customer-site/residential" className="svc-link">Full Scope</Link></div></ScrollReveal>
+            <ScrollReveal><div className="svc"><span className="idx">04</span><h3>Full Reset</h3><span className="cat">Occupied Full Detail</span><p>For occupied homes that have gone a year or more without professional cleaning. Inside cabinets, closets, wall spot-washing, window tracks, top to bottom.</p><Link href="/customer-site/residential" className="svc-link">Full Scope</Link></div></ScrollReveal>
+            <ScrollReveal><div className="svc"><span className="idx">05</span><h3>Move-In / Move-Out</h3><span className="cat">Vacant Unit Turnover</span><p>Vacant-unit, landlord and realtor grade. Every cabinet, closet, wall, track, and fixture. The standard for lease turnovers, closings, and pre-listing cleans.</p><Link href="/customer-site/residential" className="svc-link">Full Scope</Link></div></ScrollReveal>
+            <ScrollReveal><div className="svc"><span className="idx">06</span><h3>Commercial</h3><span className="cat">SLA-Backed Programs</span><p>Retail, small offices, property management, and post-construction across the GTA. Walkthrough to signed proposal in 48 hours.</p><Link href="/customer-site/commercial" className="svc-link">Commercial Hub</Link></div></ScrollReveal>
+          </div>
+        </div>
+      </section>
+
+      {/* ========== WHY SEA OF BLUE ========== */}
+      <section className="cs-block why on-navy">
+        <div className="wrap">
+          <ScrollReveal>
+            <div className="sec-head">
+              <span className="kicker">Why Sea of Blue</span>
+              <h2>Most cleaning companies make you chase this. We just hand it over.</h2>
+            </div>
+          </ScrollReveal>
+          <ScrollReveal>
+            <div className="why-grid">
+              <div className="w"><div className="big">60s</div><h3>Your Price In 60 Seconds</h3><p>Skip the in-home estimate entirely. A few taps gives you the real number, and you decide on your own time. Whatever the tool quotes is exactly what we put in writing.</p></div>
+              <div className="w"><div className="big">SMS</div><h3>It All Runs On Text</h3><p>Book it, move it, and get a heads-up when your cleaner is on the way, all by text. No phone tag, no hold music, no app to install.</p></div>
+              <div className="w"><div className="big">100%</div><h3>Flawless Finish Guarantee</h3><p>Miss a spot and it is on us. Send one text and we come back to re-clean it, free. This is a clause in your agreement, not a promise we can quietly walk back.</p></div>
+            </div>
+          </ScrollReveal>
+        </div>
+      </section>
+
+      {/* ========== SERVICE AREAS ========== */}
+      <section className="cs-block">
+        <div className="wrap">
+          <ScrollReveal>
+            <div className="sec-head" style={{ marginBottom: 22 }}>
+              <span className="kicker">Service Areas</span>
+              <h2>West GTA and beyond</h2>
+            </div>
+            <div className="areas">
+              {['Mississauga', 'Oakville', 'Brampton', 'Toronto', 'Guelph', 'Milton', 'Burlington', 'Orangeville', 'Caledon'].map((a) => (
+                <span key={a} className="chip">{a}</span>
               ))}
-            </ul>
-          </div>
+            </div>
+            <ServiceAreaChecker />
+          </ScrollReveal>
         </div>
       </section>
 
-      {/* SECTION 6: QUALITY STANDARDS */}
-      <section className="reveal-section py-32 bg-[#010A14] relative z-10">
-        <div className="container max-w-6xl mx-auto px-6">
-          <div className="max-w-3xl mb-16">
-            <h2 className="font-rustic text-4xl md:text-6xl mb-8">Every Professional Must Meet Network Standards</h2>
-            <p className="text-xl text-white/70">Sea of Blue works with independent professionals and service companies that meet our onboarding requirements.</p>
-            <p className="text-lg text-white/50 mt-4">Standards may include:</p>
-          </div>
-          <div className="flex flex-wrap gap-4">
-            {['Business Verification', 'Insurance Verification', 'Service History Review', 'Identity Verification', 'Performance Monitoring'].map((std) => (
-              <div key={std} className="px-6 py-3 rounded-full border border-white/20 bg-white/5 text-sm font-medium tracking-wide">
-                {std}
+      {/* ========== REVIEWS ========== */}
+      <section className="cs-block" style={{ paddingTop: 0 }}>
+        <div className="wrap">
+          <ScrollReveal>
+            <div className="sec-head">
+              <span className="kicker">Client Feedback</span>
+              <h2>The GTA is talking</h2>
+            </div>
+          </ScrollReveal>
+          <div className="rvs">
+            <ScrollReveal>
+              <div className="rv">
+                <div className="stars">★★★★★</div>
+                <p>&ldquo;The instant quote tool was what sold me, but the actual clean is why I'm rebooking. They did a deep clean before my in-laws visited and got into corners I haven't seen since we moved in. The texting updates were super convenient.&rdquo;</p>
+                <b>Sarah M.</b><small>Mississauga, Deep Clean</small>
               </div>
-            ))}
+            </ScrollReveal>
+            <ScrollReveal>
+              <div className="rv">
+                <div className="stars">★★★★★</div>
+                <p>&ldquo;We've been through three different services that all started strong and got lazy after a month. Sea of Blue is different. They hold the exact same standard every single visit. Love getting the text that they're on the way.&rdquo;</p>
+                <b>David T.</b><small>Oakville, Bi-weekly Standard Plus</small>
+              </div>
+            </ScrollReveal>
+            <ScrollReveal>
+              <div className="rv">
+                <div className="stars">★★★★★</div>
+                <p>&ldquo;Hired them for a move-out clean on a rental property that was left in terrible shape. They brought it back to landlord grade in an afternoon. No hidden fees, the price I got online was exactly what I paid.&rdquo;</p>
+                <b>Jessica R.</b><small>Brampton, Move-Out</small>
+              </div>
+            </ScrollReveal>
           </div>
         </div>
       </section>
-
-      {/* SECTION 7: COVERAGE AREA */}
-      <section id="coverage" className="reveal-section py-32 bg-[#001a36] relative z-10 border-t border-white/5">
-        <div className="container max-w-4xl mx-auto px-6 text-center">
-          <h2 className="font-rustic text-4xl md:text-6xl mb-8">Currently Serving Ontario</h2>
-          <p className="text-xl text-white/70 mb-4">Sea of Blue is currently expanding across Ontario.</p>
-          <p className="text-lg text-white/50 mb-12">Service availability varies by location and category.</p>
-          <Link href="/quote" className="inline-block border-2 border-white text-white px-8 py-4 rounded-full font-bold text-sm tracking-wide uppercase hover:bg-white hover:text-[#001a36] transition-colors">
-            Check Availability
-          </Link>
-        </div>
-      </section>
-
-      {/* SECTION 8: BETA BANNER */}
-      <section className="reveal-section py-16 bg-blue-600 relative z-10 text-center px-6">
-        <h3 className="font-bold tracking-widest uppercase text-sm mb-4 text-white/80">Currently In Private Beta</h3>
-        <p className="text-xl max-w-3xl mx-auto font-medium">Sea of Blue is currently operating in private beta while we expand our professional network and service coverage. Availability is limited and services may vary by region.</p>
-      </section>
-
-      {/* SECTION 9: FINAL CTA */}
-      <section className="reveal-section py-40 bg-[#010A14] relative z-10 text-center px-6">
-        <h2 className="font-rustic text-5xl md:text-7xl mb-8">Need Something Done?</h2>
-        <p className="text-xl text-white/60 mb-12 max-w-2xl mx-auto">Submit a request and we&apos;ll connect your job with professionals in your area.</p>
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-          <Link href="/quote" className="w-full sm:w-auto bg-white text-[#010A14] px-10 py-5 rounded-full font-bold tracking-widest uppercase hover:scale-105 transition-transform shadow-xl">
-            Request Service
-          </Link>
-          <Link href="/quote" className="w-full sm:w-auto border border-white/20 text-white px-10 py-5 rounded-full font-bold tracking-widest uppercase hover:bg-white/5 transition-colors">
-            Check Availability
-          </Link>
-        </div>
-      </section>
-
-    </div>
+    </>
   );
 }

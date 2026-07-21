@@ -1,6 +1,6 @@
 import { createServiceClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
-import { recalculateContractorScore } from '@/lib/contractor-scoring';
+import { recalculateEmployeeScore } from '@/lib/employee-scoring';
 import { requireRole } from '@/lib/api-auth';
 
 export async function POST(request: NextRequest) {
@@ -12,18 +12,18 @@ export async function POST(request: NextRequest) {
     const supabase = await createServiceClient();
     const body = await request.json();
 
-    const { job_id, customer_id, contractor_id, rating,
+    const { job_id, customer_id, employee_id, rating,
             was_on_time, job_completed_properly, anything_missed,
             would_book_again, public_comment, private_feedback } = body;
 
-    if (!job_id || !customer_id || !contractor_id || !rating) {
+    if (!job_id || !customer_id || !employee_id || !rating) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
     const { data, error } = await supabase
       .from('reviews')
       .insert({
-        job_id, customer_id, contractor_id, rating,
+        job_id, customer_id, employee_id, rating,
         was_on_time, job_completed_properly, anything_missed,
         would_book_again, public_comment, private_feedback,
       })
@@ -38,8 +38,8 @@ export async function POST(request: NextRequest) {
       .update({ status: 'reviewed', updated_at: new Date().toISOString() })
       .eq('id', job_id);
 
-    // Recalculate contractor score
-    await recalculateContractorScore(contractor_id);
+    // Recalculate employee score
+    await recalculateEmployeeScore(employee_id);
 
     return NextResponse.json(data, { status: 201 });
   } catch (err: unknown) {

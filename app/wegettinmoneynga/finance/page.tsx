@@ -185,7 +185,7 @@ export default function FinancePage() {
                           </td>
                           <td className="px-4 py-3.5 text-right text-muted-foreground">{row.jobs_completed}</td>
                           <td className="px-4 py-3.5 text-right font-medium">{formatCAD(row.gross_revenue)}</td>
-                          <td className="px-4 py-3.5 text-right text-muted-foreground">{formatCAD(row.total_contractor_payouts)}</td>
+                          <td className="px-4 py-3.5 text-right text-muted-foreground">{formatCAD(row.total_employee_payouts)}</td>
                           <td className="px-4 py-3.5 text-right font-semibold text-green-700">{formatCAD(row.gross_profit)}</td>
                           <td className="px-4 py-3.5 text-right">
                             <span className={`text-xs font-medium px-1.5 py-0.5 rounded ${margin >= 0.3 ? 'bg-green-100 text-green-700' : margin >= 0.2 ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'}`}>
@@ -202,7 +202,7 @@ export default function FinancePage() {
                       <td className="px-6 py-3 text-foreground">Total</td>
                       <td className="px-4 py-3 text-right">{totalJobs}</td>
                       <td className="px-4 py-3 text-right">{formatCAD(totalRevenue)}</td>
-                      <td className="px-4 py-3 text-right">{formatCAD(latestByZone.reduce((s, r) => s + r.total_contractor_payouts, 0))}</td>
+                      <td className="px-4 py-3 text-right">{formatCAD(latestByZone.reduce((s, r) => s + r.total_employee_payouts, 0))}</td>
                       <td className="px-4 py-3 text-right text-green-700">{formatCAD(totalProfit)}</td>
                       <td className="px-4 py-3 text-right">
                         <span className="text-xs font-medium px-1.5 py-0.5 rounded bg-green-100 text-green-700">
@@ -270,7 +270,7 @@ export default function FinancePage() {
                     <div className="space-y-2">
                       {[
                         { label: 'Jobs/month', value: forecast.expansion_score.jobs_per_month },
-                        { label: 'Active contractors', value: forecast.expansion_score.contractor_count },
+                        { label: 'Active employees', value: forecast.expansion_score.employee_count },
                         { label: 'Recurring rate', value: `${forecast.expansion_score.recurring_rate}%` },
                         { label: 'Avg ticket', value: formatCAD(forecast.expansion_score.avg_ticket) },
                         { label: 'Net margin', value: `${forecast.expansion_score.net_margin}%` },

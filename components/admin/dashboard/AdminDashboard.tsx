@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import Link from 'next/link';
-import type { Job, Contractor, Zone } from '@/types';
+import type { Job, Employee, Zone } from '@/types';
 import { Skeleton } from '@/components/ui/skeleton';
 
 const DispatchMap = dynamic(() => import('./DispatchMap'), {
@@ -29,7 +29,7 @@ const DispatchMap = dynamic(() => import('./DispatchMap'), {
 
 export function AdminDashboard() {
   const [jobs, setJobs] = useState<Job[]>([]);
-  const [contractors, setContractors] = useState<Contractor[]>([]);
+  const [employees, setEmployees] = useState<Employee[]>([]);
   const [zones, setZones] = useState<Zone[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -48,17 +48,17 @@ export function AdminDashboard() {
     const loadData = async () => {
       const today = format(new Date(), 'yyyy-MM-dd');
 
-      const [jobsRes, contractorsRes, zonesRes] = await Promise.all([
+      const [jobsRes, employeesRes, zonesRes] = await Promise.all([
         fetch(`/api/jobs?date=${today}`),
-        fetch('/api/contractors'),
+        fetch('/api/employees'),
         fetch('/api/zones')
       ]);
 
       const jobsData = await jobsRes.json();
       setJobs(Array.isArray(jobsData) ? jobsData : []);
 
-      const contractorsData = await contractorsRes.json();
-      setContractors(Array.isArray(contractorsData) ? contractorsData : []);
+      const employeesData = await employeesRes.json();
+      setEmployees(Array.isArray(employeesData) ? employeesData : []);
 
       const zonesData = await zonesRes.json();
       setZones(Array.isArray(zonesData) ? zonesData : []);
@@ -91,7 +91,7 @@ export function AdminDashboard() {
   const metrics = [
     { label: 'Jobs Today', value: jobs.length, icon: Briefcase, color: 'blue' },
     { label: 'Active Now', value: jobs.filter(j => ['on_the_way', 'in_progress'].includes(j.status)).length, icon: Radio, color: 'green' },
-    { label: 'Dispatch Queue', value: jobs.filter(j => j.status === 'confirmed' && !j.assigned_contractor_id).length, icon: AlertCircle, color: 'orange' },
+    { label: 'Dispatch Queue', value: jobs.filter(j => j.status === 'confirmed' && !j.assigned_employee_id).length, icon: AlertCircle, color: 'orange' },
     { label: 'Revenue Today', value: `$${jobs.reduce((acc, j) => acc + (j.quoted_price || 0), 0).toFixed(0)}`, icon: TrendingUp, color: 'purple' },
   ];
 
@@ -281,11 +281,11 @@ export function AdminDashboard() {
         <div className="space-y-6">
           <div className="bg-card border border-border rounded-3xl p-6 shadow-sm">
             <h3 className="font-bold mb-4 flex items-center gap-2">
-              Active Contractors
+              Active Employees
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
             </h3>
             <div className="space-y-4">
-              {contractors.slice(0, 5).map((c) => (
+              {employees.slice(0, 5).map((c) => (
                 <div key={c.id} className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center text-xs font-bold uppercase tracking-tighter">
@@ -303,7 +303,7 @@ export function AdminDashboard() {
                 </div>
               ))}
               <button className="w-full py-3 mt-2 rounded-xl text-xs font-bold text-muted-foreground hover:bg-muted hover:text-foreground transition-all uppercase tracking-widest">
-                View All Contractors
+                View All Employees
               </button>
             </div>
           </div>

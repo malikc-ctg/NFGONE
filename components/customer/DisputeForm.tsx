@@ -6,7 +6,7 @@ import { Upload, X, AlertTriangle } from 'lucide-react';
 interface DisputeFormProps {
   jobId: string;
   customerId: string;
-  contractorId: string | null;
+  employeeId: string | null;
   onSubmitted?: () => void;
 }
 
@@ -18,7 +18,7 @@ const CATEGORIES = [
   { value: 'other', label: 'Other issue' },
 ];
 
-export default function DisputeForm({ jobId, customerId, contractorId, onSubmitted }: DisputeFormProps) {
+export default function DisputeForm({ jobId, customerId, employeeId, onSubmitted }: DisputeFormProps) {
   const [open, setOpen] = useState(false);
   const [category, setCategory] = useState('');
   const [description, setDescription] = useState('');
@@ -44,7 +44,7 @@ export default function DisputeForm({ jobId, customerId, contractorId, onSubmitt
       body: JSON.stringify({
         job_id: jobId,
         customer_id: customerId,
-        contractor_id: contractorId,
+        employee_id: employeeId,
         category, description,
         evidence_urls: evidenceUrls,
       }),

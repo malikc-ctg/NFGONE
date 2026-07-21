@@ -1,6 +1,6 @@
 /**
- * GPS location tracking service for the contractor app.
- * Starts broadcasting GPS when contractor taps "On my way",
+ * GPS location tracking service for the employee app.
+ * Starts broadcasting GPS when employee taps "On my way",
  * stops when they mark the job complete.
  */
 
@@ -9,7 +9,7 @@ import { createClient } from '@/lib/supabase/client';
 let watchId: number | null = null;
 let activeJobId: string | null = null;
 
-export function startLocationTracking(contractorId: string, jobId: string): void {
+export function startLocationTracking(employeeId: string, jobId: string): void {
   if (!navigator.geolocation) {
     console.warn('Geolocation not supported on this device');
     return;
@@ -22,11 +22,11 @@ export function startLocationTracking(contractorId: string, jobId: string): void
     async (position) => {
       const { latitude, longitude, accuracy, heading, speed } = position.coords;
 
-      // Upsert live contractor location
+      // Upsert live employee location
       await supabase
-        .from('contractor_locations')
+        .from('employee_locations')
         .upsert({
-          contractor_id: contractorId,
+          employee_id: employeeId,
           latitude,
           longitude,
           accuracy,
@@ -34,13 +34,13 @@ export function startLocationTracking(contractorId: string, jobId: string): void
           speed: speed ? speed * 3.6 : null,   // convert m/s to km/h
           is_active: true,
           last_updated: new Date().toISOString(),
-        }, { onConflict: 'contractor_id' });
+        }, { onConflict: 'employee_id' });
 
       // Append to job location history (every update)
       if (activeJobId) {
         await supabase.from('job_location_history').insert({
           job_id: activeJobId,
-          contractor_id: contractorId,
+          employee_id: employeeId,
           latitude,
           longitude,
         });
@@ -55,7 +55,7 @@ export function startLocationTracking(contractorId: string, jobId: string): void
   );
 }
 
-export function stopLocationTracking(contractorId: string): void {
+export function stopLocationTracking(employeeId: string): void {
   if (watchId !== null) {
     navigator.geolocation.clearWatch(watchId);
     watchId = null;
@@ -63,10 +63,10 @@ export function stopLocationTracking(contractorId: string): void {
 
   activeJobId = null;
 
-  // Mark contractor as offline
+  // Mark employee as offline
   const supabase = createClient();
   supabase
-    .from('contractor_locations')
+    .from('employee_locations')
     .update({ is_active: false })
-    .eq('contractor_id', contractorId);
+    .eq('employee_id', employeeId);
 }

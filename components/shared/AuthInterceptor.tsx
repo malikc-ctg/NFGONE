@@ -15,14 +15,14 @@ export default function AuthInterceptor() {
     const search = window.location.search;
 
     if (hash && hash.includes('type=invite')) {
-      // It's a contractor invite! Route them to onboarding, preserving the hash so Supabase can consume it.
-      if (!window.location.pathname.includes('/contractor/onboarding')) {
-        window.location.href = `/contractor/onboarding${hash}`;
+      // It's a employee invite! Route them to onboarding, preserving the hash so Supabase can consume it.
+      if (!window.location.pathname.includes('/employee/onboarding')) {
+        window.location.href = `/employee/onboarding${hash}`;
       }
     } else if (search && search.includes('type=invite') && search.includes('token_hash=')) {
       // PKCE flow invite! Route them to onboarding, preserving the search params.
-      if (!window.location.pathname.includes('/contractor/onboarding')) {
-        window.location.href = `/contractor/onboarding${search}`;
+      if (!window.location.pathname.includes('/employee/onboarding')) {
+        window.location.href = `/employee/onboarding${search}`;
       }
     }
   }, [router]);

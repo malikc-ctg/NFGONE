@@ -31,7 +31,7 @@ export function Footer() {
               />
             </button>
             <p className="text-white/40 text-sm leading-relaxed max-w-sm mt-2">
-              A private home services network built on reliability, professional service standards, and selective contractor growth.
+              A private home services network built on reliability, professional service standards, and selective employee growth.
             </p>
             {/* Social Links */}
             <div className="flex gap-3 mt-4">
@@ -124,8 +124,8 @@ export function Footer() {
             </h4>
             <ul className="flex flex-col gap-2.5 text-sm text-white/40">
               <li>
-                <Link href="/contractor/login" className="hover:text-white transition-colors">
-                  Contractor Portal
+                <Link href="/employee/login" className="hover:text-white transition-colors">
+                  Employee Portal
                 </Link>
               </li>
               <li>

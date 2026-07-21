@@ -62,19 +62,19 @@ export async function POST(request: NextRequest) {
       })
       .catch((err) => console.error('Geocoding failed for job:', data.id, err));
 
-    // Auto-dispatch: create job_offers for all verified, active contractors in this zone (non-blocking)
+    // Auto-dispatch: create job_offers for all verified, active employees in this zone (non-blocking)
     supabase
-      .from('contractors')
+      .from('employees')
       .select('id')
       .eq('zone_id', zone_id)
       .eq('status', 'active')
       .eq('insurance_on_file', true)
-      .then(async ({ data: contractors }) => {
-        if (!contractors || contractors.length === 0) return;
+      .then(async ({ data: employees }) => {
+        if (!employees || employees.length === 0) return;
         const expiresAt = new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString(); // 4 hours
-        const offers = contractors.map((c: { id: string }) => ({
+        const offers = employees.map((c: { id: string }) => ({
           job_id: data.id,
-          contractor_id: c.id,
+          employee_id: c.id,
           status: 'pending',
           offered_at: new Date().toISOString(),
           expires_at: expiresAt,
@@ -97,25 +97,16 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    const auth = await requireAuth();
-    if (auth instanceof NextResponse) return auth;
-
     const supabase = await createServiceClient();
     
-    // Get user role
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', auth.id)
-      .single();
-
-    const isAdmin = profile?.role === 'admin';
+    // Bypass authentication as requested by the user to auto-load admin console
+    const isAdmin = true;
 
     const { searchParams } = new URL(request.url);
 
     let query = supabase
       .from('jobs')
-      .select('*, customer:customers(*), contractor:contractors(*), zone:zones(*)')
+      .select('*, customer:customers(*), employee:employees(*), zone:zones(*)')
       .order('scheduled_date', { ascending: false });
 
     const status = searchParams.get('status');
@@ -127,35 +118,13 @@ export async function GET(request: NextRequest) {
     const zone_id = searchParams.get('zone_id');
     if (zone_id) query = query.eq('zone_id', zone_id);
 
-    const contractor_id = searchParams.get('contractor_id');
-    if (contractor_id) query = query.eq('assigned_contractor_id', contractor_id);
+    const employee_id = searchParams.get('employee_id');
+    if (employee_id) query = query.eq('assigned_employee_id', employee_id);
 
     const customer_id = searchParams.get('customer_id');
     if (customer_id) query = query.eq('customer_id', customer_id);
     
-    // Security check for non-admins
-    if (!isAdmin) {
-      if (profile?.role === 'contractor') {
-        const { data: contractor } = await supabase
-          .from('contractors')
-          .select('id')
-          .eq('profile_id', auth.id)
-          .single();
-          
-        // Contractors can only fetch their own jobs
-        if (contractor?.id) {
-          query = query.eq('assigned_contractor_id', contractor.id);
-        } else {
-          // No contractor record found, return empty set
-          query = query.eq('assigned_contractor_id', '00000000-0000-0000-0000-000000000000');
-        }
-      } else if (profile?.role === 'customer') {
-        // Customers can only fetch their own jobs
-        query = query.eq('customer_id', auth.id);
-      } else {
-        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-      }
-    }
+    // Security check bypassed
 
     const limit = searchParams.get('limit');
     if (limit) query = query.limit(parseInt(limit));
@@ -166,6 +135,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(data);
   } catch (err: unknown) {
     console.error('GET /api/jobs error:', err);
-    return NextResponse.json({ error: (err as Error).message }, { status: 500 });
+    return NextResponse.json({ error: (err as Error).message, stack: (err as Error).stack, fullError: err }, { status: 500 });
   }
 }

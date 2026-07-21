@@ -54,12 +54,12 @@ export async function POST(
         .neq('id', id)
         .eq('status', 'pending');
 
-      // Update job status to accepted and assign contractor
+      // Update job status to accepted and assign employee
       await supabase
         .from('jobs')
         .update({
           status: 'accepted',
-          assigned_contractor_id: offer.contractor_id,
+          assigned_employee_id: offer.employee_id,
           updated_at: new Date().toISOString(),
         })
         .eq('id', offer.job_id);

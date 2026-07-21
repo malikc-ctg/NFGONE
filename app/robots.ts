@@ -7,7 +7,7 @@ export default function robots(): MetadataRoute.Robots {
       allow: '/',
       disallow: [
         '/wegettinmoneynga/',
-        '/contractor/',
+        '/employee/',
         '/customer-site/dashboard/',
         '/customer-site/onboarding/',
         '/partner/',

@@ -68,7 +68,7 @@ export default function AdminZonesPage() {
   }
 
   async function handleDelete(id: string) {
-    if (!confirm('Are you sure? This may affect contractors assigned to this zone.')) return;
+    if (!confirm('Are you sure? This may affect employees assigned to this zone.')) return;
     try {
       const res = await fetch(`/api/zones?id=${id}`, { method: 'DELETE' });
       if (!res.ok) throw new Error('Failed to delete');

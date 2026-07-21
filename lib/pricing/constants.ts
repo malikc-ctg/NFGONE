@@ -41,8 +41,8 @@ export interface AddOnDef {
   percentOfTotal?: number;
   /** Unit label for per-unit items (e.g. "window") */
   perUnit?: string;
-  /** Informational flag: may need subcontractor */
-  requiresSubcontractorCheck?: boolean;
+  /** Informational flag: may need subemployee */
+  requiresSubemployeeCheck?: boolean;
   /** Informational flag: liability sign-off required */
   requiresLiabilitySignoff?: boolean;
 }
@@ -108,7 +108,7 @@ export const ADD_ONS: AddOnDef[] = [
   { id: 'upholstery_chair', label: 'Upholstery cleaning, armchair', price: 30, includedFrom: null },
   { id: 'mattress_clean', label: 'Mattress vacuum/sanitize', price: 30, includedFrom: null },
   { id: 'carpet_steam_room', label: 'Carpet steam clean, per room', price: 50, includedFrom: null },
-  { id: 'carpet_steam_unit', label: 'Carpet steam clean, whole unit', price: 150, includedFrom: null, requiresSubcontractorCheck: true },
+  { id: 'carpet_steam_unit', label: 'Carpet steam clean, whole unit', price: 150, includedFrom: null, requiresSubemployeeCheck: true },
   { id: 'linen_change', label: 'Bed linen strip and remake, per bed', price: 12, includedFrom: null },
 
   // --- Deep Surface & Fixtures ---

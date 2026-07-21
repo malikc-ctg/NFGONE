@@ -23,7 +23,7 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { SERVICE_TYPE_LABELS, TIME_WINDOW_LABELS, JOB_STATUS_LABELS } from '@/types';
 import { getValidNextStatuses } from '@/lib/job-state-machine';
-import type { Job, Contractor, JobStatus } from '@/types';
+import type { Job, Employee, JobStatus } from '@/types';
 import Link from 'next/link';
 
 export default function JobDetailPage() {
@@ -32,8 +32,8 @@ export default function JobDetailPage() {
   const [loading, setLoading] = useState(true);
   const [dispatchOpen, setDispatchOpen] = useState(false);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
-  const [availableContractors, setAvailableContractors] = useState<any[]>([]);
-  const [selectedContractors, setSelectedContractors] = useState<string[]>([]);
+  const [availableEmployees, setAvailableEmployees] = useState<any[]>([]);
+  const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
   const [dispatching, setDispatching] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [editForm, setEditForm] = useState<Partial<Job>>({});
@@ -84,37 +84,37 @@ export default function JobDetailPage() {
     try {
       const res = await fetch(`/api/jobs/${params.id}/dispatch`);
       const data = await res.json();
-      setAvailableContractors(data.suggestions || []);
+      setAvailableEmployees(data.suggestions || []);
     } catch {
-      setAvailableContractors([]);
+      setAvailableEmployees([]);
     } finally {
       setLoadingSuggestions(false);
     }
   }
 
   async function handleDispatch() {
-    if (selectedContractors.length === 0) {
-      toast.error('Select at least one contractor');
+    if (selectedEmployees.length === 0) {
+      toast.error('Select at least one employee');
       return;
     }
     setDispatching(true);
     try {
       // First ensure status is right for dispatch
       if (job?.status === 'confirmed' || job?.status === 'rescheduled') {
-        const driveTimes = selectedContractors.map(id => {
-          const c = availableContractors.find(ac => ac.contractor_id === id);
+        const driveTimes = selectedEmployees.map(id => {
+          const c = availableEmployees.find(ac => ac.employee_id === id);
           return c ? c.drive_minutes : null;
         });
 
         const res = await fetch(`/api/jobs/${params.id}/dispatch`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ contractor_ids: selectedContractors, drive_times: driveTimes }),
+          body: JSON.stringify({ employee_ids: selectedEmployees, drive_times: driveTimes }),
         });
         if (!res.ok) throw new Error('Dispatch failed');
-        toast.success('Offers sent to contractors');
+        toast.success('Offers sent to employees');
         setDispatchOpen(false);
-        setSelectedContractors([]);
+        setSelectedEmployees([]);
         fetchJob();
       }
     } catch (err: unknown) {
@@ -145,7 +145,7 @@ export default function JobDetailPage() {
 
   const nextStatuses = getValidNextStatuses(job.status);
   const customer = (job as any).customer;
-  const contractor = (job as any).contractor;
+  const employee = (job as any).employee;
   const payoutAmount = job.quoted_price * 0.7;
 
   return (
@@ -315,7 +315,7 @@ export default function JobDetailPage() {
             )}
 
             <Separator />
-            <div className="flex justify-between"><span className="text-muted-foreground">Contractor Payout (70%)</span><span className="font-bold">${payoutAmount.toFixed(2)}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Employee Payout (70%)</span><span className="font-bold">${payoutAmount.toFixed(2)}</span></div>
           </CardContent>
         </Card>
 
@@ -333,18 +333,18 @@ export default function JobDetailPage() {
           </CardContent>
         </Card>
 
-        {/* Contractor */}
+        {/* Employee */}
         <Card>
-          <CardHeader><CardTitle className="flex items-center gap-2"><Star className="h-4 w-4" />Contractor</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="flex items-center gap-2"><Star className="h-4 w-4" />Employee</CardTitle></CardHeader>
           <CardContent className="space-y-3 text-sm">
-            {contractor ? (
+            {employee ? (
               <>
-                <div className="flex justify-between"><span className="text-muted-foreground">Name</span><Link href={`/wegettinmoneynga/contractors/${contractor.id}`} className="text-primary hover:underline">{contractor.full_name}</Link></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">Phone</span><span>{contractor.phone}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">Score</span><span>{contractor.score}/5.00</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">Tier</span><span className="capitalize">{contractor.tier}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Name</span><Link href={`/wegettinmoneynga/employees/${employee.id}`} className="text-primary hover:underline">{employee.full_name}</Link></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Phone</span><span>{employee.phone}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Score</span><span>{employee.score}/5.00</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Tier</span><span className="capitalize">{employee.tier}</span></div>
               </>
-            ) : <p className="text-muted-foreground">No contractor assigned</p>}
+            ) : <p className="text-muted-foreground">No employee assigned</p>}
           </CardContent>
         </Card>
       </div>
@@ -355,7 +355,7 @@ export default function JobDetailPage() {
           <DialogHeader>
             <DialogTitle>Dispatch Job {job.job_number}</DialogTitle>
             <DialogDescription>
-              Select up to 5 contractors to send this job offer to.
+              Select up to 5 employees to send this job offer to.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -368,21 +368,21 @@ export default function JobDetailPage() {
             <p className="text-sm font-medium">Smart Suggestions</p>
             {loadingSuggestions ? (
               <p className="text-sm text-muted-foreground">Calculating routes and scoring...</p>
-            ) : availableContractors.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No contractors available for this slot.</p>
+            ) : availableEmployees.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No employees available for this slot.</p>
             ) : (
               <div className="space-y-2 max-h-64 overflow-y-auto">
-                {availableContractors.map((c, idx) => (
+                {availableEmployees.map((c, idx) => (
                   <div
-                    key={c.contractor_id}
+                    key={c.employee_id}
                     className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-colors ${
-                      selectedContractors.includes(c.contractor_id) ? 'border-primary bg-primary/5' : 'hover:bg-muted'
+                      selectedEmployees.includes(c.employee_id) ? 'border-primary bg-primary/5' : 'hover:bg-muted'
                     }`}
                     onClick={() => {
-                      setSelectedContractors((prev) =>
-                        prev.includes(c.contractor_id)
-                          ? prev.filter((id) => id !== c.contractor_id)
-                          : prev.length < 5 ? [...prev, c.contractor_id] : prev
+                      setSelectedEmployees((prev) =>
+                        prev.includes(c.employee_id)
+                          ? prev.filter((id) => id !== c.employee_id)
+                          : prev.length < 5 ? [...prev, c.employee_id] : prev
                       );
                     }}
                   >
@@ -403,14 +403,14 @@ export default function JobDetailPage() {
                         {c.reason}
                       </p>
                     </div>
-                    <Checkbox checked={selectedContractors.includes(c.contractor_id)} />
+                    <Checkbox checked={selectedEmployees.includes(c.employee_id)} />
                   </div>
                 ))}
               </div>
             )}
-            <Button onClick={handleDispatch} disabled={dispatching || selectedContractors.length === 0} className="w-full">
+            <Button onClick={handleDispatch} disabled={dispatching || selectedEmployees.length === 0} className="w-full">
               <Send className="h-4 w-4 mr-2" />
-              Send Offer{selectedContractors.length > 1 ? 's' : ''} ({selectedContractors.length})
+              Send Offer{selectedEmployees.length > 1 ? 's' : ''} ({selectedEmployees.length})
             </Button>
           </div>
         </DialogContent>

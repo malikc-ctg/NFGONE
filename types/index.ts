@@ -4,7 +4,7 @@
 
 // ---------- Enums / Unions ----------
 
-export type UserRole = 'admin' | 'contractor' | 'customer' | 'zone_manager' | 'partner';
+export type UserRole = 'admin' | 'employee' | 'customer' | 'zone_manager' | 'partner';
 
 // Phase 3 additional enums
 export type DisputeCategory = 'missed_items' | 'damage' | 'no_show' | 'billing' | 'other';
@@ -37,9 +37,9 @@ export type PayoutStatus = 'pending' | 'processing' | 'completed' | 'failed';
 
 export type RecurringFrequency = 'weekly' | 'biweekly' | 'monthly';
 
-export type ContractorTier = 'basic' | 'pro' | 'team';
+export type EmployeeTier = 'basic' | 'pro' | 'team';
 
-export type ContractorStatus = 'invited' | 'active' | 'probation' | 'suspended' | 'inactive';
+export type EmployeeStatus = 'invited' | 'active' | 'probation' | 'suspended' | 'inactive';
 
 export type LeadStatus = 'new' | 'contacted' | 'quoted' | 'converted' | 'lost';
 
@@ -178,15 +178,15 @@ export interface Customer {
   has_recurring?: boolean;
 }
 
-export interface Contractor {
+export interface Employee {
   id: string;
   profile_id: string | null;
   full_name: string;
   email: string;
   phone: string;
   zone_id: string | null;
-  tier: ContractorTier;
-  status: ContractorStatus;
+  tier: EmployeeTier;
+  status: EmployeeStatus;
   payout_rate: number;
   brings_own_supplies: boolean;
   has_vehicle: boolean;
@@ -203,9 +203,9 @@ export interface Contractor {
   jobs_this_month?: number;
 }
 
-export interface ContractorDocument {
+export interface EmployeeDocument {
   id: string;
-  contractor_id: string;
+  employee_id: string;
   document_type: string;
   file_url: string;
   uploaded_at: string;
@@ -214,17 +214,17 @@ export interface ContractorDocument {
   notes: string | null;
 }
 
-export interface ContractorAvailability {
+export interface EmployeeAvailability {
   id: string;
-  contractor_id: string;
+  employee_id: string;
   day_of_week: DayOfWeek;
   time_window: TimeWindow;
   is_available: boolean;
 }
 
-export interface ContractorAvailabilityOverride {
+export interface EmployeeAvailabilityOverride {
   id: string;
-  contractor_id: string;
+  employee_id: string;
   override_date: string;
   time_window: TimeWindow;
   is_available: boolean;
@@ -261,7 +261,7 @@ export interface Job {
   lead_id: string | null;
   customer_id: string;
   zone_id: string;
-  assigned_contractor_id: string | null;
+  assigned_employee_id: string | null;
   service_type: ServiceType;
   status: JobStatus;
   scheduled_date: string;
@@ -280,13 +280,13 @@ export interface Job {
   scope_notes: string | null;
   quoted_price: number;
   final_price: number | null;
-  contractor_payout_amount: number | null;
+  employee_payout_amount: number | null;
   deposit_amount: number | null;
   deposit_paid_at: string | null;
   stripe_payment_intent_id: string | null;
   stripe_charge_id: string | null;
-  contractor_started_at: string | null;
-  contractor_completed_at: string | null;
+  employee_started_at: string | null;
+  employee_completed_at: string | null;
   admin_notes: string | null;
   cancellation_reason: string | null;
   dispute_reason: string | null;
@@ -298,14 +298,14 @@ export interface Job {
   updated_at: string;
   // joined
   customer?: Customer;
-  contractor?: Contractor;
+  employee?: Employee;
   zone?: Zone;
 }
 
 export interface JobOffer {
   id: string;
   job_id: string;
-  contractor_id: string;
+  employee_id: string;
   status: OfferStatus;
   offered_at: string;
   responded_at: string | null;
@@ -313,13 +313,13 @@ export interface JobOffer {
   decline_reason: string | null;
   // joined
   job?: Job;
-  contractor?: Contractor;
+  employee?: Employee;
 }
 
 export interface JobPhoto {
   id: string;
   job_id: string;
-  contractor_id: string;
+  employee_id: string;
   photo_type: PhotoType;
   room: RoomType | null;
   file_url: string;
@@ -330,7 +330,7 @@ export interface JobPhoto {
 export interface JobChecklist {
   id: string;
   job_id: string;
-  contractor_id: string;
+  employee_id: string;
   checklist_data: ChecklistData;
   submitted_at: string;
   reviewed_by_admin: string | null;
@@ -375,7 +375,7 @@ export interface ChecklistData {
     baseboards?: boolean;
     interior_windows?: boolean;
   };
-  contractor_notes: string;
+  employee_notes: string;
   scope_changes_noted: string;
   completed_at: string;
 }
@@ -394,10 +394,10 @@ export interface Payment {
   created_at: string;
 }
 
-export interface ContractorPayout {
+export interface EmployeePayout {
   id: string;
   job_id: string;
-  contractor_id: string;
+  employee_id: string;
   amount: number;
   payout_rate: number;
   status: PayoutStatus;
@@ -408,14 +408,14 @@ export interface ContractorPayout {
   created_at: string;
   // joined
   job?: Job;
-  contractor?: Contractor;
+  employee?: Employee;
 }
 
 export interface Review {
   id: string;
   job_id: string;
   customer_id: string;
-  contractor_id: string;
+  employee_id: string;
   rating: number;
   was_on_time: boolean | null;
   job_completed_properly: boolean | null;
@@ -431,7 +431,7 @@ export interface Review {
 export interface RecurringBooking {
   id: string;
   customer_id: string;
-  preferred_contractor_id: string | null;
+  preferred_employee_id: string | null;
   service_type: ServiceType;
   frequency: RecurringFrequency;
   preferred_day_of_week: DayOfWeek | null;
@@ -464,9 +464,9 @@ export interface Notification {
   error: string | null;
 }
 
-export interface ContractorScoreHistory {
+export interface EmployeeScoreHistory {
   id: string;
-  contractor_id: string;
+  employee_id: string;
   score_before: number | null;
   score_after: number | null;
   reason: string | null;
@@ -474,9 +474,9 @@ export interface ContractorScoreHistory {
   created_at: string;
 }
 
-export interface ContractorExpense {
+export interface EmployeeExpense {
   id: string;
-  contractor_id: string;
+  employee_id: string;
   expense_date: string;
   category: ExpenseCategory;
   amount: number;
@@ -514,9 +514,9 @@ export const DEFAULT_PRICING: Record<ServiceType, number> = {
 
 // ---------- Map / Location Interfaces ----------
 
-export interface ContractorLocation {
+export interface EmployeeLocation {
   id: string;
-  contractor_id: string;
+  employee_id: string;
   latitude: number;
   longitude: number;
   accuracy: number | null;
@@ -525,13 +525,13 @@ export interface ContractorLocation {
   is_active: boolean;
   last_updated: string;
   // joined
-  contractor?: Contractor;
+  employee?: Employee;
 }
 
 export interface JobLocationHistory {
   id: string;
   job_id: string;
-  contractor_id: string;
+  employee_id: string;
   latitude: number;
   longitude: number;
   recorded_at: string;
@@ -549,8 +549,8 @@ export interface ZoneBoundary {
   zone?: Zone;
 }
 
-export interface RankedContractor {
-  contractor: Contractor;
+export interface RankedEmployee {
+  employee: Employee;
   dispatch_score: number;
   distance_km: number | null;
   jobs_today: number;
@@ -574,12 +574,12 @@ export interface ZoneStaff {
   profile?: Profile;
 }
 
-// ---------- Contractor Teams ----------
+// ---------- Employee Teams ----------
 
-export interface ContractorTeam {
+export interface EmployeeTeam {
   id: string;
   name: string;
-  lead_contractor_id: string;
+  lead_employee_id: string;
   zone_id: string;
   status: string;
   max_jobs_per_day: number;
@@ -589,18 +589,18 @@ export interface ContractorTeam {
   updated_at: string;
   // joined
   zone?: Zone;
-  lead_contractor?: Contractor;
-  members?: ContractorTeamMember[];
+  lead_employee?: Employee;
+  members?: EmployeeTeamMember[];
 }
 
-export interface ContractorTeamMember {
+export interface EmployeeTeamMember {
   id: string;
   team_id: string;
-  contractor_id: string;
+  employee_id: string;
   role: string;
   joined_at: string;
   // joined
-  contractor?: Contractor;
+  employee?: Employee;
 }
 
 // ---------- Supply Management ----------
@@ -635,7 +635,7 @@ export interface SupplyInventory {
 export interface SupplyAssignment {
   id: string;
   job_id: string;
-  contractor_id: string;
+  employee_id: string;
   item_id: string;
   quantity_assigned: number;
   quantity_returned: number | null;
@@ -643,7 +643,7 @@ export interface SupplyAssignment {
   returned_at: string | null;
   // joined
   item?: SupplyItem;
-  contractor?: Contractor;
+  employee?: Employee;
 }
 
 export interface SupplyRestockOrder {
@@ -668,7 +668,7 @@ export interface Dispute {
   id: string;
   job_id: string;
   customer_id: string;
-  contractor_id: string | null;
+  employee_id: string | null;
   reported_by: string;
   category: DisputeCategory;
   description: string;
@@ -676,7 +676,7 @@ export interface Dispute {
   status: DisputeStatus;
   resolution_notes: string | null;
   refund_amount: number | null;
-  contractor_penalty: number | null;
+  employee_penalty: number | null;
   resolved_by: string | null;
   resolved_at: string | null;
   created_at: string;
@@ -684,7 +684,7 @@ export interface Dispute {
   // joined
   job?: Job;
   customer?: Customer;
-  contractor?: Contractor;
+  employee?: Employee;
 }
 
 export interface DisputeMessage {
@@ -833,7 +833,7 @@ export interface ZoneMonthlyPnl {
   month: string;
   jobs_completed: number;
   gross_revenue: number;
-  total_contractor_payouts: number;
+  total_employee_payouts: number;
   gross_profit: number;
   avg_ticket: number;
   recurring_jobs: number;
@@ -847,7 +847,7 @@ export interface ZoneExpansionScore {
   zone_name: string;
   score: number; // 0-100
   jobs_per_month: number;
-  contractor_count: number;
+  employee_count: number;
   recurring_rate: number;
   avg_ticket: number;
   net_margin: number;

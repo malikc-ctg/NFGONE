@@ -55,8 +55,8 @@ export async function GET(request: NextRequest) {
       : null;
 
     // Expansion readiness score (0-100)
-    const { count: contractorCount } = await supabase
-      .from('contractors')
+    const { count: employeeCount } = await supabase
+      .from('employees')
       .select('id', { count: 'exact', head: true })
       .eq('zone_id', zone_id ?? '')
       .eq('status', 'active');
@@ -71,8 +71,8 @@ export async function GET(request: NextRequest) {
     if (avgJobs >= 100) score += 25;
     else if (avgJobs >= 50) score += 15;
     else if (avgJobs >= 20) score += 5;
-    if ((contractorCount ?? 0) >= 5) score += 20;
-    else if ((contractorCount ?? 0) >= 3) score += 10;
+    if ((employeeCount ?? 0) >= 5) score += 20;
+    else if ((employeeCount ?? 0) >= 3) score += 10;
     if (recurringRate >= 0.4) score += 25;
     else if (recurringRate >= 0.2) score += 15;
     if (avgTicket >= 200) score += 15;
@@ -87,7 +87,7 @@ export async function GET(request: NextRequest) {
         score,
         ready: score >= 70,
         jobs_per_month: Math.round(avgJobs),
-        contractor_count: contractorCount ?? 0,
+        employee_count: employeeCount ?? 0,
         recurring_rate: Math.round(recurringRate * 100),
         avg_ticket: Math.round(avgTicket),
         net_margin: Math.round(margin * 100),

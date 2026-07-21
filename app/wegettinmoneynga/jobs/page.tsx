@@ -30,10 +30,22 @@ export default function JobsPage() {
 
   useEffect(() => {
     async function fetchJobs() {
-      const res = await fetch('/api/jobs');
-      const data = await res.json();
-      setJobs(Array.isArray(data) ? data : []);
-      setLoading(false);
+      try {
+        const res = await fetch('/api/jobs', { cache: 'no-store' });
+        const data = await res.json();
+        console.log('Fetched jobs data:', data);
+        if (Array.isArray(data)) {
+          setJobs(data);
+        } else {
+          console.error('API returned non-array:', data);
+          setJobs([]);
+        }
+      } catch (err) {
+        console.error('Error fetching jobs:', err);
+        setJobs([]);
+      } finally {
+        setLoading(false);
+      }
     }
     fetchJobs();
   }, []);
@@ -82,7 +94,7 @@ export default function JobsPage() {
                 <TableHead>Service</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Quoted</TableHead>
-                <TableHead className="hidden md:table-cell">Contractor</TableHead>
+                <TableHead className="hidden md:table-cell">Employee</TableHead>
                 <TableHead></TableHead>
               </TableRow>
             </TableHeader>
@@ -102,7 +114,7 @@ export default function JobsPage() {
                     <TableCell className="text-xs whitespace-nowrap">{SERVICE_TYPE_LABELS[job.service_type]}</TableCell>
                     <TableCell><StatusBadge status={job.status} /></TableCell>
                     <TableCell className="text-xs font-medium">${job.quoted_price}</TableCell>
-                    <TableCell className="text-xs hidden md:table-cell">{(job as any).contractor?.full_name ?? '—'}</TableCell>
+                    <TableCell className="text-xs hidden md:table-cell">{(job as any).employee?.full_name ?? '—'}</TableCell>
                     <TableCell>
                       <Link href={`/wegettinmoneynga/jobs/${job.id}`}>
                         <Button variant="ghost" size="sm">View</Button>

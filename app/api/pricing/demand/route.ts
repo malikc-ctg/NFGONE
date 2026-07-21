@@ -31,14 +31,14 @@ export async function GET(request: NextRequest) {
         .eq('scheduled_window', w)
         .not('status', 'in', '(cancelled,refunded)');
 
-      // Simple capacity estimate: 2 jobs per active contractor per window
-      const { count: contractors } = await supabase
-        .from('contractors')
+      // Simple capacity estimate: 2 jobs per active employee per window
+      const { count: employees } = await supabase
+        .from('employees')
         .select('id', { count: 'exact', head: true })
         .eq('zone_id', zone_id)
         .eq('status', 'active');
 
-      const capacity = (contractors ?? 2) * 2;
+      const capacity = (employees ?? 2) * 2;
       demand[w] = {
         booked: booked ?? 0,
         capacity,

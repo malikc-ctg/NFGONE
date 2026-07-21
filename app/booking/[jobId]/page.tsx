@@ -51,9 +51,9 @@ export default function BookingStatusPage() {
           quoted_price: 280.00,
           deposit_amount: 84.00,
           deposit_paid_at: new Date().toISOString(),
-          contractor: { full_name: 'Sarah Connor' },
+          employee: { full_name: 'Sarah Connor' },
           customer_id: 'cust-123',
-          assigned_contractor_id: 'cont-123',
+          assigned_employee_id: 'cont-123',
         };
         setJob(mockJob as any);
       } catch {}
@@ -74,7 +74,7 @@ export default function BookingStatusPage() {
         body: JSON.stringify({
           job_id: job.id,
           customer_id: job.customer_id,
-          contractor_id: job.assigned_contractor_id,
+          employee_id: job.assigned_employee_id,
           ...review,
         }),
       });
@@ -94,17 +94,17 @@ export default function BookingStatusPage() {
   );
 
   const statusMessage = CUSTOMER_STATUS_MESSAGES[job.status];
-  const contractor = (job as unknown as Record<string, unknown>).contractor as any;
-  const contractorFirstName = contractor?.full_name?.split(' ')[0] ?? '';
+  const employee = (job as unknown as Record<string, unknown>).employee as any;
+  const employeeFirstName = employee?.full_name?.split(' ')[0] ?? '';
   const showReviewForm = job.status === 'completed' && !reviewSubmitted;
   const showReviewDone = job.status === 'reviewed' || reviewSubmitted;
 
-  // Customize status message with contractor name
+  // Customize status message with employee name
   let displayMessage = statusMessage ?? '';
-  if (job.status === 'assigned' && contractorFirstName) {
-    displayMessage = `Your cleaner ${contractorFirstName} has been assigned.`;
-  } else if (job.status === 'on_the_way' && contractorFirstName) {
-    displayMessage = `${contractorFirstName} is on their way to you now.`;
+  if (job.status === 'assigned' && employeeFirstName) {
+    displayMessage = `Your cleaner ${employeeFirstName} has been assigned.`;
+  } else if (job.status === 'on_the_way' && employeeFirstName) {
+    displayMessage = `${employeeFirstName} is on their way to you now.`;
   }
 
   return (
@@ -163,12 +163,12 @@ export default function BookingStatusPage() {
                 <span>${job.deposit_amount} {job.deposit_paid_at ? '✓ Paid' : '— Pending'}</span>
               </div>
             )}
-            {contractorFirstName && ['assigned', 'on_the_way', 'in_progress', 'completed'].includes(job.status) && (
+            {employeeFirstName && ['assigned', 'on_the_way', 'in_progress', 'completed'].includes(job.status) && (
               <>
                 <Separator />
                 <div className="flex items-center gap-3">
                   <User className="h-5 w-5 text-muted-foreground" />
-                  <p className="text-sm">Your cleaner: <strong>{contractorFirstName}</strong></p>
+                  <p className="text-sm">Your cleaner: <strong>{employeeFirstName}</strong></p>
                 </div>
               </>
             )}

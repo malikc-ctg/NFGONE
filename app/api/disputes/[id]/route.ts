@@ -51,7 +51,7 @@ export async function PATCH(
   // Resolve dispute
   try {
     const body = await request.json();
-    const { resolved_by, resolution_notes, refund_amount, contractor_penalty, new_status } = body;
+    const { resolved_by, resolution_notes, refund_amount, employee_penalty, new_status } = body;
 
     if (!resolved_by || !resolution_notes || !new_status) {
       return NextResponse.json({ error: 'resolved_by, resolution_notes, new_status required' }, { status: 400 });
@@ -61,7 +61,7 @@ export async function PATCH(
       dispute_id: params.id,
       resolved_by, resolution_notes,
       refund_amount: refund_amount ?? undefined,
-      contractor_penalty: contractor_penalty ?? undefined,
+      employee_penalty: employee_penalty ?? undefined,
       new_status,
     });
 

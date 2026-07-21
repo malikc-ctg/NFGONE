@@ -20,14 +20,14 @@ export async function POST(
     }
 
     const { data, error } = await supabase
-      .from('contractor_payouts')
+      .from('employee_payouts')
       .update({
         status: 'completed',
         payout_reference,
         paid_at: new Date().toISOString(),
       })
       .eq('id', id)
-      .select('*, job:jobs(*), contractor:contractors(*)')
+      .select('*, job:jobs(*), employee:employees(*)')
       .single();
 
     if (error) throw error;

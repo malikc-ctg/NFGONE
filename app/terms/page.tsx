@@ -56,7 +56,7 @@ export default function TermsOfServicePage() {
             <section className="space-y-4">
               <h2 className="text-white text-xl font-bold tracking-tight">2. Service Scope and Platforms</h2>
               <p>
-                Sea of Blue operates a selective dispatch network connecting residential consumers (&quot;Customers&quot;) with independent professional cleaning companies, teams, and contractors (&quot;Providers&quot;).
+                Sea of Blue operates a selective dispatch network connecting residential consumers (&quot;Customers&quot;) with independent professional cleaning companies, teams, and employees (&quot;Providers&quot;).
               </p>
               <p>
                 Sea of Blue acts as a technology platform facilitating matching, scheduling, dispatch tracking, invoicing, and support. We are not a direct employer of the Providers. All Providers operate as independent businesses and remain solely responsible for the quality, safety, and performance of their cleaning services.

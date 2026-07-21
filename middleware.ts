@@ -10,7 +10,7 @@ export async function middleware(request: NextRequest) {
   if (hostname.includes('seaofblue.ca') || hostname.includes('customer.localhost')) {
     // Do not prefix API routes or global shared pages
     const isApi = url.pathname.startsWith('/api');
-    const isGlobalPage = /^\/(contact|terms|privacy|contractors|apply|sitemap\.xml|robots\.txt)(\/|$)/.test(url.pathname);
+    const isGlobalPage = /^\/(contact|terms|privacy|employees|apply|sitemap\.xml|robots\.txt)(\/|$)/.test(url.pathname);
     
     if (!isApi && !isGlobalPage) {
       if (!url.pathname.startsWith('/customer-site')) {

@@ -6,7 +6,7 @@ import { getSmartDispatchSuggestions } from '@/lib/smart-dispatch';
 
 /**
  * GET /api/jobs/[id]/dispatch — Smart dispatch suggestions
- * Returns a ranked list of contractors with drive times.
+ * Returns a ranked list of employees with drive times.
  */
 export async function GET(
   request: NextRequest,
@@ -37,7 +37,7 @@ export async function GET(
 }
 
 /**
- * POST /api/jobs/[id]/dispatch — Dispatch offers to contractors
+ * POST /api/jobs/[id]/dispatch — Dispatch offers to employees
  */
 export async function POST(
   request: NextRequest,
@@ -50,14 +50,14 @@ export async function POST(
 
     const supabase = await createServiceClient();
     const { id } = params;
-    const { contractor_ids, drive_times } = await request.json();
+    const { employee_ids, drive_times } = await request.json();
 
-    if (!contractor_ids || !Array.isArray(contractor_ids) || contractor_ids.length === 0) {
-      return NextResponse.json({ error: 'contractor_ids required' }, { status: 400 });
+    if (!employee_ids || !Array.isArray(employee_ids) || employee_ids.length === 0) {
+      return NextResponse.json({ error: 'employee_ids required' }, { status: 400 });
     }
 
-    if (contractor_ids.length > 5) {
-      return NextResponse.json({ error: 'Max 5 contractors per dispatch' }, { status: 400 });
+    if (employee_ids.length > 5) {
+      return NextResponse.json({ error: 'Max 5 employees per dispatch' }, { status: 400 });
     }
 
     // Get job
@@ -73,9 +73,9 @@ export async function POST(
 
     // Create offers with drive time data
     const expiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString(); // 30 min
-    const offers = contractor_ids.map((cid: string, idx: number) => ({
+    const offers = employee_ids.map((cid: string, idx: number) => ({
       job_id: id,
-      contractor_id: cid,
+      employee_id: cid,
       status: 'pending',
       expires_at: expiresAt,
       estimated_drive_minutes: drive_times?.[idx] ?? null,
@@ -104,9 +104,9 @@ export async function POST(
       entityType: 'job',
       entityId: id,
       oldValues: { status: job.status },
-      newValues: { status: 'offered', contractor_ids },
+      newValues: { status: 'offered', employee_ids },
       request,
-      metadata: { offer_count: contractor_ids.length },
+      metadata: { offer_count: employee_ids.length },
     });
 
     return NextResponse.json({ offers: createdOffers });

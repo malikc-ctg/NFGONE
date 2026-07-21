@@ -4,7 +4,7 @@ interface Zone {
   id: string;
   name: string;
   active_jobs_today: number;
-  contractors_online: number;
+  employees_online: number;
   color: string;
 }
 

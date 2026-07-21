@@ -10,16 +10,16 @@ export async function POST(request: NextRequest) {
 
     const supabase = await createServiceClient();
     const body = await request.json();
-    const { name, lead_contractor_id, zone_id, max_jobs_per_day, payout_split, notes } = body;
+    const { name, lead_employee_id, zone_id, max_jobs_per_day, payout_split, notes } = body;
 
-    if (!name || !lead_contractor_id || !zone_id) {
-      return NextResponse.json({ error: 'name, lead_contractor_id, zone_id required' }, { status: 400 });
+    if (!name || !lead_employee_id || !zone_id) {
+      return NextResponse.json({ error: 'name, lead_employee_id, zone_id required' }, { status: 400 });
     }
 
     const { data, error } = await supabase
-      .from('contractor_teams')
+      .from('employee_teams')
       .insert({
-        name, lead_contractor_id, zone_id,
+        name, lead_employee_id, zone_id,
         max_jobs_per_day: max_jobs_per_day ?? 3,
         payout_split: payout_split ?? { lead: 0.45, member: 0.25 },
         notes: notes ?? null,
@@ -30,10 +30,10 @@ export async function POST(request: NextRequest) {
 
     if (error) throw error;
 
-    // Auto-add lead contractor as 'lead' member
-    await supabase.from('contractor_team_members').insert({
+    // Auto-add lead employee as 'lead' member
+    await supabase.from('employee_team_members').insert({
       team_id: data.id,
-      contractor_id: lead_contractor_id,
+      employee_id: lead_employee_id,
       role: 'lead',
     });
 
@@ -54,12 +54,12 @@ export async function GET(request: NextRequest) {
     const zone_id = searchParams.get('zone_id');
 
     let query = supabase
-      .from('contractor_teams')
+      .from('employee_teams')
       .select(`
         *,
         zone:zones(name),
-        lead_contractor:contractors!contractor_teams_lead_contractor_id_fkey(id, full_name, score),
-        members:contractor_team_members(*, contractor:contractors(id, full_name, score))
+        lead_employee:employees!employee_teams_lead_employee_id_fkey(id, full_name, score),
+        members:employee_team_members(*, employee:employees(id, full_name, score))
       `)
       .order('name');
 

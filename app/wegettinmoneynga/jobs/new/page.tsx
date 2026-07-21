@@ -436,8 +436,8 @@ export default function NewJobPage() {
                 </p>
               )}
               <div className="bg-muted/50 rounded-lg p-3 text-xs space-y-1 text-muted-foreground">
-                <p>• After confirming, the system will automatically send job offers to all verified contractors in the selected zone.</p>
-                <p>• The first contractor to accept will be assigned. You can manually assign from the job detail page.</p>
+                <p>• After confirming, the system will automatically send job offers to all verified employees in the selected zone.</p>
+                <p>• The first employee to accept will be assigned. You can manually assign from the job detail page.</p>
               </div>
             </div>
           </CardContent>

@@ -23,7 +23,7 @@ export async function getInventoryWithAlerts(zoneId?: string) {
 
 export async function assignSupplyToJob(params: {
   job_id: string;
-  contractor_id: string;
+  employee_id: string;
   zone_id: string;
   assignments: Array<{ item_id: string; quantity: number }>;
 }): Promise<void> {
@@ -32,7 +32,7 @@ export async function assignSupplyToJob(params: {
   for (const a of params.assignments) {
     await supabase.from('supply_assignments').insert({
       job_id: params.job_id,
-      contractor_id: params.contractor_id,
+      employee_id: params.employee_id,
       item_id: a.item_id,
       quantity_assigned: a.quantity,
     });

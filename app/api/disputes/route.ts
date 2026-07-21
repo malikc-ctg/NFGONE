@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
   if (auth instanceof NextResponse) return auth;
 
     const body = await request.json();
-    const { job_id, customer_id, contractor_id, category, description, evidence_urls } = body;
+    const { job_id, customer_id, employee_id, category, description, evidence_urls } = body;
 
     if (!job_id || !customer_id || !category || !description) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
     const supabase = await createServiceClient();
     const { data: job } = await supabase
       .from('jobs')
-      .select('contractor_completed_at, status')
+      .select('employee_completed_at, status')
       .eq('id', job_id)
       .single();
 
@@ -32,8 +32,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Job is not eligible for dispute' }, { status: 400 });
     }
 
-    if (job.contractor_completed_at) {
-      const completedAt = new Date(job.contractor_completed_at);
+    if (job.employee_completed_at) {
+      const completedAt = new Date(job.employee_completed_at);
       const hoursElapsed = (Date.now() - completedAt.getTime()) / (1000 * 60 * 60);
       if (hoursElapsed > 72) {
         return NextResponse.json({ error: 'Dispute window has closed (72h after completion)' }, { status: 400 });
@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
     }
 
     const result = await createDispute({
-      job_id, customer_id, contractor_id: contractor_id ?? null,
+      job_id, customer_id, employee_id: employee_id ?? null,
       category: category as DisputeCategory,
       description, evidence_urls: evidence_urls ?? [],
     });
@@ -66,7 +66,7 @@ export async function GET(request: NextRequest) {
 
     let query = supabase
       .from('disputes')
-      .select('*, job:jobs(job_number, scheduled_date, service_type), customer:customers(full_name, email), contractor:contractors(full_name)')
+      .select('*, job:jobs(job_number, scheduled_date, service_type), customer:customers(full_name, email), employee:employees(full_name)')
       .order('created_at', { ascending: false });
 
     if (status) query = query.eq('status', status);

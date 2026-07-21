@@ -15,25 +15,25 @@ export async function POST(
 
     const body = await request.json();
     
-    // Get the contractor ID for this user
-    const { data: contractor } = await supabase
-      .from('contractors')
+    // Get the employee ID for this user
+    const { data: employee } = await supabase
+      .from('employees')
       .select('id')
       .eq('profile_id', user.id)
       .single();
 
-    if (!contractor) {
-      return NextResponse.json({ error: 'Contractor profile not found' }, { status: 404 });
+    if (!employee) {
+      return NextResponse.json({ error: 'Employee profile not found' }, { status: 404 });
     }
 
-    // Verify the job belongs to this contractor
+    // Verify the job belongs to this employee
     const { data: job } = await supabase
       .from('jobs')
-      .select('assigned_contractor_id')
+      .select('assigned_employee_id')
       .eq('id', params.id)
       .single();
 
-    if (!job || job.assigned_contractor_id !== contractor.id) {
+    if (!job || job.assigned_employee_id !== employee.id) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
@@ -44,7 +44,7 @@ export async function POST(
       .from('job_checklists')
       .insert({
         job_id: params.id,
-        contractor_id: contractor.id,
+        employee_id: employee.id,
         checklist_data: body,
       })
       .select()

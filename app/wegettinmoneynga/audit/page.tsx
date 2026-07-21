@@ -158,7 +158,7 @@ export default function AuditLogPage() {
           <option value="">All Entities</option>
           <option value="job">Jobs</option>
           <option value="lead">Leads</option>
-          <option value="contractor">Contractors</option>
+          <option value="employee">Employees</option>
         </select>
         <span className="text-xs text-muted-foreground">
           {count} total entries

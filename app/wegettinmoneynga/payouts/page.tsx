@@ -17,19 +17,19 @@ import { MetricCard } from '@/components/shared/MetricCard';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { SERVICE_TYPE_LABELS } from '@/types';
-import type { ContractorPayout } from '@/types';
+import type { EmployeePayout } from '@/types';
 
 export default function PayoutsPage() {
-  const [payouts, setPayouts] = useState<ContractorPayout[]>([]);
+  const [payouts, setPayouts] = useState<EmployeePayout[]>([]);
   const [loading, setLoading] = useState(true);
   const [markPaidOpen, setMarkPaidOpen] = useState(false);
-  const [selectedPayout, setSelectedPayout] = useState<ContractorPayout | null>(null);
+  const [selectedPayout, setSelectedPayout] = useState<EmployeePayout | null>(null);
   const [payoutRef, setPayoutRef] = useState('');
   const [marking, setMarking] = useState(false);
 
   async function fetchPayouts() {
     try {
-      // Fetch completed jobs with contractor assignment to compute payouts
+      // Fetch completed jobs with employee assignment to compute payouts
       const res = await fetch('/api/jobs?status=completed');
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
@@ -38,14 +38,14 @@ export default function PayoutsPage() {
       const jobs = await res.json();
 
       // Build synthetic payout records from completed jobs
-      const payoutRecords: ContractorPayout[] = (Array.isArray(jobs) ? jobs : [])
-        .filter((j: any) => j.assigned_contractor_id && j.contractor)
+      const payoutRecords: EmployeePayout[] = (Array.isArray(jobs) ? jobs : [])
+        .filter((j: any) => j.assigned_employee_id && j.employee)
         .map((j: any) => ({
           id: j.id,
           job_id: j.id,
-          contractor_id: j.assigned_contractor_id,
-          amount: (j.quoted_price || 0) * (j.contractor?.payout_rate || 0.7),
-          payout_rate: j.contractor?.payout_rate || 0.7,
+          employee_id: j.assigned_employee_id,
+          amount: (j.quoted_price || 0) * (j.employee?.payout_rate || 0.7),
+          payout_rate: j.employee?.payout_rate || 0.7,
           status: j.status === 'paid_out' ? 'completed' as const : 'pending' as const,
           payout_method: 'e-transfer',
           payout_reference: null,
@@ -53,7 +53,7 @@ export default function PayoutsPage() {
           notes: null,
           created_at: j.created_at,
           job: j,
-          contractor: j.contractor,
+          employee: j.employee,
         }));
 
       setPayouts(payoutRecords);
@@ -89,14 +89,14 @@ export default function PayoutsPage() {
           ...(Array.isArray(paidOutJobs) ? paidOutJobs : []),
         ];
 
-        const payoutRecords: ContractorPayout[] = allJobs
-          .filter((j: any) => j.assigned_contractor_id && j.contractor)
+        const payoutRecords: EmployeePayout[] = allJobs
+          .filter((j: any) => j.assigned_employee_id && j.employee)
           .map((j: any) => ({
             id: j.id,
             job_id: j.id,
-            contractor_id: j.assigned_contractor_id,
-            amount: (j.quoted_price || 0) * (j.contractor?.payout_rate || 0.7),
-            payout_rate: j.contractor?.payout_rate || 0.7,
+            employee_id: j.assigned_employee_id,
+            amount: (j.quoted_price || 0) * (j.employee?.payout_rate || 0.7),
+            payout_rate: j.employee?.payout_rate || 0.7,
             status: j.status === 'paid_out' ? 'completed' as const : 'pending' as const,
             payout_method: 'e-transfer',
             payout_reference: null,
@@ -104,7 +104,7 @@ export default function PayoutsPage() {
             notes: null,
             created_at: j.created_at,
             job: j,
-            contractor: j.contractor,
+            employee: j.employee,
           }));
 
         setPayouts(payoutRecords);
@@ -157,19 +157,19 @@ export default function PayoutsPage() {
   const completedPayouts = payouts.filter(p => p.status === 'completed');
   const pendingTotal = pendingPayouts.reduce((sum, p) => sum + p.amount, 0);
   const completedTotal = completedPayouts.reduce((sum, p) => sum + p.amount, 0);
-  const uniqueContractors = new Set(payouts.map(p => p.contractor_id)).size;
+  const uniqueEmployees = new Set(payouts.map(p => p.employee_id)).size;
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Payouts</h1>
-        <p className="text-muted-foreground">Manage contractor payouts</p>
+        <p className="text-muted-foreground">Manage employee payouts</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <MetricCard title="Pending Payouts" value={`$${pendingTotal.toFixed(2)}`} icon={Clock} />
         <MetricCard title="Paid Out" value={`$${completedTotal.toFixed(2)}`} icon={CheckCircle} />
-        <MetricCard title="Contractors" value={String(uniqueContractors)} icon={DollarSign} />
+        <MetricCard title="Employees" value={String(uniqueEmployees)} icon={DollarSign} />
       </div>
 
       <Card>
@@ -186,7 +186,7 @@ export default function PayoutsPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>Job #</TableHead>
-                <TableHead>Contractor</TableHead>
+                <TableHead>Employee</TableHead>
                 <TableHead>Job Date</TableHead>
                 <TableHead>Service</TableHead>
                 <TableHead>Job Price</TableHead>
@@ -213,7 +213,7 @@ export default function PayoutsPage() {
                 pendingPayouts.map((payout) => (
                   <TableRow key={payout.id}>
                     <TableCell className="font-mono text-xs">{payout.job?.job_number || '—'}</TableCell>
-                    <TableCell className="text-sm">{payout.contractor?.full_name || '—'}</TableCell>
+                    <TableCell className="text-sm">{payout.employee?.full_name || '—'}</TableCell>
                     <TableCell className="text-xs whitespace-nowrap">
                       {payout.job?.scheduled_date
                         ? format(new Date(payout.job.scheduled_date), 'MMM d, yyyy')
@@ -264,7 +264,7 @@ export default function PayoutsPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Job #</TableHead>
-                  <TableHead>Contractor</TableHead>
+                  <TableHead>Employee</TableHead>
                   <TableHead>Job Date</TableHead>
                   <TableHead>Service</TableHead>
                   <TableHead>Payout</TableHead>
@@ -275,7 +275,7 @@ export default function PayoutsPage() {
                 {completedPayouts.map((payout) => (
                   <TableRow key={payout.id}>
                     <TableCell className="font-mono text-xs">{payout.job?.job_number || '—'}</TableCell>
-                    <TableCell className="text-sm">{payout.contractor?.full_name || '—'}</TableCell>
+                    <TableCell className="text-sm">{payout.employee?.full_name || '—'}</TableCell>
                     <TableCell className="text-xs whitespace-nowrap">
                       {payout.job?.scheduled_date
                         ? format(new Date(payout.job.scheduled_date), 'MMM d, yyyy')
@@ -307,7 +307,7 @@ export default function PayoutsPage() {
           </DialogHeader>
           <div className="space-y-4 pt-2">
             <div className="rounded-lg bg-muted p-3 space-y-1">
-              <p className="text-sm font-medium">{selectedPayout?.contractor?.full_name}</p>
+              <p className="text-sm font-medium">{selectedPayout?.employee?.full_name}</p>
               <p className="text-xs text-muted-foreground">
                 Job #{selectedPayout?.job?.job_number} — ${selectedPayout?.amount.toFixed(2)}
               </p>

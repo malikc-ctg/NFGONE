@@ -15,18 +15,18 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Get contractor ID using service client to avoid RLS hurdles
+    // Get employee ID using service client to avoid RLS hurdles
     const { createServiceClient } = await import('@/lib/supabase/server');
     const serviceClient = await createServiceClient();
     
-    const { data: contractor } = await serviceClient
-      .from('contractors')
+    const { data: employee } = await serviceClient
+      .from('employees')
       .select('id')
       .eq('profile_id', user.id)
       .single();
 
-    if (!contractor) {
-      return NextResponse.json({ error: 'Contractor not found in database' }, { status: 404 });
+    if (!employee) {
+      return NextResponse.json({ error: 'Employee not found in database' }, { status: 404 });
     }
 
 
@@ -34,7 +34,7 @@ export async function GET() {
     const { data: offers, error } = await serviceClient
       .from('job_offers')
       .select('*, job:jobs(*)')
-      .eq('contractor_id', contractor.id)
+      .eq('employee_id', employee.id)
       .eq('status', 'pending')
       .order('offered_at', { ascending: false });
 

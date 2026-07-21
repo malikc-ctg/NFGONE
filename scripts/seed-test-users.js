@@ -16,7 +16,7 @@ const supabase = createClient(
 async function createTestUsers() {
   const users = [
     { email: 'admin@seaofblue.app', password: 'SOBtest123', role: 'admin', name: 'Test Admin' },
-    { email: 'contractor@seaofblue.app', password: 'SOBtest123', role: 'contractor', name: 'Test Contractor' }
+    { email: 'employee@seaofblue.app', password: 'SOBtest123', role: 'employee', name: 'Test Employee' }
   ];
 
   for (const u of users) {
@@ -62,18 +62,18 @@ async function createTestUsers() {
       console.error('Error creating profile:', profileError);
     }
     
-    if (u.role === 'contractor') {
-       // Check if contractor exists
-       const { data: existingContractor } = await supabase.from('contractors').select('id').eq('profile_id', userId).single();
-       if (!existingContractor) {
-           const { error: contractorError } = await supabase.from('contractors').insert({
+    if (u.role === 'employee') {
+       // Check if employee exists
+       const { data: existingEmployee } = await supabase.from('employees').select('id').eq('profile_id', userId).single();
+       if (!existingEmployee) {
+           const { error: employeeError } = await supabase.from('employees').insert({
              profile_id: userId,
              full_name: u.name,
              email: u.email,
              phone: '555-555-5555'
            });
-           if (contractorError) {
-               console.error('Error creating contractor row:', contractorError);
+           if (employeeError) {
+               console.error('Error creating employee row:', employeeError);
            }
        }
     }

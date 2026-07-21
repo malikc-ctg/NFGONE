@@ -90,7 +90,7 @@ export default function ApplyPage() {
         payload.servicesOffered.push(`Other: ${form.otherService}`);
       }
 
-      const res = await fetch('/api/contractor-applications', {
+      const res = await fetch('/api/employee-applications', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -129,10 +129,10 @@ export default function ApplyPage() {
           </Link>
           <nav className="flex items-center gap-6">
             <Link 
-              href="/contractor/login" 
+              href="/employee/login" 
               className="text-xs uppercase tracking-widest text-white/50 hover:text-white transition-colors"
             >
-              Contractor Login
+              Employee Login
             </Link>
             <button 
               onClick={scrollToForm} 

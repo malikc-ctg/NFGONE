@@ -1,0 +1,91 @@
+import { createServiceClient } from '@/lib/supabase/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { requireRole } from '@/lib/api-auth';
+
+// PATCH /api/employees/[id]/verify-insurance
+// body: { action: 'verify' | 'reject', admin_notes?: string }
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const auth = await requireRole(['admin']);
+    if (auth instanceof NextResponse) return auth;
+
+    const supabase = await createServiceClient();
+    const { id } = await params;
+    const body = await request.json();
+    const { action, admin_notes } = body;
+
+    if (!action || !['verify', 'reject'].includes(action)) {
+      return NextResponse.json({ error: 'action must be "verify" or "reject"' }, { status: 400 });
+    }
+
+    // Fetch current employee notes
+    const { data: employee, error: fetchError } = await supabase
+      .from('employees')
+      .select('notes, insurance_on_file')
+      .eq('id', id)
+      .single();
+
+    if (fetchError || !employee) {
+      return NextResponse.json({ error: 'Employee not found' }, { status: 404 });
+    }
+
+    let existingNotes: Record<string, unknown> = {};
+    try {
+      existingNotes = employee.notes ? JSON.parse(employee.notes) : {};
+    } catch {
+      existingNotes = {};
+    }
+
+    if (action === 'verify') {
+      const updatedNotes = {
+        ...existingNotes,
+        insurance_details: {
+          ...(existingNotes.insurance_details as Record<string, unknown> ?? {}),
+          status: 'verified',
+          verified_at: new Date().toISOString(),
+          admin_notes: admin_notes ?? null,
+        },
+      };
+
+      const { error } = await supabase
+        .from('employees')
+        .update({
+          insurance_on_file: true,
+          notes: JSON.stringify(updatedNotes),
+        })
+        .eq('id', id);
+
+      if (error) throw error;
+      return NextResponse.json({ success: true, status: 'verified' });
+    }
+
+    // action === 'reject'
+    const updatedNotes = {
+      ...existingNotes,
+      insurance_details: {
+        ...(existingNotes.insurance_details as Record<string, unknown> ?? {}),
+        status: 'rejected',
+        file_url: null,
+        rejected_at: new Date().toISOString(),
+        rejection_reason: admin_notes ?? 'Document rejected by admin',
+      },
+    };
+
+    const { error } = await supabase
+      .from('employees')
+      .update({
+        insurance_on_file: false,
+        notes: JSON.stringify(updatedNotes),
+      })
+      .eq('id', id);
+
+    if (error) throw error;
+    return NextResponse.json({ success: true, status: 'rejected' });
+  } catch (err: unknown) {
+    console.error('PATCH /api/employees/[id]/verify-insurance error:', err);
+    return NextResponse.json({ error: (err as Error).message }, { status: 500 });
+  }
+}

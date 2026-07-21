@@ -12,15 +12,15 @@ export async function POST(
   if (auth instanceof NextResponse) return auth;
 
     const supabase = await createServiceClient();
-    const { contractor_id, role } = await request.json();
+    const { employee_id, role } = await request.json();
 
-    if (!contractor_id) {
-      return NextResponse.json({ error: 'contractor_id required' }, { status: 400 });
+    if (!employee_id) {
+      return NextResponse.json({ error: 'employee_id required' }, { status: 400 });
     }
 
     const { data, error } = await supabase
-      .from('contractor_team_members')
-      .insert({ team_id: params.id, contractor_id, role: role ?? 'member' })
+      .from('employee_team_members')
+      .insert({ team_id: params.id, employee_id, role: role ?? 'member' })
       .select()
       .single();
 

@@ -46,7 +46,7 @@ export interface AddOnLineItem {
   quantity: number;
   /** If included, which package tier includes it */
   includedInPackage?: string;
-  requiresSubcontractorCheck?: boolean;
+  requiresSubemployeeCheck?: boolean;
   requiresLiabilitySignoff?: boolean;
 }
 
@@ -267,7 +267,7 @@ export function calculateQuote(input: QuoteInput): QuoteResult {
           label: def.label,
           price: manualPrice * quantity,
           quantity,
-          requiresSubcontractorCheck: def.requiresSubcontractorCheck,
+          requiresSubemployeeCheck: def.requiresSubemployeeCheck,
           requiresLiabilitySignoff: def.requiresLiabilitySignoff,
         });
         addOnsTotal += manualPrice * quantity;
@@ -278,7 +278,7 @@ export function calculateQuote(input: QuoteInput): QuoteResult {
           label: def.label,
           price: 'custom',
           quantity,
-          requiresSubcontractorCheck: def.requiresSubcontractorCheck,
+          requiresSubemployeeCheck: def.requiresSubemployeeCheck,
           requiresLiabilitySignoff: def.requiresLiabilitySignoff,
         });
       }
@@ -292,7 +292,7 @@ export function calculateQuote(input: QuoteInput): QuoteResult {
       label: def.label,
       price: unitPrice * quantity,
       quantity,
-      requiresSubcontractorCheck: def.requiresSubcontractorCheck,
+      requiresSubemployeeCheck: def.requiresSubemployeeCheck,
     });
     addOnsTotal += unitPrice * quantity;
   }

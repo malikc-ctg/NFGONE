@@ -19,7 +19,7 @@ export default function TrackingPage() {
       try {
         const { data } = await supabase
           .from('jobs')
-          .select('*, contractor:contractors(full_name)')
+          .select('*, employee:employees(full_name)')
           .eq('id', params.jobId)
           .single();
 
@@ -113,14 +113,14 @@ export default function TrackingPage() {
               </div>
             </div>
 
-            {job.assigned_contractor_id && (
+            {job.assigned_employee_id && (
               <div className="flex items-start gap-4 p-4 bg-blue-50/50 rounded-2xl border border-blue-100">
                 <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center shrink-0">
                   <User className="h-5 w-5 text-white" />
                 </div>
                 <div>
                   <p className="text-[10px] font-bold text-blue-600 uppercase tracking-widest mb-0.5">Your Cleaner</p>
-                  <p className="text-sm font-bold text-foreground">{(job as any).contractor?.full_name?.split(' ')[0] || 'Malik'}</p>
+                  <p className="text-sm font-bold text-foreground">{(job as any).employee?.full_name?.split(' ')[0] || 'Malik'}</p>
                 </div>
               </div>
             )}

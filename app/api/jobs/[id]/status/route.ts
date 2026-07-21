@@ -5,14 +5,14 @@ import type { JobStatus } from '@/types';
 import { requireRole, requireAuth } from '@/lib/api-auth';
 import { sendEmail } from '@/lib/resend';
 import { logAudit } from '@/lib/audit';
-import ContractorAssigned from '@/emails/customer/ContractorAssigned';
-import JobAssigned from '@/emails/contractor/JobAssigned';
-import ContractorEnRoute from '@/emails/customer/ContractorEnRoute';
+import EmployeeAssigned from '@/emails/customer/EmployeeAssigned';
+import JobAssigned from '@/emails/employee/JobAssigned';
+import EmployeeEnRoute from '@/emails/customer/EmployeeEnRoute';
 import ServiceStarted from '@/emails/customer/ServiceStarted';
 import ServiceCompleted from '@/emails/customer/ServiceCompleted';
 import ReviewRequest from '@/emails/customer/ReviewRequest';
 import CustomerJobCancelled from '@/emails/customer/JobCancelled';
-import ContractorJobCancelled from '@/emails/contractor/JobCancelled';
+import EmployeeJobCancelled from '@/emails/employee/JobCancelled';
 import React from 'react';
 export async function PATCH(
   request: NextRequest,
@@ -50,18 +50,18 @@ export async function PATCH(
       return NextResponse.json({ error: 'Job not found' }, { status: 404 });
     }
 
-    let contractorId = null;
+    let employeeId = null;
     if (user && !isAdmin) {
-      const { data: contractor } = await supabase
-        .from('contractors')
+      const { data: employee } = await supabase
+        .from('employees')
         .select('id')
         .eq('profile_id', user.id)
         .single();
-      contractorId = contractor?.id;
+      employeeId = employee?.id;
     }
 
-    // Security Check: Only admin or the assigned contractor can update this job
-    if (!isAdmin && job.assigned_contractor_id !== contractorId) {
+    // Security Check: Only admin or the assigned employee can update this job
+    if (!isAdmin && job.assigned_employee_id !== employeeId) {
       return NextResponse.json({ error: 'Unauthorized to update this job' }, { status: 403 });
     }
 
@@ -81,10 +81,10 @@ export async function PATCH(
 
     // Handle specific transitions
     if (newStatus === 'in_progress') {
-      updateData.contractor_started_at = new Date().toISOString();
+      updateData.employee_started_at = new Date().toISOString();
     }
     if (newStatus === 'completed') {
-      updateData.contractor_completed_at = new Date().toISOString();
+      updateData.employee_completed_at = new Date().toISOString();
     }
     if (newStatus === 'cancelled' && extraFields.cancellation_reason) {
       updateData.cancellation_reason = extraFields.cancellation_reason;
@@ -96,15 +96,15 @@ export async function PATCH(
     // Merge any additional allowed fields
     if (extraFields.final_price !== undefined) updateData.final_price = extraFields.final_price;
     if (extraFields.admin_notes !== undefined) updateData.admin_notes = extraFields.admin_notes;
-    if (extraFields.assigned_contractor_id !== undefined) {
-      updateData.assigned_contractor_id = extraFields.assigned_contractor_id;
+    if (extraFields.assigned_employee_id !== undefined) {
+      updateData.assigned_employee_id = extraFields.assigned_employee_id;
     }
 
     const { data, error } = await supabase
       .from('jobs')
       .update(updateData)
       .eq('id', id)
-      .select('*, customer:customers(*), contractor:contractors(*)')
+      .select('*, customer:customers(*), employee:employees(*)')
       .single();
 
     if (error) throw error;
@@ -113,7 +113,7 @@ export async function PATCH(
     logAudit({
       actorId: auth.id,
       actorEmail: auth.email,
-      actorRole: isAdmin ? 'admin' : 'contractor',
+      actorRole: isAdmin ? 'admin' : 'employee',
       action: 'job.status_changed',
       entityType: 'job',
       entityId: id,
@@ -126,22 +126,22 @@ export async function PATCH(
     // ----- EMAIL DISPATCH LOGIC -----
     try {
       const custObj = Array.isArray(data.customer) ? data.customer[0] : data.customer;
-      const contObj = Array.isArray(data.contractor) ? data.contractor[0] : data.contractor;
+      const contObj = Array.isArray(data.employee) ? data.employee[0] : data.employee;
 
       const cName = custObj?.full_name || 'Customer';
       const cEmail = custObj?.email;
-      const contName = contObj?.full_name || 'Contractor';
+      const contName = contObj?.full_name || 'Employee';
       const contEmail = contObj?.email;
       const date = data.scheduled_date || 'TBD';
       const time = data.scheduled_window || 'TBD';
       
-      // 1. If a contractor was just assigned
-      if (extraFields.assigned_contractor_id && job.assigned_contractor_id !== extraFields.assigned_contractor_id) {
+      // 1. If a employee was just assigned
+      if (extraFields.assigned_employee_id && job.assigned_employee_id !== extraFields.assigned_employee_id) {
          if (cEmail) {
            await sendEmail({
              to: cEmail,
              subject: `Your Cleaner is Set for ${date}`,
-             react: React.createElement(ContractorAssigned, { customerName: cName, date, timeWindow: time })
+             react: React.createElement(EmployeeAssigned, { customerName: cName, date, timeWindow: time })
            });
          }
          if (contEmail) {
@@ -149,12 +149,12 @@ export async function PATCH(
              to: contEmail,
              subject: 'New Job Assigned',
              react: React.createElement(JobAssigned, {
-               contractorName: contName,
+               employeeName: contName,
                date,
                timeWindow: time,
                location: `${data.address_line1}, ${data.city}`,
                jobDetails: data.service_type || 'Standard Clean',
-               dashboardLink: 'https://seaofblue.app/contractor'
+               dashboardLink: 'https://seaofblue.app/employee'
              })
            });
          }
@@ -166,7 +166,7 @@ export async function PATCH(
            await sendEmail({
              to: cEmail,
              subject: 'Your Cleaner is On the Way',
-             react: React.createElement(ContractorEnRoute, { customerName: cName, arrivalTime: 'shortly' })
+             react: React.createElement(EmployeeEnRoute, { customerName: cName, arrivalTime: 'shortly' })
            });
         } else if (newStatus === 'in_progress' && cEmail) {
            await sendEmail({
@@ -201,7 +201,7 @@ export async function PATCH(
              await sendEmail({
                to: contEmail,
                subject: `Job Cancelled - ${date}`,
-               react: React.createElement(ContractorJobCancelled, { contractorName: contName, date })
+               react: React.createElement(EmployeeJobCancelled, { employeeName: contName, date })
              });
            }
          }

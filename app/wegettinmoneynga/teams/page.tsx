@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { UsersRound, Plus, Crown, User } from 'lucide-react';
-import type { ContractorTeam, Zone } from '@/types';
+import type { EmployeeTeam, Zone } from '@/types';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 
 export default function TeamsPage() {
-  const [teams, setTeams] = useState<ContractorTeam[]>([]);
+  const [teams, setTeams] = useState<EmployeeTeam[]>([]);
     const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -20,7 +20,7 @@ export default function TeamsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Teams</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">2–3 person contractor crews for deep and move-out cleans</p>
+          <p className="text-sm text-muted-foreground mt-0.5">2–3 person employee crews for deep and move-out cleans</p>
         </div>
         <button className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors">
           <Plus className="h-4 w-4" /> Create Team
@@ -52,7 +52,7 @@ export default function TeamsPage() {
 
               <div className="space-y-1.5 mb-3">
                 {(team.members ?? []).map((m) => {
-                  const contractor = m.contractor as { full_name?: string; score?: number } | undefined;
+                  const employee = m.employee as { full_name?: string; score?: number } | undefined;
                   return (
                     <div key={m.id} className="flex items-center gap-2 text-sm">
                       {m.role === 'lead' ? (
@@ -60,9 +60,9 @@ export default function TeamsPage() {
                       ) : (
                         <User className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                       )}
-                      <span className="text-foreground">{contractor?.full_name ?? '—'}</span>
-                      {contractor?.score && (
-                        <span className="text-xs text-muted-foreground ml-auto">★ {contractor.score.toFixed(1)}</span>
+                      <span className="text-foreground">{employee?.full_name ?? '—'}</span>
+                      {employee?.score && (
+                        <span className="text-xs text-muted-foreground ml-auto">★ {employee.score.toFixed(1)}</span>
                       )}
                     </div>
                   );

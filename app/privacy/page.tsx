@@ -61,10 +61,10 @@ export default function PrivacyPolicyPage() {
                   <strong className="text-white/95">Personal Identification Information:</strong> Name, email address, phone number, physical address, and payment billing details (processed securely via third-party processors).
                 </li>
                 <li>
-                  <strong className="text-white/95">Contractor-Specific Information:</strong> Business registration numbers, commercial general liability insurance details, background check verification data, and profile information.
+                  <strong className="text-white/95">Employee-Specific Information:</strong> Business registration numbers, commercial general liability insurance details, background check verification data, and profile information.
                 </li>
                 <li>
-                  <strong className="text-white/95">Location Data:</strong> For contractors on our network, we collect precise or approximate location data to enable job dispatching, route optimization, and real-time transit notifications for customers.
+                  <strong className="text-white/95">Location Data:</strong> For employees on our network, we collect precise or approximate location data to enable job dispatching, route optimization, and real-time transit notifications for customers.
                 </li>
                 <li>
                   <strong className="text-white/95">Usage and Device Data:</strong> IP addresses, browser type, operating system, page viewing history, and device identifiers collected automatically through cookies or diagnostic tools.
@@ -76,8 +76,8 @@ export default function PrivacyPolicyPage() {
               <h2 className="text-white text-xl font-bold tracking-tight">3. How We Use Your Information</h2>
               <p>We process your information to provide, run, and improve our services, including:</p>
               <ul className="list-disc list-inside pl-4 space-y-2">
-                <li>Managing accounts, dispatching cleaning requests, and facilitating direct communications between customers and assigned contractors.</li>
-                <li>Processing payments from customers and facilitating contractor payouts.</li>
+                <li>Managing accounts, dispatching cleaning requests, and facilitating direct communications between customers and assigned employees.</li>
+                <li>Processing payments from customers and facilitating employee payouts.</li>
                 <li>Ensuring network security, validating business registration, and verifying commercial general liability coverage for quality assurance.</li>
                 <li>Sending operational updates, marketing invitations (for private beta participants), and support communications.</li>
                 <li>Complying with legal obligations, regulatory audits, and resolving billing disputes.</li>
@@ -89,7 +89,7 @@ export default function PrivacyPolicyPage() {
               <p>We do not sell your personal data. We share your information only under the following circumstances:</p>
               <ul className="list-disc list-inside pl-4 space-y-2">
                 <li>
-                  <strong className="text-white/95">With assigned providers:</strong> Sharing customer name and service address with the contractor dispatched to perform the cleaning job.
+                  <strong className="text-white/95">With assigned providers:</strong> Sharing customer name and service address with the employee dispatched to perform the cleaning job.
                 </li>
                 <li>
                   <strong className="text-white/95">Third-Party Service Providers:</strong> Sharing data with secure operational partners, such as payment gateways (Stripe), email routing hosts (Resend), and notification servers.
