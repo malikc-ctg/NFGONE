@@ -19,6 +19,7 @@ export default function CustomerSiteLayout({ children }: { children: React.React
 
   // These paths get the full public layout (header/footer/mobile bar)
   const isPublicPage =
+    pathname === '/' ||
     pathname === '/customer-site' ||
     pathname === '/customer-site/residential' ||
     pathname === '/customer-site/commercial';
