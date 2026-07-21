@@ -25,6 +25,7 @@ export default function CustomerSiteLayout({ children }: { children: React.React
       const currentScrollY = window.scrollY;
       if (currentScrollY > lastScrollY && currentScrollY > 100) {
         setHideHeader(true);
+        setMenuOpen(false);
       } else if (currentScrollY < lastScrollY) {
         setHideHeader(false);
       }
