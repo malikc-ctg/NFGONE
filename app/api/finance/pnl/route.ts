@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
         p_start_date: start_date,
         p_end_date: end_date,
         p_zone_id: zone_id || null
-      }).select('*, zone:zones(name, city)');
+      });
 
       const { data, error } = await query;
       if (error) throw error;

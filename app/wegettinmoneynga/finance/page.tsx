@@ -189,7 +189,7 @@ export default function FinancePage() {
                       return (
                         <tr key={row.zone_id} className="border-b border-border/50 hover:bg-muted/20 transition-colors">
                           <td className="px-6 py-3.5 font-medium text-foreground">
-                            {(row.zone as Zone | undefined)?.name ?? row.zone_id.slice(0, 8)}
+                            {zones.find(z => z.id === row.zone_id)?.name ?? (row.zone as Zone | undefined)?.name ?? row.zone_id.slice(0, 8)}
                           </td>
                           <td className="px-4 py-3.5 text-right text-muted-foreground">{row.jobs_completed}</td>
                           <td className="px-4 py-3.5 text-right font-medium">{formatCAD(row.gross_revenue)}</td>
