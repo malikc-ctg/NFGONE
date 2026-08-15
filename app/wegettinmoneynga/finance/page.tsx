@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { TrendingUp, TrendingDown, DollarSign, Briefcase, BarChart3, RefreshCw } from 'lucide-react';
 import type { ZoneMonthlyPnl, Zone, ZoneExpansionScore } from '@/types';
 import { format } from 'date-fns';
+import { DatePickerWithRange } from '@/components/ui/date-range-picker';
+import { DateRange } from 'react-day-picker';
 
 function formatCAD(val: number) {
   return new Intl.NumberFormat('en-CA', { style: 'currency', currency: 'CAD', maximumFractionDigits: 0 }).format(val);
@@ -42,6 +44,7 @@ export default function FinancePage() {
   const [zones, setZones] = useState<Zone[]>([]);
   const [selectedZone, setSelectedZone] = useState<string>('');
   const [refreshKey, setRefreshKey] = useState(0);
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
   const [forecast, setForecast] = useState<{
     forecast: Array<{ month: string; projected_revenue: number; projected_jobs: number; projected_profit: number }>;
@@ -57,7 +60,11 @@ export default function FinancePage() {
   useEffect(() => {
     setLoading(true);
     setError(null);
-    const url = selectedZone ? `/api/finance/pnl?zone_id=${selectedZone}` : '/api/finance/pnl';
+    const params = new URLSearchParams();
+    if (selectedZone) params.append('zone_id', selectedZone);
+    if (dateRange?.from) params.append('start_date', format(dateRange.from, 'yyyy-MM-dd'));
+    if (dateRange?.to) params.append('end_date', format(dateRange.to, 'yyyy-MM-dd'));
+    const url = `/api/finance/pnl${params.toString() ? `?${params.toString()}` : ''}`;
     fetch(url)
       .then(async (r) => {
         const data = await r.json();
@@ -66,7 +73,7 @@ export default function FinancePage() {
       })
       .then((data) => { setPnl(Array.isArray(data) ? data : []); setLoading(false); })
       .catch((err) => { setError(err.message); setLoading(false); });
-  }, [selectedZone, refreshKey]);
+  }, [selectedZone, refreshKey, dateRange]);
 
   useEffect(() => {
     if (selectedZone && tab === 'forecast') {
@@ -96,6 +103,7 @@ export default function FinancePage() {
           <p className="text-sm text-muted-foreground mt-0.5">Per-zone P&amp;L, forecasting, and expansion readiness</p>
         </div>
         <div className="flex items-center gap-2">
+          <DatePickerWithRange date={dateRange} onDateChange={setDateRange} />
           <select
             className="text-sm border border-border rounded-lg px-3 py-2 bg-background"
             value={selectedZone}
@@ -140,9 +148,9 @@ export default function FinancePage() {
 
           {/* Summary cards */}
           <div className="grid grid-cols-4 gap-4">
-            <StatCard label="Monthly Revenue" value={formatCAD(totalRevenue)} sub="This month across all zones" />
+            <StatCard label="Monthly Revenue" value={formatCAD(totalRevenue)} sub={dateRange?.from ? "Custom date range" : "This month across all zones"} />
             <StatCard label="Gross Profit" value={formatCAD(totalProfit)} sub={`${(avgMargin * 100).toFixed(0)}% margin`} />
-            <StatCard label="Jobs Completed" value={totalJobs.toString()} sub="This month" />
+            <StatCard label="Jobs Completed" value={totalJobs.toString()} sub={dateRange?.from ? "Custom date range" : "This month"} />
             <StatCard label="Avg Ticket" value={formatCAD(totalJobs > 0 ? totalRevenue / totalJobs : 0)} sub="Per completed job" />
           </div>
 
@@ -150,7 +158,7 @@ export default function FinancePage() {
           <div className="bg-card border border-border rounded-xl overflow-hidden">
             <div className="px-6 py-4 border-b border-border flex items-center gap-2">
               <BarChart3 className="h-4 w-4 text-muted-foreground" />
-              <h2 className="font-semibold text-foreground text-sm">Zone P&amp;L — Current Month</h2>
+              <h2 className="font-semibold text-foreground text-sm">Zone P&amp;L — {dateRange?.from ? "Custom Range" : "Current Month"}</h2>
               <span className="text-xs text-muted-foreground ml-auto">Refreshed nightly</span>
             </div>
             {loading ? (

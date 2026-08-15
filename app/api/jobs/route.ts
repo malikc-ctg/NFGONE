@@ -115,6 +115,12 @@ export async function GET(request: NextRequest) {
     const date = searchParams.get('date');
     if (date) query = query.eq('scheduled_date', date);
 
+    const start_date = searchParams.get('start_date');
+    if (start_date) query = query.gte('scheduled_date', start_date);
+
+    const end_date = searchParams.get('end_date');
+    if (end_date) query = query.lte('scheduled_date', end_date);
+
     const zone_id = searchParams.get('zone_id');
     if (zone_id) query = query.eq('zone_id', zone_id);
 

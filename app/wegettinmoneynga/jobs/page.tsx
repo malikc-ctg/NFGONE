@@ -12,6 +12,8 @@ import type { Job, JobStatus } from '@/types';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { Plus } from 'lucide-react';
+import { DatePickerWithRange } from '@/components/ui/date-range-picker';
+import { DateRange } from 'react-day-picker';
 
 
 const STATUS_FILTERS: { label: string; statuses: JobStatus[] | null }[] = [
@@ -27,11 +29,24 @@ export default function JobsPage() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState(0);
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
 
   useEffect(() => {
     async function fetchJobs() {
+      setLoading(true);
       try {
-        const res = await fetch('/api/jobs', { cache: 'no-store' });
+        let url = '/api/jobs';
+        const params = new URLSearchParams();
+        if (dateRange?.from) {
+          params.append('start_date', format(dateRange.from, 'yyyy-MM-dd'));
+        }
+        if (dateRange?.to) {
+          params.append('end_date', format(dateRange.to, 'yyyy-MM-dd'));
+        }
+        if (params.toString()) {
+          url += `?${params.toString()}`;
+        }
+        const res = await fetch(url, { cache: 'no-store' });
         const data = await res.json();
         console.log('Fetched jobs data:', data);
         if (Array.isArray(data)) {
@@ -48,7 +63,7 @@ export default function JobsPage() {
       }
     }
     fetchJobs();
-  }, []);
+  }, [dateRange]);
 
   const filter = STATUS_FILTERS[activeFilter];
   const filtered = filter.statuses
@@ -62,9 +77,12 @@ export default function JobsPage() {
           <h1 className="text-xl md:text-2xl font-bold tracking-tight">Jobs</h1>
           <p className="text-muted-foreground text-sm">{filtered.length} jobs</p>
         </div>
-        <Link href="/wegettinmoneynga/jobs/new">
-          <Button><Plus className="h-4 w-4 mr-2" />Create Job</Button>
-        </Link>
+        <div className="flex items-center gap-2">
+          <DatePickerWithRange date={dateRange} onDateChange={setDateRange} />
+          <Link href="/wegettinmoneynga/jobs/new">
+            <Button><Plus className="h-4 w-4 mr-2" />Create Job</Button>
+          </Link>
+        </div>
       </div>
 
       {/* Filter chips */}

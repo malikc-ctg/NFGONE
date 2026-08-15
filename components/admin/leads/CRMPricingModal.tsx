@@ -46,6 +46,26 @@ import {
   Warehouse,
   Check,
 } from 'lucide-react';
+import { ResidentialCarpetSection }  from './ResidentialCarpetSection';
+import { CommercialCarpetSection }   from './CommercialCarpetSection';
+import { StripAndWaxSection }        from './StripAndWaxSection';
+import { CommercialCleaningSection } from './CommercialCleaningSection';
+
+// ── Service tab type ──
+type ServiceTab =
+  | 'residential_cleaning'
+  | 'residential_carpet'
+  | 'commercial_carpet'
+  | 'strip_and_wax'
+  | 'commercial_cleaning';
+
+const SERVICE_TABS: { value: ServiceTab; label: string }[] = [
+  { value: 'residential_cleaning', label: 'Residential Cleaning' },
+  { value: 'residential_carpet',   label: 'Residential Carpet'  },
+  { value: 'commercial_carpet',    label: 'Commercial Carpet'   },
+  { value: 'strip_and_wax',        label: 'Strip & Wax'         },
+  { value: 'commercial_cleaning',  label: 'Office Cleaning'     },
+];
 import { toast } from 'sonner';
 import {
   type PropertyType,
@@ -191,10 +211,17 @@ function PackageCard({
 // ============================================================
 
 export function CRMPricingModal({ onSuccess }: { onSuccess?: () => void }) {
-  const [open, setOpen] = useState(false);
+  const [open,       setOpen]       = useState(false);
+  const [serviceTab, setServiceTab] = useState<ServiceTab>('residential_cleaning');
+
+  const handleOpenChange = (v: boolean) => {
+    setOpen(v);
+    // Reset to the residential cleaning tab on close so state is fresh next open
+    if (!v) setServiceTab('residential_cleaning');
+  };
 
   return (
-    <Dialog modal={false} open={open} onOpenChange={setOpen}>
+    <Dialog modal={false} open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button size="lg" className="font-bold text-md">
           <Calculator className="h-5 w-5 mr-2" /> New Lead / Quote
@@ -210,7 +237,33 @@ export function CRMPricingModal({ onSuccess }: { onSuccess?: () => void }) {
             Generate a new pricing quote using the Sea of Blue rate card.
           </DialogDescription>
         </DialogHeader>
-        {open && <PricingModalContent onSuccess={onSuccess} onClose={() => setOpen(false)} />}
+
+        {/* ── Service selector tab strip ── */}
+        <div className="px-6 py-2 border-b shrink-0 bg-muted/20">
+          <div className="flex gap-1 flex-wrap">
+            {SERVICE_TABS.map((tab) => (
+              <Button
+                key={tab.value}
+                type="button"
+                variant={serviceTab === tab.value ? 'default' : 'outline'}
+                size="sm"
+                className="text-xs h-7"
+                onClick={() => setServiceTab(tab.value)}
+              >
+                {tab.label}
+              </Button>
+            ))}
+          </div>
+        </div>
+
+        {/* ── Active section ── */}
+        {open && serviceTab === 'residential_cleaning' && (
+          <PricingModalContent onSuccess={onSuccess} onClose={() => handleOpenChange(false)} />
+        )}
+        {open && serviceTab === 'residential_carpet'   && <ResidentialCarpetSection />}
+        {open && serviceTab === 'commercial_carpet'    && <CommercialCarpetSection />}
+        {open && serviceTab === 'strip_and_wax'        && <StripAndWaxSection />}
+        {open && serviceTab === 'commercial_cleaning'  && <CommercialCleaningSection />}
       </DialogContent>
     </Dialog>
   );

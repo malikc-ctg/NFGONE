@@ -12,19 +12,33 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const zone_id = searchParams.get('zone_id');
     const months = parseInt(searchParams.get('months') ?? '6');
+    const start_date = searchParams.get('start_date');
+    const end_date = searchParams.get('end_date');
 
-    let query = supabase
-      .from('zone_monthly_pnl')
-      .select('*, zone:zones(name, city)')
-      .order('month', { ascending: false })
-      .limit(months * 10); // 10 zones max × months
+    if (start_date && end_date) {
+      // Dynamic PNL
+      const query = supabase.rpc('calculate_dynamic_pnl', {
+        p_start_date: start_date,
+        p_end_date: end_date,
+        p_zone_id: zone_id || null
+      }).select('*, zone:zones(name, city)');
 
-    if (zone_id) query = query.eq('zone_id', zone_id);
+      const { data, error } = await query;
+      if (error) throw error;
+      return NextResponse.json(data);
+    } else {
+      let query = supabase
+        .from('zone_monthly_pnl')
+        .select('*, zone:zones(name, city)')
+        .order('month', { ascending: false })
+        .limit(months * 10); // 10 zones max × months
 
-    const { data, error } = await query;
-    if (error) throw error;
+      if (zone_id) query = query.eq('zone_id', zone_id);
 
-    return NextResponse.json(data);
+      const { data, error } = await query;
+      if (error) throw error;
+      return NextResponse.json(data);
+    }
   } catch (err: unknown) {
     return NextResponse.json({ error: (err as Error).message }, { status: 500 });
   }
