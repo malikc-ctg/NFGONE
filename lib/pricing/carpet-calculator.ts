@@ -12,19 +12,21 @@ export type ResidentialCarpetTier = 'standard' | 'premium';
 const RESIDENTIAL_CARPET_MINIMUM = 70;
 
 const RESIDENTIAL_CARPET_STD_RATES = {
-  bedroom:    100,
-  livingRoom: 100,
-  basement:   100,
+  bedroom:    60,
+  livingRoom: 60,
+  basement:   60,
   hallway:    40,
-  stairs:     60,
+  stairs:     30,
+  stairsHalf: 15,
 } as const;
 
 const RESIDENTIAL_CARPET_PREM_RATES = {
-  bedroom:    [120, 125] as [number, number],
-  livingRoom: [120, 125] as [number, number],
-  basement:   [120, 125] as [number, number],
-  hallway:    [55,  60]  as [number, number],
-  stairs:     [75,  80]  as [number, number],
+  bedroom:    75,
+  livingRoom: 75,
+  basement:   75,
+  hallway:    50,
+  stairs:     30,
+  stairsHalf: 15,
 } as const;
 
 export interface ResidentialCarpetInput {
@@ -34,6 +36,7 @@ export interface ResidentialCarpetInput {
   basementRooms: number;
   hallways: number;
   stairsFlights: number;
+  stairsHalfFlights: number;
   /** Quantity of small area rugs (up to 5×7) */
   rugSmall: number;
   /** Quantity of medium area rugs (up to 8×10) */
@@ -42,8 +45,6 @@ export interface ResidentialCarpetInput {
   rugLarge: number;
   /** Number of pet stain/odor spots */
   petSpots: number;
-  /** Square footage for fabric protector application (0 = not selected) */
-  fabricProtectorSqft: number;
   /** True when this carpet job is its own standalone appointment */
   dispatchFee: boolean;
 }
@@ -56,8 +57,8 @@ export interface ResidentialCarpetAddOnLine {
 
 export interface ResidentialCarpetResult {
   /** Room subtotal, after minimum applied, before add-ons */
-  roomTotal: number | [number, number];
-  /** True for premium tier (quotes as a band) */
+  roomTotal: number;
+  /** True for premium tier or if large rugs are selected (quotes as a band) */
   isRange: boolean;
   addOnLines: ResidentialCarpetAddOnLine[];
   /** Grand total including add-ons */
@@ -66,8 +67,8 @@ export interface ResidentialCarpetResult {
 
 export function calcResidentialCarpet(input: ResidentialCarpetInput): ResidentialCarpetResult {
   const {
-    tier, bedrooms, livingRooms, basementRooms, hallways, stairsFlights,
-    rugSmall, rugMedium, rugLarge, petSpots, fabricProtectorSqft, dispatchFee,
+    tier, bedrooms, livingRooms, basementRooms, hallways, stairsFlights, stairsHalfFlights,
+    rugSmall, rugMedium, rugLarge, petSpots, dispatchFee,
   } = input;
 
   // ── Room subtotal ──
@@ -77,35 +78,30 @@ export function calcResidentialCarpet(input: ResidentialCarpetInput): Residentia
   if (tier === 'standard') {
     const r = RESIDENTIAL_CARPET_STD_RATES;
     roomLow =
-      bedrooms      * r.bedroom    +
-      livingRooms   * r.livingRoom +
-      basementRooms * r.basement   +
-      hallways      * r.hallway    +
-      stairsFlights * r.stairs;
+      bedrooms          * r.bedroom    +
+      livingRooms       * r.livingRoom +
+      basementRooms     * r.basement   +
+      hallways          * r.hallway    +
+      stairsFlights     * r.stairs     +
+      stairsHalfFlights * r.stairsHalf;
     roomHigh = roomLow;
   } else {
     const r = RESIDENTIAL_CARPET_PREM_RATES;
     roomLow =
-      bedrooms      * r.bedroom[0]    +
-      livingRooms   * r.livingRoom[0] +
-      basementRooms * r.basement[0]   +
-      hallways      * r.hallway[0]    +
-      stairsFlights * r.stairs[0];
-    roomHigh =
-      bedrooms      * r.bedroom[1]    +
-      livingRooms   * r.livingRoom[1] +
-      basementRooms * r.basement[1]   +
-      hallways      * r.hallway[1]    +
-      stairsFlights * r.stairs[1];
+      bedrooms          * r.bedroom    +
+      livingRooms       * r.livingRoom +
+      basementRooms     * r.basement   +
+      hallways          * r.hallway    +
+      stairsFlights     * r.stairs     +
+      stairsHalfFlights * r.stairsHalf;
+    roomHigh = roomLow;
   }
 
   // Apply minimum to room total.
-  // For Premium: minimum applied to the lower figure; band displayed accordingly.
   roomLow  = Math.max(RESIDENTIAL_CARPET_MINIMUM, roomLow);
   roomHigh = Math.max(RESIDENTIAL_CARPET_MINIMUM, roomHigh);
 
-  const isRange = tier === 'premium';
-  const roomTotal: number | [number, number] = isRange ? [roomLow, roomHigh] : roomLow;
+  const roomTotal: number = roomLow;
 
   // ── Add-ons (not subject to tier multiplier, not subject to room minimum) ──
   const addOnLines: ResidentialCarpetAddOnLine[] = [];
@@ -133,12 +129,6 @@ export function calcResidentialCarpet(input: ResidentialCarpetInput): Residentia
     addOnLines.push({ label: `Pet stain/odor treatment ×${petSpots} spots`, amount: amt, isRange: false });
     addLow += amt; addHigh += amt;
   }
-  if (fabricProtectorSqft > 0) {
-    // $0.35/sqft, $30 minimum
-    const amt = Math.round(Math.max(30, fabricProtectorSqft * 0.35) * 100) / 100;
-    addOnLines.push({ label: `Fabric protector (${fabricProtectorSqft} sqft)`, amount: amt, isRange: false });
-    addLow += amt; addHigh += amt;
-  }
   if (dispatchFee) {
     addOnLines.push({ label: 'Standalone dispatch fee', amount: 40, isRange: false });
     addLow += 40; addHigh += 40;
@@ -146,6 +136,7 @@ export function calcResidentialCarpet(input: ResidentialCarpetInput): Residentia
 
   const totalLow  = Math.round((roomLow  + addLow)  * 100) / 100;
   const totalHigh = Math.round((roomHigh + addHigh) * 100) / 100;
+  const isRange   = totalLow !== totalHigh;
   const total: number | [number, number] = isRange ? [totalLow, totalHigh] : totalLow;
 
   return { roomTotal, isRange, addOnLines, total };

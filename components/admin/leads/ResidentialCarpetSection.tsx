@@ -88,24 +88,18 @@ export function ResidentialCarpetSection() {
   const [basementRooms, setBasementRooms] = useState(0);
   const [hallways,      setHallways]      = useState(0);
   const [stairsFlights, setStairsFlights] = useState(0);
+  const [stairsHalfFlights, setStairsHalfFlights] = useState(0);
 
   // ── Add-ons ──
   const [rugSmall,            setRugSmall]            = useState(0);
   const [rugMedium,           setRugMedium]           = useState(0);
   const [rugLarge,            setRugLarge]            = useState(0);
   const [petSpots,            setPetSpots]            = useState(0);
-  const [fabricProtectorSqft, setFabricProtectorSqft] = useState('');
   const [dispatchFee,         setDispatchFee]         = useState(false);
-
-  // ── Fabric protector validation ──
-  const fabricSqft = fabricProtectorSqft === '' ? 0 : Number(fabricProtectorSqft);
-  const fabricError = fabricProtectorSqft !== '' && (isNaN(fabricSqft) || fabricSqft < 0)
-    ? 'Must be a positive number'
-    : null;
 
   const allZero =
     bedrooms === 0 && livingRooms === 0 && basementRooms === 0 &&
-    hallways === 0 && stairsFlights === 0;
+    hallways === 0 && stairsFlights === 0 && stairsHalfFlights === 0;
 
   const input: ResidentialCarpetInput = useMemo(() => ({
     tier,
@@ -114,15 +108,15 @@ export function ResidentialCarpetSection() {
     basementRooms,
     hallways,
     stairsFlights,
+    stairsHalfFlights,
     rugSmall,
     rugMedium,
     rugLarge,
     petSpots,
-    fabricProtectorSqft: fabricError ? 0 : fabricSqft,
     dispatchFee,
   }), [
-    tier, bedrooms, livingRooms, basementRooms, hallways, stairsFlights,
-    rugSmall, rugMedium, rugLarge, petSpots, fabricSqft, fabricError, dispatchFee,
+    tier, bedrooms, livingRooms, basementRooms, hallways, stairsFlights, stairsHalfFlights,
+    rugSmall, rugMedium, rugLarge, petSpots, dispatchFee,
   ]);
 
   const result = useMemo(() => calcResidentialCarpet(input), [input]);
@@ -141,6 +135,7 @@ export function ResidentialCarpetSection() {
     if (basementRooms) lines.push(`  Basement/bonus rooms: ${basementRooms}`);
     if (hallways)      lines.push(`  Hallways: ${hallways}`);
     if (stairsFlights) lines.push(`  Stairs (flights): ${stairsFlights}`);
+    if (stairsHalfFlights) lines.push(`  Stairs (half flights): ${stairsHalfFlights}`);
     const roomTotal = result.roomTotal;
     lines.push(`Room subtotal: ${Array.isArray(roomTotal) ? fmtRange(roomTotal[0], roomTotal[1]) : fmt(roomTotal)}`);
     if (result.addOnLines.length > 0) {
@@ -209,6 +204,7 @@ export function ResidentialCarpetSection() {
               <Stepper label="Basement / bonus"     value={basementRooms} onChange={setBasementRooms} max={10} />
               <Stepper label="Hallways"             value={hallways}      onChange={setHallways}      max={10} />
               <Stepper label="Stairs (per flight)"  value={stairsFlights} onChange={setStairsFlights} max={10} />
+              <Stepper label="Stairs (half flight)" value={stairsHalfFlights} onChange={setStairsHalfFlights} max={10} />
             </div>
             {allZero && (
               <p className="text-xs text-muted-foreground flex items-center gap-1 italic">
@@ -239,28 +235,6 @@ export function ResidentialCarpetSection() {
             <div className="space-y-2">
               <p className="text-xs font-medium text-muted-foreground">Pet Treatment</p>
               <Stepper label="Pet stain / odor spots · $18/spot" value={petSpots} onChange={setPetSpots} max={50} />
-            </div>
-
-            {/* Fabric protector */}
-            <div className="space-y-2">
-              <p className="text-xs font-medium text-muted-foreground">Fabric Protector</p>
-              <div className="flex flex-col gap-1">
-                <Label className="text-xs text-muted-foreground">Sqft to protect · $0.35/sqft ($30 minimum)</Label>
-                <div className="flex items-center gap-2">
-                  <Input
-                    type="number"
-                    min={0}
-                    className="h-8 text-sm w-32"
-                    placeholder="0"
-                    value={fabricProtectorSqft}
-                    onChange={(e) => setFabricProtectorSqft(e.target.value)}
-                  />
-                  <span className="text-xs text-muted-foreground">sqft</span>
-                </div>
-                {fabricError && (
-                  <p className="text-xs text-destructive">{fabricError}</p>
-                )}
-              </div>
             </div>
 
             {/* Dispatch fee */}
@@ -320,11 +294,12 @@ export function ResidentialCarpetSection() {
                           : fmt(result.roomTotal)}
                       </span>
                     </div>
-                    {bedrooms > 0      && <p className="text-[10px] text-muted-foreground">{bedrooms} bed × {tier === 'standard' ? '$100' : '$120–$125'}</p>}
-                    {livingRooms > 0   && <p className="text-[10px] text-muted-foreground">{livingRooms} living × {tier === 'standard' ? '$100' : '$120–$125'}</p>}
-                    {basementRooms > 0 && <p className="text-[10px] text-muted-foreground">{basementRooms} basement/bonus × {tier === 'standard' ? '$100' : '$120–$125'}</p>}
-                    {hallways > 0      && <p className="text-[10px] text-muted-foreground">{hallways} hallway × {tier === 'standard' ? '$40' : '$55–$60'}</p>}
-                    {stairsFlights > 0 && <p className="text-[10px] text-muted-foreground">{stairsFlights} flight × {tier === 'standard' ? '$60' : '$75–$80'}</p>}
+                    {bedrooms > 0      && <p className="text-[10px] text-muted-foreground">{bedrooms} bed × {tier === 'standard' ? '$60' : '$75'}</p>}
+                    {livingRooms > 0   && <p className="text-[10px] text-muted-foreground">{livingRooms} living × {tier === 'standard' ? '$60' : '$75'}</p>}
+                    {basementRooms > 0 && <p className="text-[10px] text-muted-foreground">{basementRooms} basement/bonus × {tier === 'standard' ? '$60' : '$75'}</p>}
+                    {hallways > 0      && <p className="text-[10px] text-muted-foreground">{hallways} hallway × {tier === 'standard' ? '$40' : '$50'}</p>}
+                    {stairsFlights > 0 && <p className="text-[10px] text-muted-foreground">{stairsFlights} flight × {tier === 'standard' ? '$30' : '$30'}</p>}
+                    {stairsHalfFlights > 0 && <p className="text-[10px] text-muted-foreground">{stairsHalfFlights} half flight × {tier === 'standard' ? '$15' : '$15'}</p>}
                   </div>
 
                   {/* Add-ons */}
@@ -354,7 +329,7 @@ export function ResidentialCarpetSection() {
                     </div>
                     {result.isRange && (
                       <p className="text-[10px] text-muted-foreground">
-                        Range reflects heavy soil / staining / pet treatment assessment on arrival.
+                        Range reflects exact size assessment of area rugs on arrival.
                       </p>
                     )}
                   </div>

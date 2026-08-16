@@ -131,21 +131,21 @@ describe('calcCommercialCarpet — Premium tier', () => {
 // ----------------------------------------------------------------
 
 describe('calcResidentialCarpet — Standard', () => {
-  it('1 bedroom → $100', () => {
+  it('1 bedroom → $70 minimum applied (base is $60)', () => {
     const result = calcResidentialCarpet({
       tier: 'standard', bedrooms: 1, livingRooms: 0, basementRooms: 0,
-      hallways: 0, stairsFlights: 0, rugSmall: 0, rugMedium: 0, rugLarge: 0,
-      petSpots: 0, fabricProtectorSqft: 0, dispatchFee: false,
+      hallways: 0, stairsFlights: 0, stairsHalfFlights: 0, rugSmall: 0, rugMedium: 0, rugLarge: 0,
+      petSpots: 0, dispatchFee: false,
     });
-    expect(result.total).toBe(100);
+    expect(result.total).toBe(70);
     expect(result.isRange).toBe(false);
   });
 
   it('minimum applied — 1 hallway = $40, but minimum is $70', () => {
     const result = calcResidentialCarpet({
       tier: 'standard', bedrooms: 0, livingRooms: 0, basementRooms: 0,
-      hallways: 1, stairsFlights: 0, rugSmall: 0, rugMedium: 0, rugLarge: 0,
-      petSpots: 0, fabricProtectorSqft: 0, dispatchFee: false,
+      hallways: 1, stairsFlights: 0, stairsHalfFlights: 0, rugSmall: 0, rugMedium: 0, rugLarge: 0,
+      petSpots: 0, dispatchFee: false,
     });
     expect(result.total).toBe(70);
   });
@@ -153,54 +153,53 @@ describe('calcResidentialCarpet — Standard', () => {
   it('add-ons stack above room total correctly', () => {
     const result = calcResidentialCarpet({
       tier: 'standard', bedrooms: 1, livingRooms: 0, basementRooms: 0,
-      hallways: 0, stairsFlights: 0, rugSmall: 1, rugMedium: 0, rugLarge: 0,
-      petSpots: 0, fabricProtectorSqft: 0, dispatchFee: true,
+      hallways: 0, stairsFlights: 0, stairsHalfFlights: 0, rugSmall: 1, rugMedium: 0, rugLarge: 0,
+      petSpots: 0, dispatchFee: true,
     });
-    // 100 (bedroom) + 60 (rug small) + 40 (dispatch) = 200
-    expect(result.total).toBe(200);
+    // 60 (bedroom) → minimum 70 + 60 (rug small) + 40 (dispatch) = 170
+    expect(result.total).toBe(170);
   });
 
-  it('fabric protector minimum ($30) kicks in for small sqft', () => {
+  it('2 bedrooms → $120 (no minimum needed)', () => {
     const result = calcResidentialCarpet({
-      tier: 'standard', bedrooms: 1, livingRooms: 0, basementRooms: 0,
-      hallways: 0, stairsFlights: 0, rugSmall: 0, rugMedium: 0, rugLarge: 0,
-      petSpots: 0, fabricProtectorSqft: 10, dispatchFee: false,
+      tier: 'standard', bedrooms: 2, livingRooms: 0, basementRooms: 0,
+      hallways: 0, stairsFlights: 0, stairsHalfFlights: 0, rugSmall: 0, rugMedium: 0, rugLarge: 0,
+      petSpots: 0, dispatchFee: false,
     });
-    // 10 sqft × 0.35 = 3.50 → raised to minimum $30
-    // total = 100 + 30 = 130
-    expect(result.total).toBe(130);
+    // 2 * 60 = 120
+    expect(result.total).toBe(120);
   });
 });
 
 describe('calcResidentialCarpet — Premium', () => {
-  it('1 bedroom → $120 to $125 band', () => {
+  it('1 bedroom → $75 flat rate', () => {
     const result = calcResidentialCarpet({
       tier: 'premium', bedrooms: 1, livingRooms: 0, basementRooms: 0,
-      hallways: 0, stairsFlights: 0, rugSmall: 0, rugMedium: 0, rugLarge: 0,
-      petSpots: 0, fabricProtectorSqft: 0, dispatchFee: false,
+      hallways: 0, stairsFlights: 0, stairsHalfFlights: 0, rugSmall: 0, rugMedium: 0, rugLarge: 0,
+      petSpots: 0, dispatchFee: false,
     });
-    expect(result.isRange).toBe(true);
-    expect(result.total).toEqual([120, 125]);
+    expect(result.isRange).toBe(false);
+    expect(result.total).toBe(75);
   });
 
-  it('minimum applied to lower band figure', () => {
+  it('minimum applied to room figure', () => {
     const result = calcResidentialCarpet({
       tier: 'premium', bedrooms: 0, livingRooms: 0, basementRooms: 0,
-      hallways: 1, stairsFlights: 0, rugSmall: 0, rugMedium: 0, rugLarge: 0,
-      petSpots: 0, fabricProtectorSqft: 0, dispatchFee: false,
+      hallways: 1, stairsFlights: 0, stairsHalfFlights: 0, rugSmall: 0, rugMedium: 0, rugLarge: 0,
+      petSpots: 0, dispatchFee: false,
     });
-    // Hallway premium: [55, 60] — both below minimum 70
-    expect(result.total).toEqual([70, 70]);
+    // Hallway premium: 50 — below minimum 70
+    expect(result.total).toBe(70);
   });
 
   it('large rug add-on shows as band', () => {
     const result = calcResidentialCarpet({
       tier: 'premium', bedrooms: 1, livingRooms: 0, basementRooms: 0,
-      hallways: 0, stairsFlights: 0, rugSmall: 0, rugMedium: 0, rugLarge: 2,
-      petSpots: 0, fabricProtectorSqft: 0, dispatchFee: false,
+      hallways: 0, stairsFlights: 0, stairsHalfFlights: 0, rugSmall: 0, rugMedium: 0, rugLarge: 2,
+      petSpots: 0, dispatchFee: false,
     });
-    // Room: [120, 125]. Rugs: 2 × [110, 130] = [220, 260]. Total: [340, 385]
-    expect(result.total).toEqual([340, 385]);
+    // Room: 75. Rugs: 2 × [110, 130] = [220, 260]. Total: [295, 335]
+    expect(result.total).toEqual([295, 335]);
     const rugLine = result.addOnLines.find((l) => l.label.includes('large'));
     expect(rugLine?.isRange).toBe(true);
     expect(rugLine?.amount).toEqual([220, 260]);
