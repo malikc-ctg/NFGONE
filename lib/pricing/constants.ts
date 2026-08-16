@@ -50,24 +50,24 @@ export interface AddOnDef {
 // ---------- Rate Tables ----------
 
 export const CONDO_RATES: SizeBand[] = [
-  { label: 'Studio/Bachelor', sqftMin: 0, sqftMax: 500, standard: 120, standardPlus: 145, deepClean: 185, fullReset: 240, moveInOut: 250, hourlyBilled: false },
-  { label: '1BR/1BA', sqftMin: 500, sqftMax: 700, standard: 140, standardPlus: 170, deepClean: 220, fullReset: 280, moveInOut: 295, hourlyBilled: false },
-  { label: '2BR/1BA', sqftMin: 700, sqftMax: 900, standard: 160, standardPlus: 190, deepClean: 250, fullReset: 320, moveInOut: 335, hourlyBilled: false },
-  { label: '2BR/2BA', sqftMin: 900, sqftMax: 1100, standard: 180, standardPlus: 215, deepClean: 280, fullReset: 360, moveInOut: 380, hourlyBilled: false },
-  { label: '3BR/2BA', sqftMin: 1100, sqftMax: 1400, standard: 205, standardPlus: 245, deepClean: 320, fullReset: 410, moveInOut: 430, hourlyBilled: false },
+  { label: 'Studio/Bachelor', sqftMin: 0, sqftMax: 500, standard: 120, standardPlus: 145, deepClean: 299, fullReset: 240, moveInOut: 250, hourlyBilled: false },
+  { label: '1BR/1BA', sqftMin: 500, sqftMax: 700, standard: 140, standardPlus: 170, deepClean: 334, fullReset: 280, moveInOut: 295, hourlyBilled: false },
+  { label: '2BR/1BA', sqftMin: 700, sqftMax: 900, standard: 160, standardPlus: 190, deepClean: 364, fullReset: 320, moveInOut: 335, hourlyBilled: false },
+  { label: '2BR/2BA', sqftMin: 900, sqftMax: 1100, standard: 180, standardPlus: 215, deepClean: 394, fullReset: 360, moveInOut: 380, hourlyBilled: false },
+  { label: '3BR/2BA', sqftMin: 1100, sqftMax: 1400, standard: 205, standardPlus: 245, deepClean: 434, fullReset: 410, moveInOut: 430, hourlyBilled: false },
 ];
 
 export const BASEMENT_RATES: SizeBand[] = [
-  { label: 'Bachelor basement', sqftMin: 0, sqftMax: 500, standard: 130, standardPlus: 155, deepClean: 195, fullReset: 250, moveInOut: 275, hourlyBilled: false },
-  { label: '1BR basement', sqftMin: 500, sqftMax: 700, standard: 150, standardPlus: 180, deepClean: 230, fullReset: 295, moveInOut: 315, hourlyBilled: false },
-  { label: '2BR basement', sqftMin: 700, sqftMax: null, standard: 170, standardPlus: 205, deepClean: 265, fullReset: 340, moveInOut: 355, hourlyBilled: false },
+  { label: 'Bachelor basement', sqftMin: 0, sqftMax: 500, standard: 130, standardPlus: 155, deepClean: 299, fullReset: 250, moveInOut: 275, hourlyBilled: false },
+  { label: '1BR basement', sqftMin: 500, sqftMax: 700, standard: 150, standardPlus: 180, deepClean: 334, fullReset: 295, moveInOut: 315, hourlyBilled: false },
+  { label: '2BR basement', sqftMin: 700, sqftMax: null, standard: 170, standardPlus: 205, deepClean: 369, fullReset: 340, moveInOut: 355, hourlyBilled: false },
 ];
 
 export const HOUSE_RATES: SizeBand[] = [
-  { label: 'Under 1,000 sqft', bedBath: '2BR/1BA', sqftMin: 0, sqftMax: 1000, standard: 175, standardPlus: 210, deepClean: 270, fullReset: 350, moveInOut: 365, hourlyBilled: false },
-  { label: '1,000–1,500 sqft', bedBath: '3BR/1.5BA', sqftMin: 1000, sqftMax: 1500, standard: 200, standardPlus: 240, deepClean: 395, fullReset: 550, moveInOut: 420, hourlyBilled: false },
-  { label: '1,500–2,000 sqft', bedBath: '3BR/2BA', sqftMin: 1500, sqftMax: 2000, standard: 280, standardPlus: 345, deepClean: [480, 650], fullReset: [665, 910], moveInOut: [700, 955], hourlyBilled: true },
-  { label: '2,000–2,500 sqft', bedBath: '4BR/2.5BA', sqftMin: 2000, sqftMax: 2500, standard: 360, standardPlus: 440, deepClean: [610, 830], fullReset: [865, 1160], moveInOut: [910, 1225], hourlyBilled: true },
+  { label: 'Under 1,000 sqft', bedBath: '2BR/1BA', sqftMin: 0, sqftMax: 1000, standard: 175, standardPlus: 210, deepClean: 299, fullReset: 350, moveInOut: 365, hourlyBilled: false },
+  { label: '1,000–1,500 sqft', bedBath: '3BR/1.5BA', sqftMin: 1000, sqftMax: 1500, standard: 200, standardPlus: 240, deepClean: 424, fullReset: 550, moveInOut: 420, hourlyBilled: false },
+  { label: '1,500–2,000 sqft', bedBath: '3BR/2BA', sqftMin: 1500, sqftMax: 2000, standard: 280, standardPlus: 345, deepClean: [509, 679], fullReset: [665, 910], moveInOut: [700, 955], hourlyBilled: true },
+  { label: '2,000–2,500 sqft', bedBath: '4BR/2.5BA', sqftMin: 2000, sqftMax: 2500, standard: 360, standardPlus: 440, deepClean: [639, 859], fullReset: [865, 1160], moveInOut: [910, 1225], hourlyBilled: true },
   { label: '2,500–3,000 sqft', bedBath: '4BR/3BA', sqftMin: 2500, sqftMax: 3000, standard: 440, standardPlus: 540, deepClean: [750, 1015], fullReset: [1050, 1420], moveInOut: [1105, 1495], hourlyBilled: true },
 ];
 // 3,000+ sqft house: no lookup row → CUSTOM_QUOTE_REQUIRED
