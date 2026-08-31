@@ -486,6 +486,18 @@ export interface EmployeeExpense {
   updated_at: string;
 }
 
+export interface EmployeeTimeEntry {
+  id: string;
+  employee_id: string;
+  clock_in: string;
+  clock_out: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+  // joined (admin views)
+  employee?: Employee;
+}
+
 // ---------- Minimum photo requirements ----------
 
 export const MIN_PHOTOS: Record<string, number> = {

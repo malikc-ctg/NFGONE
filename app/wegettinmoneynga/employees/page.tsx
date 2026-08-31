@@ -11,10 +11,11 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Star, Trash2, ShieldCheck, ShieldAlert, ShieldX, Eye, Check } from 'lucide-react';
+import { Plus, Star, Trash2, ShieldCheck, ShieldAlert, ShieldX, Eye, Check, Clock } from 'lucide-react';
 import { toast } from 'sonner';
-import type { Employee } from '@/types';
+import type { Employee, EmployeeTimeEntry } from '@/types';
 import Link from 'next/link';
+import { format, formatDistanceStrict } from 'date-fns';
 
 export default function EmployeesPage() {
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -30,6 +31,10 @@ export default function EmployeesPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [statusFilter, setStatusFilter] = useState('All');
 
+  const [timeEntries, setTimeEntries] = useState<EmployeeTimeEntry[]>([]);
+  const [loadingTimeEntries, setLoadingTimeEntries] = useState(true);
+  const [timesheetEmployeeFilter, setTimesheetEmployeeFilter] = useState('All');
+
   async function fetchEmployees() {
     const res = await fetch('/api/employees');
     const data = await res.json();
@@ -44,9 +49,22 @@ export default function EmployeesPage() {
     setLoadingApplications(false);
   }
 
+  async function fetchTimeEntries() {
+    try {
+      const res = await fetch('/api/wegettinmoneynga/timesheets');
+      const data = await res.json();
+      setTimeEntries(Array.isArray(data) ? data : []);
+    } catch {
+      toast.error('Failed to load timesheets');
+    } finally {
+      setLoadingTimeEntries(false);
+    }
+  }
+
   useEffect(() => {
     fetchEmployees();
     fetchApplications();
+    fetchTimeEntries();
     fetch('/api/zones').then(r => r.json()).then(d => setZones(Array.isArray(d) ? d : []));
   }, []);
 
@@ -124,9 +142,19 @@ export default function EmployeesPage() {
     }
   };
 
-  const filteredApplications = statusFilter === 'All' 
-    ? applications 
+  const filteredApplications = statusFilter === 'All'
+    ? applications
     : applications.filter(a => a.status === statusFilter);
+
+  const filteredTimeEntries = timesheetEmployeeFilter === 'All'
+    ? timeEntries
+    : timeEntries.filter(t => t.employee_id === timesheetEmployeeFilter);
+
+  const totalHoursFiltered = filteredTimeEntries.reduce((sum, t) => {
+    if (!t.clock_out) return sum;
+    const ms = new Date(t.clock_out).getTime() - new Date(t.clock_in).getTime();
+    return sum + ms / (1000 * 60 * 60);
+  }, 0);
 
   return (
     <div className="space-y-6">
@@ -166,6 +194,7 @@ export default function EmployeesPage() {
         <TabsList className="mb-4">
           <TabsTrigger value="active">Active Employees ({employees.length})</TabsTrigger>
           <TabsTrigger value="applications">Applications ({applications.filter(a => a.status === 'New').length} New)</TabsTrigger>
+          <TabsTrigger value="timesheets">Timesheets</TabsTrigger>
         </TabsList>
 
         <TabsContent value="active">
@@ -300,6 +329,68 @@ export default function EmployeesPage() {
                             <Eye className="h-4 w-4" /> View
                           </Button>
                         </Link>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="timesheets">
+          <Card>
+            <div className="p-4 border-b border-border flex flex-wrap gap-4 items-center justify-between">
+              <div className="flex gap-4 items-center">
+                <Label className="text-muted-foreground">Employee:</Label>
+                <Select value={timesheetEmployeeFilter} onValueChange={setTimesheetEmployeeFilter}>
+                  <SelectTrigger className="w-[220px]"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="All">All Employees</SelectItem>
+                    {employees.map(e => (
+                      <SelectItem key={e.id} value={e.id}>{e.full_name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center gap-2 text-sm">
+                <Clock className="h-4 w-4 text-muted-foreground" />
+                <span className="text-muted-foreground">Total hours (completed shifts):</span>
+                <span className="font-bold">{totalHoursFiltered.toFixed(1)}h</span>
+              </div>
+            </div>
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Employee</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Clock In</TableHead>
+                    <TableHead>Clock Out</TableHead>
+                    <TableHead>Duration</TableHead>
+                    <TableHead>Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {loadingTimeEntries ? (
+                    <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Loading timesheets...</TableCell></TableRow>
+                  ) : filteredTimeEntries.length === 0 ? (
+                    <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">No time entries found</TableCell></TableRow>
+                  ) : filteredTimeEntries.map(entry => (
+                    <TableRow key={entry.id}>
+                      <TableCell className="font-medium">{entry.employee?.full_name ?? '—'}</TableCell>
+                      <TableCell className="text-xs">{format(new Date(entry.clock_in), 'MMM d, yyyy')}</TableCell>
+                      <TableCell className="text-xs">{format(new Date(entry.clock_in), 'h:mm a')}</TableCell>
+                      <TableCell className="text-xs">{entry.clock_out ? format(new Date(entry.clock_out), 'h:mm a') : '—'}</TableCell>
+                      <TableCell className="text-xs">
+                        {entry.clock_out
+                          ? formatDistanceStrict(new Date(entry.clock_out), new Date(entry.clock_in))
+                          : '—'}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className={`text-xs ${entry.clock_out ? 'bg-slate-100 text-slate-700 border-slate-200' : 'bg-green-100 text-green-700 border-green-200 animate-pulse'}`}>
+                          {entry.clock_out ? 'Completed' : 'Active'}
+                        </Badge>
                       </TableCell>
                     </TableRow>
                   ))}

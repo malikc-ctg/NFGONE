@@ -8,6 +8,7 @@ import { CalendarDays, Clock, DollarSign, Waves, User, ReceiptText, Briefcase, W
 const navItems = [
   { href: '/employee', label: 'Dashboard', icon: CalendarDays },
   { href: '/employee/jobs', label: 'Jobs', icon: Briefcase },
+  { href: '/employee/time-clock', label: 'Time Clock', icon: Clock },
   { href: '/employee/earnings', label: 'Earnings', icon: DollarSign },
   { href: '/employee/expenses', label: 'Expenses', icon: ReceiptText },
   { href: '/employee/profile', label: 'Profile', icon: User },
