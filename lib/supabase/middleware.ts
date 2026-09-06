@@ -59,12 +59,12 @@ export async function updateSession(request: NextRequest) {
   //   return NextResponse.redirect(loginUrl);
   // }
 
-  if (isEmployeeRoute && !isEmployeeLogin && !isEmployeeOnboarding && !user) {
-    const loginUrl = request.nextUrl.clone();
-    loginUrl.pathname = '/employee/login';
-    loginUrl.searchParams.set('redirect', pathname);
-    return NextResponse.redirect(loginUrl);
-  }
+  // if (isEmployeeRoute && !isEmployeeLogin && !isEmployeeOnboarding && !user) {
+  //   const loginUrl = request.nextUrl.clone();
+  //   loginUrl.pathname = '/employee/login';
+  //   loginUrl.searchParams.set('redirect', pathname);
+  //   return NextResponse.redirect(loginUrl);
+  // }
 
   if (isPartnerRoute && !isPartnerLogin && !user) {
     const loginUrl = request.nextUrl.clone();

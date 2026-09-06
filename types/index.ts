@@ -41,6 +41,8 @@ export type EmployeeTier = 'basic' | 'pro' | 'team';
 
 export type EmployeeStatus = 'invited' | 'active' | 'probation' | 'suspended' | 'inactive';
 
+export type TimesheetStatus = 'open' | 'completed' | 'approved' | 'rejected';
+
 export type LeadStatus = 'new' | 'contacted' | 'quoted' | 'converted' | 'lost';
 
 export type LeadSource = 'lsa' | 'referral' | 'realtor' | 'inbound_call' | 'website';
@@ -482,6 +484,20 @@ export interface EmployeeExpense {
   amount: number;
   description: string | null;
   receipt_url: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EmployeeTimesheet {
+  id: string;
+  employee_id: string;
+  work_date: string;
+  clock_in_time: string | null;
+  clock_out_time: string | null;
+  total_minutes: number | null;
+  status: TimesheetStatus;
+  location_data: Record<string, any> | null;
+  notes: string | null;
   created_at: string;
   updated_at: string;
 }

@@ -9,11 +9,12 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { StatusBadge } from '@/components/shared/StatusBadge';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
-  MapPin, Briefcase, DollarSign, Star, TrendingUp,
+  MapPin, Briefcase, Star, TrendingUp,
   Clock, CheckCircle2, ArrowRight, CalendarDays,
-  Sparkles, Bath, BedDouble, ChevronRight, Timer, Package, Key, Info,
-  AlertTriangle, UploadCloud, FileText, Loader2, Camera
+  Sparkles, ChevronRight, Timer, Package,
+  Loader2
 } from 'lucide-react';
 import { createBrowserClient } from '@supabase/ssr';
 import { SERVICE_TYPE_LABELS, TIME_WINDOW_LABELS } from '@/types';
@@ -25,19 +26,15 @@ import { toast } from 'sonner';
 
 interface DashboardStats {
   score: number;
-  week_earnings: number;
-  month_earnings: number;
   week_jobs: number;
   total_completed: number;
-  pending_payout: number;
 }
 
-/** Build a quick scope summary from job properties */
 function buildScopeSummary(job: Job): string[] {
   const items: string[] = [];
   items.push('Kitchen');
-  if (job.home_bathrooms) items.push(`${job.home_bathrooms} Bathroom${job.home_bathrooms > 1 ? 's' : ''}`);
-  if (job.home_bedrooms) items.push(`${job.home_bedrooms} Bedroom${job.home_bedrooms > 1 ? 's' : ''}`);
+  if (job.home_bathrooms) items.push(`${job.home_bathrooms} Bath`);
+  if (job.home_bedrooms) items.push(`${job.home_bedrooms} Bed`);
   items.push('Living Areas');
   if (job.add_ons?.length) {
     job.add_ons.forEach(a => items.push(a.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())));
@@ -48,13 +45,13 @@ function buildScopeSummary(job: Job): string[] {
 export default function EmployeeDashboard() {
   const router = useRouter();
   const [todaysJobs, setTodaysJobs] = useState<Job[]>([]);
-  const [pendingOffers, setPendingOffers] = useState<JobOffer[]>([]);
+  const [activeTimesheet, setActiveTimesheet] = useState<any>(null);
   const [employee, setEmployee] = useState<Employee | null>(null);
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
-  const [respondingId, setRespondingId] = useState<string | null>(null);
   const [isClient, setIsClient] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [isClocking, setIsClocking] = useState(false);
 
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -63,7 +60,6 @@ export default function EmployeeDashboard() {
 
   const fetchData = useCallback(async () => {
     try {
-      // 1. Get my profile
       const meRes = await fetch('/api/employees/me');
       if (!meRes.ok) {
         const errorData = await meRes.json();
@@ -72,7 +68,6 @@ export default function EmployeeDashboard() {
       const meData = await meRes.json();
       setEmployee(meData);
 
-      // 2. Get today's jobs (assigned to me)
       const today = format(new Date(), 'yyyy-MM-dd');
       const jobsRes = await fetch(`/api/jobs?date=${today}&employee_id=${meData.id}`);
       const jobsData = await jobsRes.json();
@@ -82,7 +77,7 @@ export default function EmployeeDashboard() {
       filteredJobs = filteredJobs.filter(job => {
         if (job.status === 'cancelled') {
           const updated = new Date(job.updated_at).getTime();
-          return (now - updated) < 15 * 60 * 1000; // 15 mins
+          return (now - updated) < 15 * 60 * 1000;
         }
         return true;
       });
@@ -104,16 +99,22 @@ export default function EmployeeDashboard() {
 
       setTodaysJobs(filteredJobs);
 
-      // 3. Get pending offers
-      const offersRes = await fetch('/api/offers');
-      const offersData = await offersRes.json();
-      setPendingOffers(Array.isArray(offersData) ? offersData : []);
+      const tsRes = await fetch(`/api/employees/time?date=${today}`);
+      if (tsRes.ok) {
+        const tsData = await tsRes.json();
+        if (tsData && tsData.length > 0) {
+          setActiveTimesheet(tsData[0]);
+        }
+      }
 
-      // 4. Get stats
       const statsRes = await fetch('/api/employees/me/stats');
       if (statsRes.ok) {
         const statsData = await statsRes.json();
-        setStats(statsData);
+        setStats({
+          score: statsData.score,
+          week_jobs: statsData.week_jobs,
+          total_completed: statsData.total_completed
+        });
       }
     } catch (err) {
       console.error(err);
@@ -130,568 +131,246 @@ export default function EmployeeDashboard() {
     return () => clearInterval(interval);
   }, [fetchData]);
 
-  async function handleOfferResponse(offerId: string, action: 'accept' | 'decline') {
-    setRespondingId(offerId);
+  async function handleClockIn() {
+    setIsClocking(true);
     try {
-      const res = await fetch(`/api/offers/${offerId}/respond`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action }),
-      });
-
-      const result = await res.json();
-
-      if (!res.ok) {
-        if (res.status === 422) {
-          toast.error('This job is no longer available');
-        } else {
-          throw new Error(result.error || 'Failed to respond');
-        }
-      } else {
-        if (action === 'accept') {
-          toast.success('Job Secured! 🎉');
-          // Find the offer to get the job_id
-          const offer = pendingOffers.find(o => o.id === offerId);
-          if (offer && offer.job_id) {
-            router.push(`/employee/jobs/${offer.job_id}`);
-            return; // Exit early so we don't refetch data while transitioning
-          }
-        } else {
-          toast.success('Offer declined');
+      let location_data = null;
+      if (navigator.geolocation) {
+        try {
+          const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 5000 });
+          });
+          location_data = {
+            lat: pos.coords.latitude,
+            lng: pos.coords.longitude,
+            accuracy: pos.coords.accuracy
+          };
+        } catch (e) {
+          console.warn('Could not get location', e);
         }
       }
+
+      const res = await fetch('/api/employees/time', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ location_data }),
+      });
       
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Failed to clock in');
+      }
+      
+      toast.success('Clocked in successfully!');
       fetchData();
     } catch (err: any) {
       toast.error(err.message);
     } finally {
-      setRespondingId(null);
+      setIsClocking(false);
     }
   }
 
-  // Check if they have insurance and profile photo
-  let hasInsurance = false;
-  let hasProfilePhoto = false;
-  
-  if (employee) {
-    const notesStr = employee.notes || '{}';
+  async function handleClockOut() {
+    setIsClocking(true);
     try {
-      const notesObj = JSON.parse(notesStr);
-      if (notesObj.insurance_details?.provider || notesObj.insurance_details?.policy_number || notesObj.insurance_details?.file_url) {
-        hasInsurance = true;
+      const res = await fetch('/api/employees/time/clock-out', { method: 'POST' });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Failed to clock out');
       }
-      if (notesObj.profile_photo_url) {
-        hasProfilePhoto = true;
-      }
-    } catch { }
-  }
-
-  async function handleInsuranceUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file || !employee) return;
-    
-    setIsUploading(true);
-    try {
-      // 1. Upload to Supabase Storage
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${employee.id}-${Math.random()}.${fileExt}`;
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('documents')
-        .upload(fileName, file);
-        
-      if (uploadError) throw uploadError;
-      
-      // 2. Get public URL
-      const { data: { publicUrl } } = supabase.storage.from('documents').getPublicUrl(fileName);
-      
-      // 3. Save via secure backend endpoint
-      const response = await fetch('/api/employees/me/insurance', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ file_url: publicUrl })
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to save insurance document');
-      }
-      
-      toast.success('Insurance document uploaded successfully!');
-      fetchData(); // Refresh data
-    } catch (err: any) {
-      toast.error('Failed to upload document: ' + err.message);
-    } finally {
-      setIsUploading(false);
-      // Reset input
-      e.target.value = '';
-    }
-  }
-
-  async function handleProfilePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file || !employee) return;
-    
-    setIsUploading(true);
-    try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `avatar-${employee.id}-${Math.random()}.${fileExt}`;
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('documents')
-        .upload(fileName, file);
-        
-      if (uploadError) throw uploadError;
-      
-      const { data: { publicUrl } } = supabase.storage.from('documents').getPublicUrl(fileName);
-      
-      const response = await fetch('/api/employees/me/photo', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ profile_photo_url: publicUrl })
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to save profile photo');
-      }
-      
-      toast.success('Profile photo uploaded successfully!');
+      toast.success('Clocked out successfully!');
       fetchData();
     } catch (err: any) {
-      toast.error('Failed to upload photo: ' + err.message);
+      toast.error(err.message);
     } finally {
-      setIsUploading(false);
-      e.target.value = '';
+      setIsClocking(false);
     }
   }
 
-  const isEligible = hasInsurance && hasProfilePhoto;
+
 
   if (!isClient || (loading && !employee)) {
     return (
-      <div className="space-y-5 animate-pulse">
-        {/* Hero Skeleton */}
-        <Skeleton className="h-40 w-full rounded-xl" />
-        
-        {/* Stats Skeleton */}
-        <div className="grid grid-cols-3 gap-3">
-          <Skeleton className="h-28 w-full rounded-xl" />
-          <Skeleton className="h-28 w-full rounded-xl" />
-          <Skeleton className="h-28 w-full rounded-xl" />
+      <div className="space-y-6 animate-pulse p-4">
+        <Skeleton className="h-24 w-full rounded-xl" />
+        <div className="grid grid-cols-2 gap-4">
+          <Skeleton className="h-24 w-full rounded-xl" />
+          <Skeleton className="h-24 w-full rounded-xl" />
         </div>
-        
-        {/* Quick Actions Skeleton */}
-        <div className="flex gap-2">
-          <Skeleton className="h-10 flex-1 rounded-md" />
-          <Skeleton className="h-10 flex-1 rounded-md" />
-        </div>
-        
-        {/* Main List Skeleton */}
-        <div className="space-y-3 pt-2">
-          <Skeleton className="h-6 w-32 mb-4" />
-          {[1, 2, 3].map(i => <Skeleton key={i} className="h-48 w-full rounded-xl" />)}
+        <Skeleton className="h-12 w-full rounded-xl" />
+        <div className="space-y-4 pt-4">
+          <Skeleton className="h-6 w-32" />
+          {[1, 2].map(i => <Skeleton key={i} className="h-40 w-full rounded-xl" />)}
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-5">
-      {/* ── Hero Header ── */}
-      <Card className="bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-800 text-white border-0 shadow-lg shadow-indigo-500/20 overflow-hidden relative group">
-        {/* Animated Background Elements */}
-        <div className="absolute inset-0 opacity-20 transition-transform duration-700 group-hover:scale-110">
-          <div className="absolute -top-10 -right-10 w-48 h-48 bg-white blur-3xl rounded-full" />
-          <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-blue-300 blur-2xl rounded-full" />
-        </div>
-        
-        {/* Glassmorphism Overlay */}
-        <div className="absolute inset-0 bg-white/5 backdrop-blur-[1px]" />
-        
-        <CardContent className="p-6 relative z-10">
-          <div className="flex items-center justify-between mb-4">
-            <Badge variant="secondary" className="bg-white/20 hover:bg-white/30 text-white border-0 shadow-sm backdrop-blur-md transition-colors">
-              <Sparkles className="w-3 h-3 mr-1" /> Employee Portal
-            </Badge>
-            <p className="text-indigo-100 text-[10px] font-bold uppercase tracking-wider bg-black/10 px-2 py-1 rounded-full backdrop-blur-sm">
-              {isClient ? format(new Date(), 'EEEE, MMM d') : '...'}
-            </p>
-          </div>
-          
-          <h1 className="text-2xl font-black tracking-tight drop-shadow-sm">
-            Welcome back, {employee?.full_name?.split(' ')[0] || ''}
-          </h1>
-          
-          {stats && (
-            <p className="text-indigo-100/90 text-xs mt-1.5 font-medium flex items-center gap-1.5">
-              {stats.week_jobs > 0 ? (
-                <><CheckCircle2 className="w-3.5 h-3.5 text-green-300" /> {stats.week_jobs} job{stats.week_jobs > 1 ? 's' : ''} completed this week</>
-              ) : (
-                <><TrendingUp className="w-3.5 h-3.5 text-indigo-300" /> No jobs completed yet this week</>
-              )}
-            </p>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* ── Requirements Reminders ── */}
-      {!loading && !isEligible && (
-        <div className="space-y-3">
-          {!hasInsurance && (
-            <Card className="border-amber-200/50 bg-amber-50/80 dark:bg-amber-950/20 shadow-sm relative overflow-hidden">
-              <div className="absolute left-0 top-0 bottom-0 w-1 bg-amber-500" />
-              <CardContent className="p-4 flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
-                <div className="flex gap-3">
-                  <div className="w-10 h-10 rounded-full bg-amber-100/80 dark:bg-amber-900/40 flex items-center justify-center shrink-0 shadow-inner">
-                    <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-500" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-amber-900 dark:text-amber-400 tracking-tight">Action Required: Liability Insurance</h3>
-                    <p className="text-xs text-amber-800/80 dark:text-amber-300/80 mt-0.5 max-w-sm">
-                      Please upload your liability insurance slip to start accepting jobs.
-                    </p>
-                  </div>
-                </div>
-                <div className="shrink-0 relative w-full md:w-auto">
-                  <Input 
-                    type="file" 
-                    accept="image/*,.pdf" 
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" 
-                    onChange={handleInsuranceUpload}
-                    disabled={isUploading}
-                  />
-                  <Button variant="outline" className="w-full md:w-auto bg-white/60 dark:bg-black/40 hover:bg-white dark:hover:bg-black border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400 font-semibold shadow-sm transition-all" disabled={isUploading}>
-                    {isUploading ? (
-                      <span className="flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" /> Uploading...</span>
-                    ) : (
-                      <><UploadCloud className="h-4 w-4 mr-2" /> Upload Slip</>
-                    )}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {!hasProfilePhoto && (
-            <Card className="border-blue-200/50 bg-blue-50/80 dark:bg-blue-950/20 shadow-sm relative overflow-hidden">
-              <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500" />
-              <CardContent className="p-4 flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
-                <div className="flex gap-3">
-                  <div className="w-10 h-10 rounded-full bg-blue-100/80 dark:bg-blue-900/40 flex items-center justify-center shrink-0 shadow-inner">
-                    <Camera className="h-5 w-5 text-blue-600 dark:text-blue-500" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-blue-900 dark:text-blue-400 tracking-tight">Action Required: Profile Photo</h3>
-                    <p className="text-xs text-blue-800/80 dark:text-blue-300/80 mt-0.5 max-w-sm">
-                      Please upload a clear picture of your face to build trust with customers. You cannot accept jobs without one.
-                    </p>
-                  </div>
-                </div>
-                <div className="shrink-0 relative w-full md:w-auto">
-                  <Input 
-                    type="file" 
-                    accept="image/*" 
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" 
-                    onChange={handleProfilePhotoUpload}
-                    disabled={isUploading}
-                  />
-                  <Button variant="outline" className="w-full md:w-auto bg-white/60 dark:bg-black/40 hover:bg-white dark:hover:bg-black border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-400 font-semibold shadow-sm transition-all" disabled={isUploading}>
-                    {isUploading ? (
-                      <span className="flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" /> Uploading...</span>
-                    ) : (
-                      <><UploadCloud className="h-4 w-4 mr-2" /> Upload Photo</>
-                    )}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-        </div>
-      )}
-
-      {/* ── Stats Row ── */}
-      {stats && (
-        <div className="grid grid-cols-3 gap-3">
-          <Card className="bg-gradient-to-b from-emerald-50/50 to-white dark:from-emerald-950/20 dark:to-card border-emerald-100/50 dark:border-emerald-900/30 hover:shadow-md hover:shadow-emerald-500/10 transition-all hover:-translate-y-0.5">
-            <CardContent className="p-4 text-center">
-              <div className="mx-auto w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center mb-2 shadow-inner">
-                <DollarSign className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-              </div>
-              <p className="text-xl font-black text-emerald-700 dark:text-emerald-400 tracking-tight">${stats.week_earnings}</p>
-              <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest mt-0.5">This Week</p>
-            </CardContent>
-          </Card>
-          <Card className="bg-gradient-to-b from-amber-50/50 to-white dark:from-amber-950/20 dark:to-card border-amber-100/50 dark:border-amber-900/30 hover:shadow-md hover:shadow-amber-500/10 transition-all hover:-translate-y-0.5">
-            <CardContent className="p-4 text-center">
-              <div className="mx-auto w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center mb-2 shadow-inner">
-                <TrendingUp className="h-4 w-4 text-amber-600 dark:amber-400" />
-              </div>
-              <p className="text-xl font-black text-amber-700 dark:text-amber-400 tracking-tight">${stats.pending_payout}</p>
-              <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest mt-0.5">Pending</p>
-            </CardContent>
-          </Card>
-          <Card className="bg-gradient-to-b from-blue-50/50 to-white dark:from-blue-950/20 dark:to-card border-blue-100/50 dark:border-blue-900/30 hover:shadow-md hover:shadow-blue-500/10 transition-all hover:-translate-y-0.5">
-            <CardContent className="p-4 text-center">
-              <div className="mx-auto w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center mb-2 shadow-inner">
-                <Star className="h-4 w-4 text-blue-600 dark:text-blue-400 fill-blue-600/20" />
-              </div>
-              <p className="text-xl font-black text-blue-700 dark:text-blue-400 tracking-tight">{stats.score.toFixed(1)}</p>
-              <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest mt-0.5">Rating</p>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {/* ── Quick Actions ── */}
-      <div className="flex gap-2">
-        <Link href="/employee/jobs" className="flex-1">
-          <Button variant="outline" className="w-full h-10 text-xs font-medium">
-            <Briefcase className="h-3.5 w-3.5 mr-1.5" />
-            View All Jobs
-          </Button>
-        </Link>
-        <Link href="/employee/earnings" className="flex-1">
-          <Button variant="outline" className="w-full h-10 text-xs font-medium">
-            <DollarSign className="h-3.5 w-3.5 mr-1.5" />
-            View Earnings
-          </Button>
-        </Link>
+    <motion.div 
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="space-y-6 max-w-lg mx-auto"
+    >
+      {/* Hero Header */}
+      <div className="py-2 border-b border-slate-200">
+        <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+          Hello, {employee?.full_name?.split(' ')[0] || ''}
+        </h1>
+        <p className="text-sm text-slate-500 font-medium mt-1">
+          {isClient ? format(new Date(), 'EEEE, MMMM do, yyyy') : '...'}
+        </p>
       </div>
 
-      {/* ── Pending Offers ── */}
-      {isEligible && pendingOffers.length > 0 && (
-        <div className="space-y-3">
-          <div className="flex justify-between items-center">
-            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-              <Briefcase className="h-4 w-4" /> Available Offers
-            </h2>
-            <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100 border-0 animate-pulse">
-              {pendingOffers.length} New
-            </Badge>
+      {/* Clock In/Out Widget */}
+      {!loading && (
+        <div className="border border-slate-200 rounded-xl bg-white">
+          <div className="p-4 flex flex-col sm:flex-row items-center gap-4 justify-between">
+            <div className="flex items-center gap-4 w-full sm:w-auto">
+              <div>
+                {!activeTimesheet ? (
+                  <>
+                    <h3 className="font-bold text-lg text-slate-900 tracking-tight">Ready to start?</h3>
+                    <p className="text-sm text-slate-500">Clock in to track hours.</p>
+                  </>
+                ) : activeTimesheet.status === 'open' ? (
+                  <>
+                    <h3 className="font-bold text-lg text-green-700 tracking-tight">Clocked In</h3>
+                    <p className="text-sm text-green-600">Started: {format(new Date(activeTimesheet.clock_in_time), 'h:mm a')}</p>
+                  </>
+                ) : (
+                  <>
+                    <h3 className="font-bold text-lg text-slate-900 tracking-tight">Shift Complete</h3>
+                    <p className="text-sm text-slate-500">Total: {Math.floor(activeTimesheet.total_minutes / 60)}h {activeTimesheet.total_minutes % 60}m</p>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {!activeTimesheet ? (
+              <Button 
+                onClick={handleClockIn} 
+                disabled={isClocking}
+                className="w-full sm:w-auto"
+              >
+                {isClocking ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Clock className="h-4 w-4 mr-2" />}
+                Clock In
+              </Button>
+            ) : activeTimesheet.status === 'open' && (
+              <Button 
+                onClick={handleClockOut} 
+                disabled={isClocking}
+                variant="outline"
+                className="w-full sm:w-auto"
+              >
+                {isClocking ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                Clock Out
+              </Button>
+            )}
           </div>
-          {pendingOffers.map((offer) => {
-            const scope = offer.job ? buildScopeSummary(offer.job as Job) : [];
-            return (
-              <Card key={offer.id} className="border-amber-200 bg-amber-50/50 dark:border-amber-800 dark:bg-amber-900/20 overflow-hidden">
-                <CardContent className="p-4 space-y-3">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="font-bold text-lg leading-tight">
-                        {offer.job ? SERVICE_TYPE_LABELS[offer.job.service_type] : 'Cleaning Job'}
-                      </h3>
-                      <p className="text-sm text-muted-foreground mt-1 flex items-center gap-1">
-                        <MapPin className="h-3 w-3" /> {offer.job?.city}, {offer.job?.postal_code}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-xl font-black text-green-600 dark:text-green-400">
-                        ${offer.job?.quoted_price ? (offer.job.quoted_price * 0.7).toFixed(0) : '—'}
-                      </p>
-                      <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-tighter">Your Payout</p>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3 py-2 border-y border-amber-100 dark:border-amber-900/50">
-                    <div className="space-y-1">
-                      <p className="text-[10px] text-muted-foreground uppercase font-bold">Date</p>
-                      <p className="text-sm font-medium">{offer.job ? format(new Date(offer.job.scheduled_date + 'T12:00:00'), 'MMM d, yyyy') : '—'}</p>
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-[10px] text-muted-foreground uppercase font-bold">Window</p>
-                      <p className="text-sm font-medium">{offer.job ? TIME_WINDOW_LABELS[offer.job.scheduled_window] : '—'}</p>
-                    </div>
-                    {offer.job && offer.job.estimated_duration_minutes && (
-                      <>
-                        <div className="space-y-1">
-                          <p className="text-[10px] text-muted-foreground uppercase font-bold">Est. Duration</p>
-                          <p className="text-sm font-medium flex items-center gap-1">
-                            <Timer className="h-3 w-3 text-muted-foreground" />
-                            {Math.floor(offer.job.estimated_duration_minutes / 60)}h {offer.job.estimated_duration_minutes % 60}m
-                          </p>
-                        </div>
-                        <div className="space-y-1">
-                          <p className="text-[10px] text-muted-foreground uppercase font-bold">Implied Rate</p>
-                          <p className="text-sm font-medium text-green-600 dark:text-green-400">
-                            ${((offer.job.quoted_price * 0.7) / (offer.job.estimated_duration_minutes / 60)).toFixed(2)} / hr
-                          </p>
-                        </div>
-                      </>
-                    )}
-                  </div>
-
-                  {/* Checklist Preview */}
-                  {scope.length > 0 && (
-                    <div className="bg-white/60 dark:bg-black/20 rounded-lg p-2.5">
-                      <p className="text-[10px] text-muted-foreground uppercase font-bold mb-1.5 flex items-center gap-1">
-                        <Sparkles className="h-3 w-3" /> Cleaning Scope
-                      </p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {scope.map((item, i) => (
-                          <span key={i} className="text-[10px] bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-200 px-2 py-0.5 rounded-full font-medium">
-                            {item}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Home details & Supplies */}
-                  {offer.job && (
-                    <div className="space-y-2">
-                      <div className="flex gap-4 text-xs text-muted-foreground">
-                        {offer.job.home_bedrooms != null && (
-                          <span className="flex items-center gap-1">
-                            <BedDouble className="h-3 w-3" /> {offer.job.home_bedrooms} Bed{offer.job.home_bedrooms > 1 ? 's' : ''}
-                          </span>
-                        )}
-                        {offer.job.home_bathrooms != null && (
-                          <span className="flex items-center gap-1">
-                            <Bath className="h-3 w-3" /> {offer.job.home_bathrooms} Bath{offer.job.home_bathrooms > 1 ? 's' : ''}
-                          </span>
-                        )}
-                        {offer.job.has_pets && (
-                          <span className="flex items-center gap-1">🐾 Pets</span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline" className="text-[10px] bg-blue-50/50 dark:bg-blue-900/20 flex items-center gap-1">
-                          <Package className="h-3 w-3 text-blue-600 dark:text-blue-400" />
-                          {offer.job.service_type.includes('deep') || offer.job.service_type.includes('move') ? 'Heavy-Duty Supplies Required' : 'Standard Supplies Required'}
-                        </Badge>
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="flex gap-2 pt-1">
-                    <Button 
-                      className="flex-1 h-12 bg-green-600 hover:bg-green-700 text-white font-bold disabled:bg-slate-300" 
-                      disabled={respondingId === offer.id || !hasInsurance}
-                      onClick={() => handleOfferResponse(offer.id, 'accept')}
-                    >
-                      {!hasInsurance ? 'Insurance Required' : respondingId === offer.id ? 'Accepting...' : 'Accept Job'}
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      className="flex-1 h-12 border-amber-200 hover:bg-amber-100 dark:border-amber-800"
-                      disabled={respondingId === offer.id}
-                      onClick={() => handleOfferResponse(offer.id, 'decline')}
-                    >
-                      Decline
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
         </div>
       )}
 
-      {/* ── Today's Jobs ── */}
-      {isEligible && (
-        <div className="space-y-3">
-        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-          <CalendarDays className="h-4 w-4" /> Today&apos;s Schedule
-        </h2>
-        {todaysJobs.length === 0 ? (
-          <Card className="border-dashed">
-            <CardContent className="p-10 text-center space-y-2">
-              <div className="bg-muted w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Briefcase className="h-6 w-6 text-muted-foreground" />
-              </div>
-              <p className="font-medium text-muted-foreground">No jobs scheduled for today.</p>
-              <p className="text-xs text-muted-foreground">Accept an available offer above to get started.</p>
-            </CardContent>
-          </Card>
-        ) : (
-          todaysJobs.map((job) => {
-            const scope = buildScopeSummary(job);
-            const isActive = ['on_the_way', 'in_progress'].includes(job.status);
-            return (
-              <Link key={job.id} href={`/employee/jobs/${job.id}`}>
-                <Card className={`hover:bg-muted/50 transition-all cursor-pointer overflow-hidden ${
-                  isActive
-                    ? 'border-l-4 border-l-green-500 shadow-md shadow-green-500/10'
-                    : 'border-l-4 border-l-blue-600'
-                }`}>
-                  <CardContent className="p-4 space-y-3">
-                    <div className="flex justify-between items-start">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <Badge variant="secondary" className="text-[10px] font-bold px-2 py-0">
-                            {TIME_WINDOW_LABELS[job.scheduled_window]}
-                          </Badge>
-                          <StatusBadge status={job.status} />
-                        </div>
-                        <p className="font-bold text-base leading-tight">{SERVICE_TYPE_LABELS[job.service_type]}</p>
-                        <p className="text-xs text-muted-foreground flex items-center gap-1">
-                          <MapPin className="h-3 w-3" />{job.address_line1}, {job.city}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-lg font-bold">${(job.quoted_price * 0.7).toFixed(0)}</p>
-                        <p className="text-[10px] text-muted-foreground font-bold">EARNED</p>
-                      </div>
-                    </div>
+      {/* Stats Row */}
+      {stats && (
+        <div className="grid grid-cols-2 gap-4">
+          <div className="border border-slate-200 rounded-xl p-4 bg-white flex flex-col items-center justify-center">
+            <p className="text-2xl font-bold text-slate-900">{stats.score.toFixed(1)}</p>
+            <p className="text-xs text-slate-500 font-medium">Rating</p>
+          </div>
+          <div className="border border-slate-200 rounded-xl p-4 bg-white flex flex-col items-center justify-center">
+            <p className="text-2xl font-bold text-slate-900">{stats.week_jobs}</p>
+            <p className="text-xs text-slate-500 font-medium">Jobs this Week</p>
+          </div>
+        </div>
+      )}
 
-                    {/* Checklist/Scope Preview */}
-                    <div className="bg-muted/40 rounded-lg p-2.5 space-y-2">
-                      <p className="text-[10px] text-muted-foreground uppercase font-bold flex items-center gap-1">
-                        <CheckCircle2 className="h-3 w-3" /> What To Clean
-                      </p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {scope.map((item, i) => (
-                          <span key={i} className="text-[10px] bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200 px-2 py-0.5 rounded-full font-medium flex items-center gap-1">
-                            {item}
-                          </span>
-                        ))}
-                      </div>
-                      
-                      <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border/50">
-                        {job.estimated_duration_minutes && (
-                          <div className="flex items-center gap-1 text-[10px] text-muted-foreground font-medium">
-                            <Timer className="h-3 w-3" /> 
-                            {Math.floor(job.estimated_duration_minutes / 60)}h {job.estimated_duration_minutes % 60}m
+
+
+      {/* Today's Jobs */}
+      <div className="space-y-4 pt-2">
+          <h2 className="text-sm font-bold text-slate-800 tracking-wide flex items-center gap-2 px-1">
+            <CalendarDays className="h-5 w-5 text-indigo-500" /> Today's Schedule
+          </h2>
+          
+          {todaysJobs.length === 0 ? (
+            <div className="border border-dashed border-slate-300 rounded-xl p-8 text-center bg-slate-50 text-slate-500">
+              <p className="font-medium">No jobs scheduled.</p>
+              <p className="text-sm mt-1">Enjoy your free time!</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {todaysJobs.map((job, idx) => {
+                const scope = buildScopeSummary(job);
+                const isActive = ['on_the_way', 'in_progress'].includes(job.status);
+                
+                return (
+                  <div key={job.id} className="pt-2">
+                    <Link href={`/employee/jobs/${job.id}`}>
+                      <div className={`group border rounded-xl p-4 bg-white hover:border-slate-300 transition-colors ${
+                        isActive ? 'border-green-500 ring-1 ring-green-500' : 'border-slate-200'
+                      }`}>
+                        
+                        <div className="flex justify-between items-start mb-4">
+                          <div>
+                            <div className="flex items-center gap-2 mb-2">
+                              <Badge variant="outline" className="text-xs font-semibold">
+                                {TIME_WINDOW_LABELS[job.scheduled_window]}
+                              </Badge>
+                              <StatusBadge status={job.status} />
+                            </div>
+                            <h3 className="font-bold text-lg text-slate-900 tracking-tight">
+                              {SERVICE_TYPE_LABELS[job.service_type]}
+                            </h3>
+                            <p className="text-sm text-slate-500 flex items-center gap-1 mt-1">
+                              <MapPin className="h-3 w-3" />
+                              {job.address_line1}, {job.city}
+                            </p>
+                          </div>
+                          <ChevronRight className="h-5 w-5 text-slate-400 group-hover:text-slate-600" />
+                        </div>
+
+                        <div className="bg-slate-50 rounded-lg p-3 text-sm text-slate-600 space-y-2">
+                          <div className="flex flex-wrap gap-1">
+                            {scope.map((item, i) => (
+                              <span key={i} className="bg-white border border-slate-200 px-2 py-0.5 rounded text-xs font-medium">
+                                {item}
+                              </span>
+                            ))}
+                          </div>
+                          
+                          <div className="flex items-center gap-4 text-xs font-medium pt-2 border-t border-slate-200">
+                            {job.estimated_duration_minutes && (
+                              <span className="flex items-center gap-1">
+                                <Timer className="h-3 w-3" /> 
+                                {Math.floor(job.estimated_duration_minutes / 60)}h {job.estimated_duration_minutes % 60}m
+                              </span>
+                            )}
+                            <span className="flex items-center gap-1">
+                              <Package className="h-3 w-3" /> 
+                              {job.service_type.includes('deep') || job.service_type.includes('move') ? 'Heavy-Duty Kit' : 'Standard Kit'}
+                            </span>
+                          </div>
+                        </div>
+                        
+                        {isActive && (
+                          <div className="mt-3 text-green-700 bg-green-50 rounded-md p-2 text-xs font-bold flex items-center justify-between">
+                            <span className="flex items-center gap-2">
+                              <div className="w-1.5 h-1.5 rounded-full bg-green-600 animate-pulse" />
+                              Active Job
+                            </span>
+                            <ArrowRight className="h-3 w-3" />
                           </div>
                         )}
-                        <div className="flex items-center gap-1 text-[10px] text-muted-foreground font-medium">
-                          <Package className="h-3 w-3" /> 
-                          {job.service_type.includes('deep') || job.service_type.includes('move') ? 'Heavy-Duty Kit' : 'Standard Kit'}
-                        </div>
                       </div>
-
-                      {(job.access_instructions || job.scope_notes) && (
-                        <div className="pt-2 border-t border-border/50 space-y-1">
-                           {job.access_instructions && (
-                             <div className="flex items-start gap-1.5 text-xs text-muted-foreground">
-                               <Key className="h-3 w-3 mt-0.5 shrink-0" />
-                               <span className="line-clamp-1">{job.access_instructions}</span>
-                             </div>
-                           )}
-                           {job.scope_notes && (
-                             <div className="flex items-start gap-1.5 text-xs text-muted-foreground">
-                               <Info className="h-3 w-3 mt-0.5 shrink-0" />
-                               <span className="line-clamp-1">{job.scope_notes}</span>
-                             </div>
-                           )}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Active job CTA */}
-                    {isActive && (
-                      <div className="flex items-center gap-2 text-green-600 dark:text-green-400 text-xs font-bold">
-                        <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                        In Progress — Tap to continue
-                        <ArrowRight className="h-3 w-3 ml-auto" />
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </Link>
-            );
-          })
-        )}
-      </div>
+                    </Link>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
       )}
-    </div>
+    </motion.div>
   );
 }

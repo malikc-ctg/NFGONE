@@ -61,7 +61,6 @@ export default function EmployeeProfilePage() {
     phone: '',
     zone_ids: [] as string[],
     max_radius: 30,
-    bio: '',
   });
   const [hqCoords, setHqCoords] = useState<{lat: number, lng: number} | null>(null);
 
@@ -84,7 +83,6 @@ export default function EmployeeProfilePage() {
           phone: meData.phone || '',
           zone_ids: meData.selected_zone_ids || [],
           max_radius: parsedNotes.max_radius || 30,
-          bio: parsedNotes.bio || '',
         });
         if (parsedNotes.hq_coords) {
           setHqCoords(parsedNotes.hq_coords);
@@ -124,12 +122,11 @@ export default function EmployeeProfilePage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
-    const finalZoneIds = eligibleZones.map(z => z.zone.id);
     try {
       const res = await fetch('/api/employees/me', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...formData, zone_ids: finalZoneIds }),
+        body: JSON.stringify(formData),
       });
       if (!res.ok) throw new Error('Failed to update profile');
       toast.success('Profile updated successfully');
@@ -143,99 +140,11 @@ export default function EmployeeProfilePage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center">
-            <User className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-          </div>
-          <h1 className="text-2xl font-black tracking-tight">My Profile</h1>
-        </div>
+      <div className="flex items-center justify-between mb-4">
+        <h1 className="text-2xl font-bold tracking-tight">Profile</h1>
       </div>
 
-      {/* Performance Card */}
-      <Card className="bg-gradient-to-br from-indigo-600 via-violet-600 to-purple-700 text-white border-0 shadow-lg shadow-indigo-500/20 overflow-hidden relative">
-        <div className="absolute inset-0 opacity-20">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-white blur-3xl rounded-full -translate-y-1/2 translate-x-1/2" />
-          <div className="absolute bottom-0 left-0 w-24 h-24 bg-white blur-2xl rounded-full translate-y-1/2 -translate-x-1/2" />
-        </div>
-        <div className="absolute inset-0 bg-black/5 backdrop-blur-[1px]" />
-        
-        <CardHeader className="pb-2 relative z-10">
-          <CardTitle className="text-xs font-bold text-indigo-100 uppercase tracking-widest flex items-center gap-2 drop-shadow-sm">
-            <TrendingUp className="h-3.5 w-3.5" /> Performance metrics
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4 relative z-10">
-          {/* Stats Row */}
-          <div className="grid grid-cols-3 gap-3">
-            <div className="text-center bg-white/10 rounded-xl p-3 backdrop-blur-md border border-white/10 shadow-inner">
-              <div className="flex items-center justify-center gap-0.5">
-                <Star className="h-4 w-4 text-amber-300 fill-amber-300 drop-shadow-sm" />
-                <span className="text-2xl font-black">{employee?.score?.toFixed(1) || '5.0'}</span>
-              </div>
-              <p className="text-[9px] text-indigo-200 font-bold uppercase tracking-widest mt-1">Rating</p>
-            </div>
-            <div className="text-center bg-white/10 rounded-xl p-3 backdrop-blur-md border border-white/10 shadow-inner">
-              <p className="text-2xl font-black">{totalCompleted}</p>
-              <p className="text-[9px] text-indigo-200 font-bold uppercase tracking-widest mt-1">Completed</p>
-            </div>
-            <div className="text-center bg-white/10 rounded-xl p-3 backdrop-blur-md border border-white/10 shadow-inner">
-              <p className="text-xl font-black capitalize mt-0.5">{employee?.tier || 'Basic'}</p>
-              <p className="text-[9px] text-indigo-200 font-bold uppercase tracking-widest mt-1">Tier</p>
-            </div>
-          </div>
 
-          {/* Badges */}
-          {badges.length > 0 && (
-            <div className="flex flex-wrap gap-1.5">
-              {badges.map((b, i) => (
-                <Badge key={i} className={`${b.color} border-0 text-[10px] font-bold px-2 py-0.5 gap-1`}>
-                  {b.icon} {b.label}
-                </Badge>
-              ))}
-            </div>
-          )}
-
-          {/* Score History */}
-          {scoreHistory.length > 0 && (
-            <div className="space-y-1.5">
-              <p className="text-[10px] text-muted-foreground uppercase font-bold">Recent Score Changes</p>
-              {scoreHistory.slice(0, 5).map(h => (
-                <div key={h.id} className="flex items-center justify-between text-xs bg-white/50 dark:bg-black/20 rounded-lg px-3 py-2">
-                  <span className="text-muted-foreground">{h.reason || 'Score update'}</span>
-                  <div className="flex items-center gap-1">
-                    <span className="text-muted-foreground">{h.score_before}</span>
-                    <span>→</span>
-                    <span className={`font-bold ${(h.score_after || 0) >= (h.score_before || 0) ? 'text-green-600' : 'text-red-600'}`}>
-                      {h.score_after}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Recent Reviews */}
-          {reviews.length > 0 && (
-            <div className="space-y-1.5">
-              <p className="text-[10px] text-muted-foreground uppercase font-bold">Recent Reviews</p>
-              {reviews.slice(0, 3).map(r => (
-                <div key={r.id} className="bg-white/50 dark:bg-black/20 rounded-lg px-3 py-2 space-y-1">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-0.5">
-                      {Array.from({ length: 5 }).map((_, i) => (
-                        <Star key={i} className={`h-3 w-3 ${i < r.rating ? 'text-amber-500 fill-amber-500' : 'text-muted'}`} />
-                      ))}
-                    </div>
-                    <span className="text-[10px] text-muted-foreground">{new Date(r.created_at).toLocaleDateString()}</span>
-                  </div>
-                  {r.public_comment && <p className="text-xs text-muted-foreground italic">&ldquo;{r.public_comment}&rdquo;</p>}
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
 
       {/* Availability Settings Modal */}
       <div className="py-2">
@@ -246,7 +155,7 @@ export default function EmployeeProfilePage() {
       <form onSubmit={handleSubmit} className="space-y-4 pb-10">
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Personal Information</CardTitle>
+            <CardTitle className="text-sm font-medium">Personal Information</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
@@ -270,72 +179,14 @@ export default function EmployeeProfilePage() {
                 <Input id="phone" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} className="pl-10" required />
               </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="bio">Public Bio (Visible to Customers)</Label>
-              <textarea
-                id="bio"
-                value={formData.bio}
-                onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
-                className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 min-h-[80px]"
-                placeholder="Hi, I'm John! I have 5 years of professional cleaning experience..."
-              />
-              <p className="text-xs text-muted-foreground">This will be shown on the &quot;Your Cleaner&quot; widget when customers view their upcoming jobs.</p>
-            </div>
+
           </CardContent>
         </Card>
 
-        <div className="space-y-3">
-          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-            <MapPin className="h-4 w-4" /> Service Coverage
-          </h2>
-          <Card>
-            <CardContent className="p-4 space-y-4">
-              <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <Label>Max Travel Radius</Label>
-                  <span className="font-bold text-blue-600 bg-blue-50 dark:bg-blue-900/20 px-2 py-0.5 rounded text-sm">
-                    {formData.max_radius} km
-                  </span>
-                </div>
-                <input
-                  type="range"
-                  min="5"
-                  max="100"
-                  step="5"
-                  value={formData.max_radius}
-                  onChange={(e) => setFormData({ ...formData, max_radius: parseInt(e.target.value) })}
-                  className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-blue-600"
-                />
-                <p className="text-xs text-muted-foreground">Adjust the slider to automatically determine which zones you can cover.</p>
-              </div>
 
-              {hqCoords ? (
-                <div className="pt-2 border-t">
-                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-tighter mb-2 flex items-center gap-1">
-                    <CheckCircle2 className="h-3 w-3 text-green-500" /> Eligible Zones ({eligibleZones.length})
-                  </p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {eligibleZones.length > 0 ? (
-                      eligibleZones.map(({ zone, distance }) => (
-                        <Badge key={zone.id} variant="secondary" className="text-[10px] py-0.5 bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
-                          {zone.name} ({distance.toFixed(1)}km)
-                        </Badge>
-                      ))
-                    ) : (
-                      <p className="text-xs text-muted-foreground italic">No zones found within this radius.</p>
-                    )}
-                  </div>
-                </div>
-              ) : (
-                <p className="text-xs text-amber-600 italic">Headquarters address not found. Please contact support.</p>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="sticky bottom-4 pt-4 bg-background/80 backdrop-blur-sm z-10">
-          <Button type="submit" className="w-full h-14 text-base font-bold shadow-lg shadow-blue-500/20" disabled={saving}>
-            {saving ? 'Saving Changes...' : 'Save Profile & Coverage'}
+        <div className="pt-4">
+          <Button type="submit" className="w-full" disabled={saving}>
+            {saving ? 'Saving...' : 'Save'}
           </Button>
         </div>
       </form>

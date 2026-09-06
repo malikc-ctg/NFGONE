@@ -7,9 +7,9 @@ import { CalendarDays, Clock, DollarSign, Waves, User, ReceiptText, Briefcase, W
 
 const navItems = [
   { href: '/employee', label: 'Dashboard', icon: CalendarDays },
+  { href: '/employee/schedule', label: 'Schedule', icon: CalendarDays },
   { href: '/employee/jobs', label: 'Jobs', icon: Briefcase },
-  { href: '/employee/earnings', label: 'Earnings', icon: DollarSign },
-  { href: '/employee/expenses', label: 'Expenses', icon: ReceiptText },
+  { href: '/employee/timesheets', label: 'Timesheets', icon: Clock },
   { href: '/employee/profile', label: 'Profile', icon: User },
 ];
 
@@ -54,12 +54,7 @@ export default function EmployeeLayout({
   return (
     <div className="flex flex-col min-h-screen bg-background max-w-lg mx-auto">
       {/* Top bar */}
-      <header className="flex flex-col border-b border-border bg-card sticky top-0 z-40">
-        <div className="flex items-center gap-3 px-4 py-3">
-          <img src="/logo.png" alt="Sea of Blue Logo" className="w-40 h-20 object-contain" />
-          <span className="font-bold text-sm">Sea of Blue</span>
-        </div>
-        
+      <header className="flex flex-col sticky top-0 z-40">
         {/* Offline Banner */}
         {isOffline && (
           <div className="bg-red-500 text-white text-xs font-bold py-1.5 px-4 flex items-center justify-center gap-2">
