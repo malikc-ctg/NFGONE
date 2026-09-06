@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
-import { CalendarDays, Clock, DollarSign, Waves, User, ReceiptText, Briefcase, WifiOff } from 'lucide-react';
+import { CalendarDays, Clock, Waves, User, ReceiptText, Briefcase, WifiOff } from 'lucide-react';
 
 const navItems = [
   { href: '/employee', label: 'Dashboard', icon: CalendarDays },

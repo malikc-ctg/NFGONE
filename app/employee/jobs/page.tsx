@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  MapPin, Briefcase, DollarSign, CalendarDays,
+  MapPin, Briefcase, CalendarDays,
   Clock, CheckCircle2, ChevronRight, Timer, Package, Key, Info,
   Loader2
 } from 'lucide-react';
@@ -78,9 +78,13 @@ export default function EmployeeJobsPage() {
                 <Clock className="h-3.5 w-3.5 text-muted-foreground" />
                 <span className="font-medium">{TIME_WINDOW_LABELS[job.scheduled_window]}</span>
               </div>
-              <div className="flex items-center gap-1.5 justify-end text-green-600 dark:text-green-400">
-                <DollarSign className="h-3.5 w-3.5" />
-                <span className="font-bold">${(job.quoted_price * 0.7).toFixed(0)}</span>
+              <div className="flex items-center gap-1.5 justify-end text-indigo-600 dark:text-indigo-400">
+                <Timer className="h-3.5 w-3.5" />
+                <span className="font-semibold">
+                  {job.estimated_duration_minutes
+                    ? `${Math.floor(job.estimated_duration_minutes / 60)}h ${job.estimated_duration_minutes % 60 ? `${job.estimated_duration_minutes % 60}m` : ''} est.`
+                    : '~2-3h approx'}
+                </span>
               </div>
             </div>
             

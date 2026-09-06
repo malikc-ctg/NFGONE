@@ -14,7 +14,7 @@ import {
   MapPin, Briefcase, Star, TrendingUp,
   Clock, CheckCircle2, ArrowRight, CalendarDays,
   Sparkles, ChevronRight, Timer, Package,
-  Loader2
+  Loader2, Coffee, Play
 } from 'lucide-react';
 import { createBrowserClient } from '@supabase/ssr';
 import { SERVICE_TYPE_LABELS, TIME_WINDOW_LABELS } from '@/types';
@@ -28,6 +28,7 @@ interface DashboardStats {
   score: number;
   week_jobs: number;
   total_completed: number;
+  approx_hours: number;
 }
 
 function buildScopeSummary(job: Job): string[] {
@@ -52,6 +53,8 @@ export default function EmployeeDashboard() {
   const [isClient, setIsClient] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isClocking, setIsClocking] = useState(false);
+  const [isBreaking, setIsBreaking] = useState(false);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
 
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -62,6 +65,10 @@ export default function EmployeeDashboard() {
     try {
       const meRes = await fetch('/api/employees/me');
       if (!meRes.ok) {
+        if (meRes.status === 401) {
+          router.push('/employee/login');
+          return;
+        }
         const errorData = await meRes.json();
         throw new Error(errorData.error || 'Could not fetch profile');
       }
@@ -113,7 +120,8 @@ export default function EmployeeDashboard() {
         setStats({
           score: statsData.score,
           week_jobs: statsData.week_jobs,
-          total_completed: statsData.total_completed
+          total_completed: statsData.total_completed,
+          approx_hours: statsData.approx_hours ?? statsData.week_hours ?? 0,
         });
       }
     } catch (err) {
@@ -131,29 +139,69 @@ export default function EmployeeDashboard() {
     return () => clearInterval(interval);
   }, [fetchData]);
 
+  // Live shift timer interval
+  useEffect(() => {
+    if (!activeTimesheet || activeTimesheet.status !== 'open' || !activeTimesheet.clock_in_time) {
+      setElapsedSeconds(0);
+      return;
+    }
+
+    const clockInMs = new Date(activeTimesheet.clock_in_time).getTime();
+    const breaks = activeTimesheet.location_data?.breaks || [];
+
+    function updateTimer() {
+      const now = Date.now();
+      let breakSeconds = 0;
+      for (const b of breaks) {
+        const bStart = new Date(b.start).getTime();
+        const bEnd = b.end ? new Date(b.end).getTime() : now;
+        breakSeconds += Math.max(0, Math.floor((bEnd - bStart) / 1000));
+      }
+      const totalShiftSeconds = Math.max(0, Math.floor((now - clockInMs) / 1000));
+      setElapsedSeconds(Math.max(0, totalShiftSeconds - breakSeconds));
+    }
+
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
+    return () => clearInterval(interval);
+  }, [activeTimesheet]);
+
+  const activeBreaks = activeTimesheet?.location_data?.breaks || [];
+  const isOnBreak = activeTimesheet?.status === 'open' && activeBreaks.some((b: any) => !b.end);
+
+  async function handleToggleBreak() {
+    setIsBreaking(true);
+    try {
+      const res = await fetch('/api/employees/time/break', { method: 'POST' });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Failed to update break status');
+      }
+      const data = await res.json();
+      setActiveTimesheet(data.timesheet);
+      toast.success(data.isOnBreak ? 'Break started — relax!' : 'Break ended — welcome back!');
+      fetchData();
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setIsBreaking(false);
+    }
+  }
+
+  function formatStopwatch(seconds: number) {
+    const hrs = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  }
+
   async function handleClockIn() {
     setIsClocking(true);
     try {
-      let location_data = null;
-      if (navigator.geolocation) {
-        try {
-          const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
-            navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 5000 });
-          });
-          location_data = {
-            lat: pos.coords.latitude,
-            lng: pos.coords.longitude,
-            accuracy: pos.coords.accuracy
-          };
-        } catch (e) {
-          console.warn('Could not get location', e);
-        }
-      }
-
       const res = await fetch('/api/employees/time', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ location_data }),
+        body: JSON.stringify({}),
       });
       
       if (!res.ok) {
@@ -224,19 +272,41 @@ export default function EmployeeDashboard() {
 
       {/* Clock In/Out Widget */}
       {!loading && (
-        <div className="border border-slate-200 rounded-xl bg-white">
+        <div className={`border rounded-xl bg-white transition-all ${
+          isOnBreak 
+            ? 'border-amber-300 ring-1 ring-amber-300' 
+            : activeTimesheet?.status === 'open' 
+              ? 'border-green-400 ring-1 ring-green-400' 
+              : 'border-slate-200'
+        }`}>
           <div className="p-4 flex flex-col sm:flex-row items-center gap-4 justify-between">
             <div className="flex items-center gap-4 w-full sm:w-auto">
               <div>
                 {!activeTimesheet ? (
                   <>
                     <h3 className="font-bold text-lg text-slate-900 tracking-tight">Ready to start?</h3>
-                    <p className="text-sm text-slate-500">Clock in to track hours.</p>
+                    <p className="text-sm text-slate-500">Clock in to track your shift hours.</p>
                   </>
                 ) : activeTimesheet.status === 'open' ? (
                   <>
-                    <h3 className="font-bold text-lg text-green-700 tracking-tight">Clocked In</h3>
-                    <p className="text-sm text-green-600">Started: {format(new Date(activeTimesheet.clock_in_time), 'h:mm a')}</p>
+                    <div className="flex items-center gap-2">
+                      <span className="relative flex h-2.5 w-2.5">
+                        <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${isOnBreak ? 'bg-amber-400' : 'bg-green-400'}`}></span>
+                        <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${isOnBreak ? 'bg-amber-500' : 'bg-green-500'}`}></span>
+                      </span>
+                      <h3 className={`font-bold text-lg tracking-tight ${isOnBreak ? 'text-amber-700' : 'text-green-700'}`}>
+                        {isOnBreak ? 'On Break' : 'Clocked In'}
+                      </h3>
+                      <Badge variant="outline" className={`font-mono font-bold text-xs ${
+                        isOnBreak ? 'border-amber-300 text-amber-800 bg-amber-50' : 'border-green-300 text-green-800 bg-green-50'
+                      }`}>
+                        {formatStopwatch(elapsedSeconds)}
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-slate-500 mt-1">
+                      Started: {format(new Date(activeTimesheet.clock_in_time), 'h:mm a')} 
+                      {activeBreaks.length > 0 && ` • ${activeBreaks.length} break${activeBreaks.length > 1 ? 's' : ''}`}
+                    </p>
                   </>
                 ) : (
                   <>
@@ -257,15 +327,35 @@ export default function EmployeeDashboard() {
                 Clock In
               </Button>
             ) : activeTimesheet.status === 'open' && (
-              <Button 
-                onClick={handleClockOut} 
-                disabled={isClocking}
-                variant="outline"
-                className="w-full sm:w-auto"
-              >
-                {isClocking ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                Clock Out
-              </Button>
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <Button 
+                  onClick={handleToggleBreak} 
+                  disabled={isBreaking || isClocking}
+                  variant={isOnBreak ? "default" : "outline"}
+                  className={`flex-1 sm:flex-none text-xs font-semibold ${
+                    isOnBreak ? 'bg-amber-600 hover:bg-amber-700 text-white' : 'border-slate-300'
+                  }`}
+                >
+                  {isBreaking ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
+                  ) : isOnBreak ? (
+                    <Play className="h-3.5 w-3.5 mr-1.5" />
+                  ) : (
+                    <Coffee className="h-3.5 w-3.5 mr-1.5" />
+                  )}
+                  {isOnBreak ? 'Resume Shift' : 'Take Break'}
+                </Button>
+
+                <Button 
+                  onClick={handleClockOut} 
+                  disabled={isClocking || isBreaking}
+                  variant="outline"
+                  className="flex-1 sm:flex-none border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 text-xs font-semibold"
+                >
+                  {isClocking ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : null}
+                  Clock Out
+                </Button>
+              </div>
             )}
           </div>
         </div>
@@ -273,14 +363,18 @@ export default function EmployeeDashboard() {
 
       {/* Stats Row */}
       {stats && (
-        <div className="grid grid-cols-2 gap-4">
-          <div className="border border-slate-200 rounded-xl p-4 bg-white flex flex-col items-center justify-center">
-            <p className="text-2xl font-bold text-slate-900">{stats.score.toFixed(1)}</p>
-            <p className="text-xs text-slate-500 font-medium">Rating</p>
+        <div className="grid grid-cols-3 gap-3">
+          <div className="border border-slate-200 rounded-xl p-3 bg-white flex flex-col items-center justify-center text-center">
+            <p className="text-xl font-bold text-slate-900">{stats.approx_hours}h</p>
+            <p className="text-[11px] text-slate-500 font-medium">Approx Hours</p>
           </div>
-          <div className="border border-slate-200 rounded-xl p-4 bg-white flex flex-col items-center justify-center">
-            <p className="text-2xl font-bold text-slate-900">{stats.week_jobs}</p>
-            <p className="text-xs text-slate-500 font-medium">Jobs this Week</p>
+          <div className="border border-slate-200 rounded-xl p-3 bg-white flex flex-col items-center justify-center text-center">
+            <p className="text-xl font-bold text-slate-900">{stats.week_jobs}</p>
+            <p className="text-[11px] text-slate-500 font-medium">Jobs this Week</p>
+          </div>
+          <div className="border border-slate-200 rounded-xl p-3 bg-white flex flex-col items-center justify-center text-center">
+            <p className="text-xl font-bold text-slate-900">{stats.score.toFixed(1)}</p>
+            <p className="text-[11px] text-slate-500 font-medium">Rating</p>
           </div>
         </div>
       )}
@@ -370,7 +464,6 @@ export default function EmployeeDashboard() {
             </div>
           )}
         </div>
-      )}
     </motion.div>
   );
 }

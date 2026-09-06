@@ -17,7 +17,7 @@
  *
  * The filling wave alone is exported as <WaveMark/>.
  */
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useId } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
 
 /* Wave silhouette traced from the Sea of Blue logo mark (viewBox 1000×181). */
@@ -70,8 +70,9 @@ export function WaveMark({
   ...rest
 }: any) {
   useInjectedStyles();
-  const clipId = useRef('sobwl-' + Math.random().toString(36).slice(2, 8)).current;
-  const gradId = clipId + '-g';
+  const rawId = useId();
+  const clipId = `sobwl-${rawId.replace(/[^a-zA-Z0-9_-]/g, '')}`;
+  const gradId = `${clipId}-g`;
   return (
     <svg
       className="sob-wl__mark"

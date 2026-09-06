@@ -42,7 +42,7 @@ export async function GET() {
     // Get completed jobs this week
     const { data: weekJobs } = await serviceClient
       .from('jobs')
-      .select('quoted_price, employee_payout_amount')
+      .select('quoted_price, employee_payout_amount, estimated_duration_minutes')
       .eq('assigned_employee_id', employee.id)
       .in('status', ['completed', 'reviewed', 'paid_out'])
       .gte('scheduled_date', weekStart.toISOString().split('T')[0])
@@ -51,11 +51,31 @@ export async function GET() {
     // Get completed jobs this month
     const { data: monthJobs } = await serviceClient
       .from('jobs')
-      .select('quoted_price, employee_payout_amount')
+      .select('quoted_price, employee_payout_amount, estimated_duration_minutes')
       .eq('assigned_employee_id', employee.id)
       .in('status', ['completed', 'reviewed', 'paid_out'])
       .gte('scheduled_date', monthStart.toISOString().split('T')[0])
       .lte('scheduled_date', monthEnd.toISOString().split('T')[0]);
+
+    // Get timesheets for this week to calculate approx hours spent
+    const { data: weekTimesheets } = await serviceClient
+      .from('employee_timesheets')
+      .select('total_minutes, clock_in_time, status')
+      .eq('employee_id', employee.id)
+      .gte('work_date', weekStart.toISOString().split('T')[0])
+      .lte('work_date', weekEnd.toISOString().split('T')[0]);
+
+    const timesheetMinutes = (weekTimesheets || []).reduce((sum, ts) => {
+      if (ts.total_minutes) return sum + ts.total_minutes;
+      if (ts.clock_in_time && ts.status === 'open') {
+        const diffMs = Math.max(0, Date.now() - new Date(ts.clock_in_time).getTime());
+        return sum + Math.round(diffMs / 60000);
+      }
+      return sum;
+    }, 0);
+
+    const jobMinutes = (weekJobs || []).reduce((sum, j) => sum + (j.estimated_duration_minutes || 0), 0);
+    const approxHours = Math.round(((timesheetMinutes > 0 ? timesheetMinutes : jobMinutes) / 60) * 10) / 10;
 
     // Get all-time completed count
     const { count: totalCompleted } = await serviceClient
@@ -97,6 +117,8 @@ export async function GET() {
       score: parseFloat(avgRating),
       tier: employee.tier,
       payout_rate: payoutRate,
+      approx_hours: approxHours,
+      week_hours: approxHours,
       week_earnings: Math.round(weekEarnings),
       month_earnings: Math.round(monthEarnings),
       week_jobs: (weekJobs || []).length,

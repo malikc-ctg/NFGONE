@@ -11,16 +11,15 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import {
-  ArrowLeft, MapPin, Navigation, Clock, DollarSign,
+  ArrowLeft, MapPin, Navigation, Clock, Timer,
   CheckCircle2, User, Sparkles, Bath, BedDouble,
-  Phone, Map, AlertTriangle, Timer, Route, Zap, Car, MessageSquare, PlusCircle
+  Phone, Map, AlertTriangle, Route, Zap, Car, MessageSquare, PlusCircle
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { SERVICE_TYPE_LABELS, TIME_WINDOW_LABELS } from '@/types';
 import type { Job, ChecklistData, JobOffer } from '@/types';
 import Link from 'next/link';
-import { LocationPermissionPrompt } from '@/components/employee/LocationPermissionPrompt';
-import { startLocationTracking, stopLocationTracking } from '@/lib/location-service';
+
 import { PhotoUpload } from '@/components/employee/PhotoUpload';
 import { SupplyCheck } from '@/components/employee/SupplyCheck';
 import { smartFetch } from '@/lib/offline-queue';
@@ -179,12 +178,7 @@ export default function EmployeeJobDetailPage() {
         body: JSON.stringify({ status: newStatus }),
       });
       if (!res.ok) throw new Error('Failed');
-      if (newStatus === 'on_the_way' && job?.assigned_employee_id) {
-        startLocationTracking(job.assigned_employee_id, job.id);
-      }
-      if (newStatus === 'completed' && job?.assigned_employee_id) {
-        stopLocationTracking(job.assigned_employee_id);
-      }
+
       toast.success('Status updated');
       fetchData();
     } catch { toast.error('Failed to update status'); }
@@ -315,8 +309,12 @@ export default function EmployeeJobDetailPage() {
           <CardContent className="p-5 space-y-4">
             <div className="text-center">
               <p className="font-bold text-amber-100 text-sm">🔔 New Job Offer</p>
-              <p className="text-4xl font-black mt-1">${(job.quoted_price * 0.7).toFixed(0)}</p>
-              <p className="text-xs text-amber-100 uppercase font-bold tracking-tighter mt-0.5">Your Estimated Payout</p>
+              <p className="text-4xl font-black mt-1">
+                {job.estimated_duration_minutes
+                  ? `${Math.floor(job.estimated_duration_minutes / 60)}h ${job.estimated_duration_minutes % 60 ? `${job.estimated_duration_minutes % 60}m` : ''}`.trim()
+                  : 'Approx 2-3 hrs'}
+              </p>
+              <p className="text-xs text-amber-100 uppercase font-bold tracking-tighter mt-0.5">Approx Hours Required</p>
             </div>
             <div className="grid grid-cols-2 gap-3 text-sm bg-black/10 rounded-xl p-3">
               <div><p className="text-amber-200 text-[10px] font-bold uppercase">Service</p><p className="font-semibold text-sm">{SERVICE_TYPE_LABELS[job.service_type]}</p></div>
@@ -467,9 +465,13 @@ export default function EmployeeJobDetailPage() {
             </div>
           </div>
 
-          <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl p-3 flex justify-between items-center">
-            <div className="flex items-center gap-2"><DollarSign className="h-4 w-4 text-green-600" /><span className="text-sm font-bold text-green-800 dark:text-green-200">Your Payout</span></div>
-            <span className="text-xl font-black text-green-700 dark:text-green-300">${(job.quoted_price * 0.7).toFixed(0)}</span>
+          <div className="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-xl p-3 flex justify-between items-center">
+            <div className="flex items-center gap-2"><Timer className="h-4 w-4 text-indigo-600 dark:text-indigo-400" /><span className="text-sm font-bold text-indigo-800 dark:text-indigo-200">Approx Hours</span></div>
+            <span className="text-xl font-black text-indigo-700 dark:text-indigo-300">
+              {job.estimated_duration_minutes
+                ? `${Math.floor(job.estimated_duration_minutes / 60)}h ${job.estimated_duration_minutes % 60 ? `${job.estimated_duration_minutes % 60}m` : ''}`.trim()
+                : '2-3 hrs'}
+            </span>
           </div>
 
           {job.access_instructions && ['assigned', 'on_the_way', 'in_progress'].includes(job.status) && (
@@ -587,11 +589,14 @@ export default function EmployeeJobDetailPage() {
         <Card><CardContent className="p-6 text-center">
           <CheckCircle2 className="h-12 w-12 text-green-500 mx-auto mb-3" />
           <h2 className="font-bold text-lg">Job Complete</h2>
-          <p className="text-muted-foreground text-sm mt-1">Payout: ${(job.quoted_price * 0.7).toFixed(2)}</p>
+          <p className="text-muted-foreground text-sm mt-1">
+            Approx Hours Spent: {job.estimated_duration_minutes
+              ? `${Math.floor(job.estimated_duration_minutes / 60)}h ${job.estimated_duration_minutes % 60 ? `${job.estimated_duration_minutes % 60}m` : ''}`.trim()
+              : '2-3 hrs'}
+          </p>
         </CardContent></Card>
       )}
 
-      <LocationPermissionPrompt />
     </div>
   );
 }

@@ -3,7 +3,7 @@ import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 
 export async function POST(request: Request) {
-  // Clock Out
+  // Toggle or start/end break
   try {
     const cookieStore = await cookies();
     const supabase = createServerClient(
@@ -31,7 +31,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Employee not found' }, { status: 404 });
     }
 
-    // Find the open timesheet
+    // Find the active open timesheet
     const { data: openSheet } = await supabase
       .from('employee_timesheets')
       .select('*')
@@ -40,47 +40,40 @@ export async function POST(request: Request) {
       .single();
 
     if (!openSheet) {
-      return NextResponse.json({ error: 'No active timesheet found to clock out of' }, { status: 400 });
+      return NextResponse.json({ error: 'No active shift to take a break from' }, { status: 400 });
     }
 
-    const clockOutTime = new Date();
-    const clockInTime = new Date(openSheet.clock_in_time);
-    
-    // Calculate total elapsed minutes
-    const diffMs = clockOutTime.getTime() - clockInTime.getTime();
-    let totalMinutes = Math.floor(diffMs / (1000 * 60));
-
-    // Deduct any break minutes recorded
+    // Parse location_data to read/write breaks safely
     const metadata = openSheet.location_data && typeof openSheet.location_data === 'object'
       ? { ...openSheet.location_data }
       : {};
-    if (Array.isArray(metadata.breaks)) {
-      // If there was an open break, close it now
-      metadata.breaks = metadata.breaks.map((b: any) => {
-        if (!b.end) {
-          const endStr = clockOutTime.toISOString();
-          const startMs = new Date(b.start).getTime();
-          const endMs = clockOutTime.getTime();
-          return {
-            ...b,
-            end: endStr,
-            duration_minutes: Math.max(0, Math.floor((endMs - startMs) / 60000)),
-          };
-        }
-        return b;
-      });
 
-      const totalBreakMinutes = metadata.breaks.reduce((sum: number, b: any) => sum + (b.duration_minutes || 0), 0);
-      totalMinutes = Math.max(0, totalMinutes - totalBreakMinutes);
+    const breaks = Array.isArray(metadata.breaks) ? [...metadata.breaks] : [];
+    const now = new Date().toISOString();
+
+    // Check if there is an ongoing break
+    const activeBreakIndex = breaks.findIndex((b: any) => !b.end);
+
+    if (activeBreakIndex >= 0) {
+      // End the current break
+      breaks[activeBreakIndex].end = now;
+      const startMs = new Date(breaks[activeBreakIndex].start).getTime();
+      const endMs = new Date(now).getTime();
+      breaks[activeBreakIndex].duration_minutes = Math.max(0, Math.floor((endMs - startMs) / 60000));
+    } else {
+      // Start a new break
+      breaks.push({
+        start: now,
+        end: null,
+      });
     }
+
+    metadata.breaks = breaks;
 
     const { data, error } = await supabase
       .from('employee_timesheets')
       .update({
-        clock_out_time: clockOutTime.toISOString(),
-        total_minutes: totalMinutes,
         location_data: metadata,
-        status: 'completed'
       })
       .eq('id', openSheet.id)
       .select('*')
@@ -88,7 +81,13 @@ export async function POST(request: Request) {
 
     if (error) throw error;
 
-    return NextResponse.json(data);
+    const isOnBreak = breaks.some((b: any) => !b.end);
+
+    return NextResponse.json({
+      timesheet: data,
+      isOnBreak,
+      breaks,
+    });
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
