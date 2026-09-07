@@ -10,7 +10,8 @@ import { format, addDays } from 'date-fns';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { SERVICE_TYPE_LABELS, TIME_WINDOW_LABELS } from '@/types';
+import { SERVICE_TYPE_LABELS } from '@/types';
+import { formatJobTimeSlot } from '@/lib/time-utils';
 import type { Job } from '@/types';
 
 export default function SchedulePage() {
@@ -105,8 +106,9 @@ export default function SchedulePage() {
                     <div className="flex justify-between items-start">
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
+
                           <Badge variant="secondary" className="text-[10px] font-bold px-2 py-0">
-                            {TIME_WINDOW_LABELS[job.scheduled_window]}
+                            {formatJobTimeSlot(job)}
                           </Badge>
                           <Badge variant="outline" className="text-[10px] bg-slate-50 uppercase">
                             {job.status.replace(/_/g, ' ')}

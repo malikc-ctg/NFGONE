@@ -17,6 +17,8 @@ import { SERVICE_TYPE_LABELS, TIME_WINDOW_LABELS } from '@/types';
 import type { Lead } from '@/types';
 import Link from 'next/link';
 
+import { TIME_OPTIONS, DURATION_OPTIONS, calculateEndTime, format12Hour, inferTimeWindow } from '@/lib/time-utils';
+
 export default function LeadDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -27,8 +29,13 @@ export default function LeadDetailPage() {
   const [editForm, setEditForm] = useState<Partial<Lead>>({});
   const [zones, setZones] = useState<any[]>([]);
   const [convertForm, setConvertForm] = useState({
-    zone_id: '', scheduled_date: '', scheduled_window: '',
-    address_line1: '', postal_code: '', quoted_price: '',
+    zone_id: '',
+    scheduled_date: '',
+    scheduled_start_time: '15:00',
+    estimated_duration_minutes: 360,
+    address_line1: '',
+    postal_code: '',
+    quoted_price: '',
   });
 
   useEffect(() => {
@@ -39,7 +46,7 @@ export default function LeadDetailPage() {
       setConvertForm(f => ({
         ...f,
         scheduled_date: data.preferred_date ?? '',
-        scheduled_window: data.preferred_window ?? '',
+        scheduled_start_time: data.preferred_start_time ?? '15:00',
         address_line1: data.city ?? '',
         quoted_price: data.quoted_price?.toString() ?? '',
       }));
@@ -61,11 +68,13 @@ export default function LeadDetailPage() {
         toast.error('Please select a zone');
         return;
       }
+      const windowInferred = inferTimeWindow(convertForm.scheduled_start_time);
       const res = await fetch(`/api/leads/${params.id}/convert`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...convertForm,
+          scheduled_window: windowInferred,
           quoted_price: parseFloat(convertForm.quoted_price),
           deposit_amount: parseFloat(convertForm.quoted_price) * 0.3,
         }),
@@ -131,6 +140,8 @@ export default function LeadDetailPage() {
   if (loading) return <p className="text-muted-foreground">Loading...</p>;
   if (!lead) return <p className="text-red-500">Lead not found</p>;
 
+  const calculatedEndTime = calculateEndTime(convertForm.scheduled_start_time, convertForm.estimated_duration_minutes);
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
@@ -155,7 +166,7 @@ export default function LeadDetailPage() {
           <CardContent className="space-y-3">
             <div className="flex justify-between"><span className="text-muted-foreground">Service</span><span>{lead.service_type ? SERVICE_TYPE_LABELS[lead.service_type] : '—'}</span></div>
             <div className="flex justify-between"><span className="text-muted-foreground">Date</span><span>{lead.preferred_date ? format(new Date(lead.preferred_date), 'MMM d, yyyy') : '—'}</span></div>
-            <div className="flex justify-between"><span className="text-muted-foreground">Window</span><span>{lead.preferred_window ? TIME_WINDOW_LABELS[lead.preferred_window] : '—'}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Preferred Time</span><span>{lead.preferred_start_time ? format12Hour(lead.preferred_start_time) : (lead.preferred_window ? TIME_WINDOW_LABELS[lead.preferred_window] : '—')}</span></div>
             <div className="flex justify-between"><span className="text-muted-foreground">Bedrooms</span><span>{lead.home_bedrooms ?? '—'}</span></div>
             <div className="flex justify-between"><span className="text-muted-foreground">Bathrooms</span><span>{lead.home_bathrooms ?? '—'}</span></div>
             <div className="flex justify-between"><span className="text-muted-foreground">Condition</span><span className="capitalize">{lead.condition ?? '—'}</span></div>
@@ -235,16 +246,37 @@ export default function LeadDetailPage() {
                   </Select>
                 </div>
                 <div><Label>Scheduled Date</Label><DatePicker value={convertForm.scheduled_date} onChange={(val) => setConvertForm({ ...convertForm, scheduled_date: val })} /></div>
-                <div><Label>Window</Label>
-                  <Select value={convertForm.scheduled_window} onValueChange={v => setConvertForm({ ...convertForm, scheduled_window: v })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="morning">Morning</SelectItem>
-                      <SelectItem value="afternoon">Afternoon</SelectItem>
-                      <SelectItem value="evening">Evening</SelectItem>
-                    </SelectContent>
-                  </Select>
+                
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label>Start Time</Label>
+                    <Select value={convertForm.scheduled_start_time} onValueChange={v => setConvertForm({ ...convertForm, scheduled_start_time: v })}>
+                      <SelectTrigger><SelectValue placeholder="Select start time" /></SelectTrigger>
+                      <SelectContent>
+                        {TIME_OPTIONS.map(t => (
+                          <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Est. Duration</Label>
+                    <Select value={convertForm.estimated_duration_minutes.toString()} onValueChange={v => setConvertForm({ ...convertForm, estimated_duration_minutes: parseInt(v, 10) })}>
+                      <SelectTrigger><SelectValue placeholder="Select duration" /></SelectTrigger>
+                      <SelectContent>
+                        {DURATION_OPTIONS.map(d => (
+                          <SelectItem key={d.value} value={d.value.toString()}>{d.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
+
+                <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm flex items-center justify-between text-blue-900 font-medium">
+                  <span>Job Schedule Window:</span>
+                  <span className="font-bold">{format12Hour(convertForm.scheduled_start_time)} → {calculatedEndTime}</span>
+                </div>
+
                 <div><Label>Address</Label><AddressAutocomplete value={convertForm.address_line1} onChange={e => setConvertForm({ ...convertForm, address_line1: e.target.value })} onAddressSelect={addr => setConvertForm(f => ({ ...f, address_line1: addr.address_line1, postal_code: addr.postal_code || f.postal_code }))} /></div>
                 <div><Label>Postal Code</Label><Input value={convertForm.postal_code} onChange={e => setConvertForm({ ...convertForm, postal_code: e.target.value })} /></div>
                 <div><Label>Quoted Price</Label><Input type="number" value={convertForm.quoted_price} onChange={e => setConvertForm({ ...convertForm, quoted_price: e.target.value })} /></div>

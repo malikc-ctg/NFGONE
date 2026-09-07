@@ -12,7 +12,8 @@ import {
   Clock, CheckCircle2, ChevronRight, Timer, Package, Key, Info,
   Loader2
 } from 'lucide-react';
-import { SERVICE_TYPE_LABELS, TIME_WINDOW_LABELS } from '@/types';
+import { SERVICE_TYPE_LABELS } from '@/types';
+import { formatJobTimeSlot } from '@/lib/time-utils';
 import type { Job } from '@/types';
 import Link from 'next/link';
 import { format } from 'date-fns';
@@ -72,11 +73,10 @@ export default function EmployeeJobsPage() {
                 <p className="text-[10px] text-muted-foreground mt-0.5">{job.city}, {job.postal_code}</p>
               </div>
             </div>
-            
             <div className="grid grid-cols-2 gap-2 text-xs bg-slate-50/50 dark:bg-slate-900/20 rounded-lg p-2.5 border border-border/50">
               <div className="flex items-center gap-1.5">
                 <Clock className="h-3.5 w-3.5 text-muted-foreground" />
-                <span className="font-medium">{TIME_WINDOW_LABELS[job.scheduled_window]}</span>
+                <span className="font-medium">{formatJobTimeSlot(job)}</span>
               </div>
               <div className="flex items-center gap-1.5 justify-end text-indigo-600 dark:text-indigo-400">
                 <Timer className="h-3.5 w-3.5" />

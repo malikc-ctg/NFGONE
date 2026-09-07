@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { SERVICE_TYPE_LABELS, TIME_WINDOW_LABELS } from '@/types';
+import { formatJobTimeSlot } from '@/lib/time-utils';
 import type { Job, ChecklistData, JobOffer } from '@/types';
 import Link from 'next/link';
 
@@ -318,7 +319,7 @@ export default function EmployeeJobDetailPage() {
             </div>
             <div className="grid grid-cols-2 gap-3 text-sm bg-black/10 rounded-xl p-3">
               <div><p className="text-amber-200 text-[10px] font-bold uppercase">Service</p><p className="font-semibold text-sm">{SERVICE_TYPE_LABELS[job.service_type]}</p></div>
-              <div><p className="text-amber-200 text-[10px] font-bold uppercase">Window</p><p className="font-semibold text-sm">{TIME_WINDOW_LABELS[job.scheduled_window]}</p></div>
+              <div><p className="text-amber-200 text-[10px] font-bold uppercase">Time Slot</p><p className="font-semibold text-sm">{formatJobTimeSlot(job)}</p></div>
               <div><p className="text-amber-200 text-[10px] font-bold uppercase">Location</p><p className="font-semibold text-sm">{job.city}, {job.postal_code}</p></div>
               {job.estimated_duration_minutes && (
                 <div><p className="text-amber-200 text-[10px] font-bold uppercase">Duration</p><p className="font-semibold text-sm flex items-center gap-1"><Timer className="h-3 w-3" />{Math.floor(job.estimated_duration_minutes / 60)}h {job.estimated_duration_minutes % 60}m</p></div>
@@ -448,7 +449,7 @@ export default function EmployeeJobDetailPage() {
           </div>
           <div className="h-px bg-border" />
           <div className="grid grid-cols-3 gap-3">
-            <div className="space-y-1"><p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider flex items-center gap-1"><Clock className="h-3 w-3" /> Window</p><p className="text-sm font-medium">{TIME_WINDOW_LABELS[job.scheduled_window]}</p></div>
+            <div className="space-y-1"><p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider flex items-center gap-1"><Clock className="h-3 w-3" /> Time Slot</p><p className="text-sm font-medium">{formatJobTimeSlot(job)}</p></div>
             {job.home_bedrooms != null && <div className="space-y-1"><p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider flex items-center gap-1"><BedDouble className="h-3 w-3" /> Beds</p><p className="text-sm font-medium">{job.home_bedrooms}</p></div>}
             {job.home_bathrooms != null && <div className="space-y-1"><p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider flex items-center gap-1"><Bath className="h-3 w-3" /> Baths</p><p className="text-sm font-medium">{job.home_bathrooms}</p></div>}
           </div>

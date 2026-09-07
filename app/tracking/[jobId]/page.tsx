@@ -7,6 +7,7 @@ import { useParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Waves, Clock, CheckCircle2, User, MapPin } from 'lucide-react';
 import type { Job } from '@/types';
+import { formatJobTimeSlot } from '@/lib/time-utils';
 
 export default function TrackingPage() {
   const params = useParams();
@@ -108,8 +109,8 @@ export default function TrackingPage() {
                 <Clock className="h-5 w-5 text-muted-foreground" />
               </div>
               <div>
-                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-0.5">Scheduled Window</p>
-                <p className="text-sm font-bold text-foreground leading-snug">{job.scheduled_window || 'Morning Session'}</p>
+                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-0.5">Scheduled Time</p>
+                <p className="text-sm font-bold text-foreground leading-snug">{formatJobTimeSlot(job)}</p>
               </div>
             </div>
 

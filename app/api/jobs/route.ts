@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
 
     const {
       customer_id, zone_id, service_type, scheduled_date,
-      scheduled_window, address_line1, address_line2, city,
+      scheduled_window, scheduled_start_time, address_line1, address_line2, city,
       postal_code, quoted_price, access_instructions,
       home_bedrooms, home_bathrooms, home_size_sqft,
       has_pets, add_ons, scope_notes, lead_id,
@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
     } = body;
 
     if (!customer_id || !zone_id || !service_type || !scheduled_date ||
-        !scheduled_window || !address_line1 || !city || !postal_code || !quoted_price) {
+        !address_line1 || !city || !postal_code || !quoted_price) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
@@ -35,13 +35,15 @@ export async function POST(request: NextRequest) {
       .from('jobs')
       .insert({
         customer_id, zone_id, service_type, scheduled_date,
-        scheduled_window, address_line1, address_line2, city,
+        scheduled_window: scheduled_window || 'afternoon',
+        scheduled_start_time: scheduled_start_time || '15:00',
+        address_line1, address_line2, city,
         postal_code, quoted_price, access_instructions,
         home_bedrooms, home_bathrooms, home_size_sqft,
         has_pets: has_pets ?? false,
         add_ons: add_ons ?? [],
         scope_notes, lead_id,
-        estimated_duration_minutes: estimated_duration_minutes ?? 180,
+        estimated_duration_minutes: estimated_duration_minutes ?? 360,
         deposit_amount: deposit_amount ?? Math.round(quoted_price * 0.3 * 100) / 100,
         status: 'lead_received',
       })

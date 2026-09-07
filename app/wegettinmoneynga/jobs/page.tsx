@@ -7,15 +7,14 @@ import { StatusBadge } from '@/components/shared/StatusBadge';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
-import { SERVICE_TYPE_LABELS, TIME_WINDOW_LABELS } from '@/types';
+import { SERVICE_TYPE_LABELS } from '@/types';
 import type { Job, JobStatus } from '@/types';
+import { formatJobTimeSlot } from '@/lib/time-utils';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { Plus } from 'lucide-react';
 import { DatePickerWithRange } from '@/components/ui/date-range-picker';
 import { DateRange } from 'react-day-picker';
-
-
 const STATUS_FILTERS: { label: string; statuses: JobStatus[] | null }[] = [
   { label: 'All', statuses: null },
   { label: 'Needs Dispatch', statuses: ['confirmed'] },
@@ -106,7 +105,7 @@ export default function JobsPage() {
               <TableRow>
                 <TableHead>Job #</TableHead>
                 <TableHead>Date</TableHead>
-                <TableHead className="hidden md:table-cell">Window</TableHead>
+                <TableHead className="hidden md:table-cell">Time Slot</TableHead>
                 <TableHead>Customer</TableHead>
                 <TableHead className="hidden lg:table-cell">Address</TableHead>
                 <TableHead>Service</TableHead>
@@ -126,7 +125,7 @@ export default function JobsPage() {
                   <TableRow key={job.id}>
                     <TableCell className="font-mono text-xs">{job.job_number}</TableCell>
                     <TableCell className="text-xs whitespace-nowrap">{format(new Date(job.scheduled_date), 'MMM d, yyyy')}</TableCell>
-                    <TableCell className="text-xs hidden md:table-cell">{TIME_WINDOW_LABELS[job.scheduled_window]}</TableCell>
+                    <TableCell className="text-xs hidden md:table-cell font-medium">{formatJobTimeSlot(job)}</TableCell>
                     <TableCell className="text-sm">{(job as any).customer?.full_name ?? '—'}</TableCell>
                     <TableCell className="text-xs max-w-[200px] truncate hidden lg:table-cell">{job.address_line1}, {job.city}</TableCell>
                     <TableCell className="text-xs whitespace-nowrap">{SERVICE_TYPE_LABELS[job.service_type]}</TableCell>

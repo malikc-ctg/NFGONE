@@ -26,6 +26,8 @@ import { getValidNextStatuses } from '@/lib/job-state-machine';
 import type { Job, Employee, JobStatus } from '@/types';
 import Link from 'next/link';
 
+import { TIME_OPTIONS, DURATION_OPTIONS, formatJobTimeSlot, inferTimeWindow } from '@/lib/time-utils';
+
 export default function JobDetailPage() {
   const params = useParams();
   const [job, setJob] = useState<Job | null>(null);
@@ -126,10 +128,14 @@ export default function JobDetailPage() {
 
   async function handleEditJob() {
     try {
+      const payload = {
+        ...editForm,
+        scheduled_window: editForm.scheduled_start_time ? inferTimeWindow(editForm.scheduled_start_time) : editForm.scheduled_window,
+      };
       const res = await fetch(`/api/jobs/${params.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(editForm),
+        body: JSON.stringify(payload),
       });
       if (!res.ok) throw new Error('Failed to update job');
       toast.success('Job updated successfully');
@@ -206,17 +212,28 @@ export default function JobDetailPage() {
                 </Select>
               </div>
               <div><Label>Scheduled Date</Label><DatePicker value={editForm.scheduled_date || ''} onChange={(val) => setEditForm({ ...editForm, scheduled_date: val })} /></div>
-              <div>
-                <Label>Window</Label>
-                <Select value={editForm.scheduled_window || ''} onValueChange={v => setEditForm({ ...editForm, scheduled_window: v as any })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="morning">Morning</SelectItem>
-                    <SelectItem value="afternoon">Afternoon</SelectItem>
-                    <SelectItem value="evening">Evening</SelectItem>
-                  </SelectContent>
-                </Select>
+              
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <Label>Start Time</Label>
+                  <Select value={editForm.scheduled_start_time || '15:00'} onValueChange={v => setEditForm({ ...editForm, scheduled_start_time: v })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {TIME_OPTIONS.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Est. Duration</Label>
+                  <Select value={(editForm.estimated_duration_minutes || 360).toString()} onValueChange={v => setEditForm({ ...editForm, estimated_duration_minutes: parseInt(v, 10) })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {DURATION_OPTIONS.map(d => <SelectItem key={d.value} value={d.value.toString()}>{d.label}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
+
               <div>
                 <Label>Zone</Label>
                 <Select value={editForm.zone_id || ''} onValueChange={(v) => setEditForm({ ...editForm, zone_id: v })}>
@@ -273,7 +290,7 @@ export default function JobDetailPage() {
           <CardContent className="space-y-3 text-sm">
             <div className="flex justify-between"><span className="text-muted-foreground">Service</span><span>{SERVICE_TYPE_LABELS[job.service_type]}</span></div>
             <div className="flex justify-between"><span className="text-muted-foreground">Date</span><span>{format(new Date(job.scheduled_date), 'MMM d, yyyy')}</span></div>
-            <div className="flex justify-between"><span className="text-muted-foreground">Window</span><span>{TIME_WINDOW_LABELS[job.scheduled_window]}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Time Slot</span><span className="font-medium text-blue-900 bg-blue-50 px-2 py-0.5 rounded border border-blue-100">{formatJobTimeSlot(job)}</span></div>
             <div className="flex justify-between"><span className="text-muted-foreground">Address</span><span>{job.address_line1}, {job.city} {job.postal_code}</span></div>
             <div className="flex justify-between"><span className="text-muted-foreground">Bedrooms</span><span>{job.home_bedrooms ?? '—'}</span></div>
             <div className="flex justify-between"><span className="text-muted-foreground">Bathrooms</span><span>{job.home_bathrooms ?? '—'}</span></div>

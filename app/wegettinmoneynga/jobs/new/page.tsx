@@ -35,6 +35,8 @@ const TIME_WINDOWS = [
   { value: 'evening', label: 'Evening (4pm–8pm)' },
 ];
 
+import { TIME_OPTIONS, DURATION_OPTIONS, calculateEndTime, format12Hour, inferTimeWindow } from '@/lib/time-utils';
+
 export default function NewJobPage() {
   const router = useRouter();
   const [step, setStep] = useState(0);
@@ -51,7 +53,9 @@ export default function NewJobPage() {
     zone_id: '',
     service_type: 'standard_clean' as ServiceType,
     scheduled_date: '',
-    scheduled_window: 'morning',
+    scheduled_start_time: '15:00',
+    estimated_duration_minutes: 360,
+    scheduled_window: 'afternoon',
     // Scope
     home_bedrooms: '2',
     home_bathrooms: '1',
@@ -118,7 +122,9 @@ export default function NewJobPage() {
           zone_id: form.zone_id,
           service_type: form.service_type,
           scheduled_date: form.scheduled_date,
-          scheduled_window: form.scheduled_window,
+          scheduled_window: inferTimeWindow(form.scheduled_start_time),
+          scheduled_start_time: form.scheduled_start_time,
+          estimated_duration_minutes: form.estimated_duration_minutes,
           home_bedrooms: parseInt(form.home_bedrooms),
           home_bathrooms: parseInt(form.home_bathrooms),
           has_pets: form.has_pets,
@@ -148,7 +154,9 @@ export default function NewJobPage() {
           zone_id: form.zone_id,
           service_type: form.service_type,
           scheduled_date: form.scheduled_date,
-          scheduled_window: form.scheduled_window,
+          scheduled_start_time: form.scheduled_start_time,
+          scheduled_window: inferTimeWindow(form.scheduled_start_time),
+          estimated_duration_minutes: form.estimated_duration_minutes,
           address_line1: form.address_line1,
           address_line2: form.address_line2 || null,
           city: form.city,
@@ -161,7 +169,6 @@ export default function NewJobPage() {
           add_ons: form.add_ons,
           access_instructions: form.access_instructions || null,
           scope_notes: form.scope_notes || null,
-          estimated_duration_minutes: 180,
         }),
       });
       if (!res.ok) {
@@ -275,20 +282,35 @@ export default function NewJobPage() {
                 </Select>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+
+            <div className="grid grid-cols-3 gap-3">
               <div>
                 <Label>Date *</Label>
                 <DatePicker value={form.scheduled_date} onChange={(val) => update('scheduled_date', val)} />
               </div>
               <div>
-                <Label>Time Window *</Label>
-                <Select value={form.scheduled_window} onValueChange={v => update('scheduled_window', v)}>
+                <Label>Start Time *</Label>
+                <Select value={form.scheduled_start_time} onValueChange={v => update('scheduled_start_time', v)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {TIME_WINDOWS.map(w => <SelectItem key={w.value} value={w.value}>{w.label}</SelectItem>)}
+                    {TIME_OPTIONS.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
+              <div>
+                <Label>Est. Duration</Label>
+                <Select value={form.estimated_duration_minutes.toString()} onValueChange={v => update('estimated_duration_minutes', parseInt(v, 10))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {DURATION_OPTIONS.map(d => <SelectItem key={d.value} value={d.value.toString()}>{d.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm flex items-center justify-between text-blue-900 font-medium">
+              <span>Time Slot:</span>
+              <span className="font-bold">{format12Hour(form.scheduled_start_time)} → {calculateEndTime(form.scheduled_start_time, form.estimated_duration_minutes)}</span>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>

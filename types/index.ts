@@ -244,6 +244,7 @@ export interface Lead {
   service_type: ServiceType | null;
   preferred_date: string | null;
   preferred_window: TimeWindow | null;
+  preferred_start_time?: string | null;
   home_bedrooms: number | null;
   home_bathrooms: number | null;
   home_size_sqft: number | null;
@@ -269,6 +270,7 @@ export interface Job {
   status: JobStatus;
   scheduled_date: string;
   scheduled_window: TimeWindow;
+  scheduled_start_time?: string | null;
   estimated_duration_minutes: number;
   address_line1: string;
   address_line2: string | null;

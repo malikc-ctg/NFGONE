@@ -81,6 +81,9 @@ export async function POST(
       customerId = newCustomer.id;
     }
 
+    const startTime = body.scheduled_start_time || lead.preferred_start_time || '15:00';
+    const duration = body.estimated_duration_minutes ? parseInt(body.estimated_duration_minutes, 10) : 360;
+
     // Create job from lead
     const { data: job, error: jobError } = await supabase
       .from('jobs')
@@ -90,7 +93,9 @@ export async function POST(
         zone_id: body.zone_id,
         service_type: lead.service_type ?? body.service_type,
         scheduled_date: body.scheduled_date ?? lead.preferred_date,
-        scheduled_window: body.scheduled_window ?? lead.preferred_window ?? 'morning',
+        scheduled_window: body.scheduled_window ?? lead.preferred_window ?? 'afternoon',
+        scheduled_start_time: startTime,
+        estimated_duration_minutes: duration,
         address_line1: body.address_line1 || 'TBD',
         city: lead.city ?? body.city ?? 'TBD',
         postal_code: body.postal_code || 'TBD',
