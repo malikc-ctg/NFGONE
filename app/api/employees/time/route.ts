@@ -1,46 +1,32 @@
 import { NextResponse } from 'next/server';
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
+import { createClient, createServiceClient } from '@/lib/supabase/server';
 
 export async function GET(request: Request) {
   try {
-    const cookieStore = await cookies();
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!, // use service role to query safely
-      {
-        cookies: {
-          get(name: string) {
-            return cookieStore.get(name)?.value;
-          },
-          set(name: string, value: string, options: any) {
-            cookieStore.set({ name, value, ...options });
-          },
-          remove(name: string, options: any) {
-            cookieStore.set({ name, value: '', ...options });
-          },
-        },
-      }
-    );
+    const supabase = await createClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    // Get current user session
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const serviceClient = await createServiceClient();
 
     // Fetch the employee record
-    let { data: employee, error: empError } = await supabase
+    let { data: employee } = await serviceClient
       .from('employees')
-      .select('id')
+      .select('id, profile_id')
       .eq('profile_id', user.id)
       .maybeSingle();
 
     if (!employee && user.email) {
-      const { data: empByEmail } = await supabase
+      const { data: empByEmail } = await serviceClient
         .from('employees')
-        .select('id')
+        .select('id, profile_id')
         .ilike('email', user.email)
         .maybeSingle();
       if (empByEmail) {
+        await serviceClient
+          .from('employees')
+          .update({ profile_id: user.id })
+          .eq('id', empByEmail.id);
         employee = empByEmail;
       }
     }
@@ -50,19 +36,20 @@ export async function GET(request: Request) {
     }
 
     // Always check for an active open timesheet
-    const { data: openTimesheet } = await supabase
+    const { data: openTimesheet } = await serviceClient
       .from('employee_timesheets')
       .select('*')
       .eq('employee_id', employee.id)
       .eq('status', 'open')
       .order('clock_in_time', { ascending: false })
+      .limit(1)
       .maybeSingle();
 
     // Get URL params
     const { searchParams } = new URL(request.url);
     const date = searchParams.get('date'); // optional date filter
     
-    let query = supabase
+    let query = serviceClient
       .from('employee_timesheets')
       .select('*')
       .eq('employee_id', employee.id)
@@ -83,6 +70,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json(results);
   } catch (err: any) {
+    console.error('GET /api/employees/time error:', err);
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
@@ -90,35 +78,29 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   // Clock In
   try {
-    const cookieStore = await cookies();
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      {
-        cookies: {
-          get(name: string) { return cookieStore.get(name)?.value; },
-          set(name: string, value: string, options: any) { cookieStore.set({ name, value, ...options }); },
-          remove(name: string, options: any) { cookieStore.set({ name, value: '', ...options }); },
-        },
-      }
-    );
+    const supabase = await createClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const serviceClient = await createServiceClient();
 
-    let { data: employee } = await supabase
+    let { data: employee } = await serviceClient
       .from('employees')
-      .select('id')
+      .select('id, profile_id')
       .eq('profile_id', user.id)
       .maybeSingle();
 
     if (!employee && user.email) {
-      const { data: empByEmail } = await supabase
+      const { data: empByEmail } = await serviceClient
         .from('employees')
-        .select('id')
+        .select('id, profile_id')
         .ilike('email', user.email)
         .maybeSingle();
       if (empByEmail) {
+        await serviceClient
+          .from('employees')
+          .update({ profile_id: user.id })
+          .eq('id', empByEmail.id);
         employee = empByEmail;
       }
     }
@@ -128,12 +110,13 @@ export async function POST(request: Request) {
     }
 
     // Check if there is already an open timesheet
-    const { data: existing } = await supabase
+    const { data: existing } = await serviceClient
       .from('employee_timesheets')
       .select('*')
       .eq('employee_id', employee.id)
       .eq('status', 'open')
       .order('clock_in_time', { ascending: false })
+      .limit(1)
       .maybeSingle();
 
     if (existing) {
@@ -143,7 +126,7 @@ export async function POST(request: Request) {
 
     const body = await request.json().catch(() => ({}));
 
-    const { data, error } = await supabase
+    const { data, error } = await serviceClient
       .from('employee_timesheets')
       .insert({
         employee_id: employee.id,
@@ -159,6 +142,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json(data);
   } catch (err: any) {
+    console.error('POST /api/employees/time error:', err);
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }

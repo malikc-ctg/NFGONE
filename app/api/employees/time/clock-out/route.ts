@@ -1,39 +1,33 @@
 import { NextResponse } from 'next/server';
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
+import { createClient, createServiceClient } from '@/lib/supabase/server';
 
 export async function POST(request: Request) {
   // Clock Out
   try {
-    const cookieStore = await cookies();
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      {
-        cookies: {
-          get(name: string) { return cookieStore.get(name)?.value; },
-          set(name: string, value: string, options: any) { cookieStore.set({ name, value, ...options }); },
-          remove(name: string, options: any) { cookieStore.set({ name, value: '', ...options }); },
-        },
-      }
-    );
+    const supabase = await createClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const serviceClient = await createServiceClient();
 
-    let { data: employee } = await supabase
+    let { data: employee } = await serviceClient
       .from('employees')
-      .select('id')
+      .select('id, profile_id')
       .eq('profile_id', user.id)
       .maybeSingle();
 
     if (!employee && user.email) {
-      const { data: empByEmail } = await supabase
+      const { data: empByEmail } = await serviceClient
         .from('employees')
-        .select('id')
+        .select('id, profile_id')
         .ilike('email', user.email)
         .maybeSingle();
       if (empByEmail) {
+        // Link profile_id to this employee
+        await serviceClient
+          .from('employees')
+          .update({ profile_id: user.id })
+          .eq('id', empByEmail.id);
         employee = empByEmail;
       }
     }
@@ -42,13 +36,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Employee not found' }, { status: 404 });
     }
 
-    // Find the open timesheet
-    const { data: openSheet } = await supabase
+    // Find the open timesheet (latest open shift)
+    const { data: openSheet } = await serviceClient
       .from('employee_timesheets')
       .select('*')
       .eq('employee_id', employee.id)
       .eq('status', 'open')
-      .single();
+      .order('clock_in_time', { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
     if (!openSheet) {
       return NextResponse.json({ error: 'No active timesheet found to clock out of' }, { status: 400 });
@@ -85,7 +81,7 @@ export async function POST(request: Request) {
       totalMinutes = Math.max(0, totalMinutes - totalBreakMinutes);
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await serviceClient
       .from('employee_timesheets')
       .update({
         clock_out_time: clockOutTime.toISOString(),
@@ -101,6 +97,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json(data);
   } catch (err: any) {
+    console.error('Clock out error:', err);
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }

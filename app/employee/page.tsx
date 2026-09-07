@@ -248,12 +248,9 @@ export default function EmployeeDashboard() {
         const err = await res.json();
         throw new Error(err.error || 'Failed to clock out');
       }
-      const finishedTs = await res.json().catch(() => null);
-      if (finishedTs) {
-        setActiveTimesheet(finishedTs);
-      } else {
-        setActiveTimesheet(null);
-      }
+      await res.json().catch(() => null);
+      setActiveTimesheet(null);
+      setElapsedSeconds(0);
       toast.success('Clocked out successfully!');
       fetchData();
     } catch (err: any) {

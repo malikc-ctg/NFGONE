@@ -1,39 +1,32 @@
 import { NextResponse } from 'next/server';
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
+import { createClient, createServiceClient } from '@/lib/supabase/server';
 
 export async function POST(request: Request) {
   // Toggle or start/end break
   try {
-    const cookieStore = await cookies();
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      {
-        cookies: {
-          get(name: string) { return cookieStore.get(name)?.value; },
-          set(name: string, value: string, options: any) { cookieStore.set({ name, value, ...options }); },
-          remove(name: string, options: any) { cookieStore.set({ name, value: '', ...options }); },
-        },
-      }
-    );
+    const supabase = await createClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const serviceClient = await createServiceClient();
 
-    let { data: employee } = await supabase
+    let { data: employee } = await serviceClient
       .from('employees')
-      .select('id')
+      .select('id, profile_id')
       .eq('profile_id', user.id)
       .maybeSingle();
 
     if (!employee && user.email) {
-      const { data: empByEmail } = await supabase
+      const { data: empByEmail } = await serviceClient
         .from('employees')
-        .select('id')
+        .select('id, profile_id')
         .ilike('email', user.email)
         .maybeSingle();
       if (empByEmail) {
+        await serviceClient
+          .from('employees')
+          .update({ profile_id: user.id })
+          .eq('id', empByEmail.id);
         employee = empByEmail;
       }
     }
@@ -43,12 +36,14 @@ export async function POST(request: Request) {
     }
 
     // Find the active open timesheet
-    const { data: openSheet } = await supabase
+    const { data: openSheet } = await serviceClient
       .from('employee_timesheets')
       .select('*')
       .eq('employee_id', employee.id)
       .eq('status', 'open')
-      .single();
+      .order('clock_in_time', { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
     if (!openSheet) {
       return NextResponse.json({ error: 'No active shift to take a break from' }, { status: 400 });
@@ -81,7 +76,7 @@ export async function POST(request: Request) {
 
     metadata.breaks = breaks;
 
-    const { data, error } = await supabase
+    const { data, error } = await serviceClient
       .from('employee_timesheets')
       .update({
         location_data: metadata,
@@ -100,6 +95,7 @@ export async function POST(request: Request) {
       breaks,
     });
   } catch (err: any) {
+    console.error('Break toggle error:', err);
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
