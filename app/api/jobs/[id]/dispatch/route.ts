@@ -50,15 +50,8 @@ export async function POST(
 
     const supabase = await createServiceClient();
     const { id } = params;
-    const { employee_ids, drive_times } = await request.json();
-
-    if (!employee_ids || !Array.isArray(employee_ids) || employee_ids.length === 0) {
-      return NextResponse.json({ error: 'employee_ids required' }, { status: 400 });
-    }
-
-    if (employee_ids.length > 5) {
-      return NextResponse.json({ error: 'Max 5 employees per dispatch' }, { status: 400 });
-    }
+    const body = await request.json();
+    const { mode, employee_id, employee_ids, drive_times } = body;
 
     // Get job
     const { data: job, error: jobError } = await supabase
@@ -71,8 +64,60 @@ export async function POST(
       return NextResponse.json({ error: 'Job not found' }, { status: 404 });
     }
 
+    // 1. Direct Assignment (Primary Flow)
+    if (mode === 'direct_assign' || employee_id) {
+      const targetEmpId = employee_id || (Array.isArray(employee_ids) ? employee_ids[0] : null);
+      if (!targetEmpId) {
+        return NextResponse.json({ error: 'employee_id required for direct assignment' }, { status: 400 });
+      }
+
+      const { data: updatedJob, error: updateError } = await supabase
+        .from('jobs')
+        .update({
+          assigned_employee_id: targetEmpId,
+          status: 'assigned',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id)
+        .select('*, employee:employees(*)')
+        .single();
+
+      if (updateError) throw updateError;
+
+      // Expire/cancel any pending offers on this job
+      await supabase
+        .from('job_offers')
+        .update({ status: 'declined', decline_reason: 'Assigned directly by dispatch' })
+        .eq('job_id', id)
+        .eq('status', 'pending');
+
+      logAudit({
+        actorId: auth.id,
+        actorEmail: auth.email,
+        actorRole: 'admin',
+        action: 'job.dispatched',
+        entityType: 'job',
+        entityId: id,
+        oldValues: { status: job.status, assigned_employee_id: job.assigned_employee_id },
+        newValues: { status: 'assigned', assigned_employee_id: targetEmpId },
+        request,
+        metadata: { assignment_type: 'direct_assign' },
+      });
+
+      return NextResponse.json({ success: true, job: updatedJob });
+    }
+
+    // 2. Broadcast Offers Flow (Secondary)
+    if (!employee_ids || !Array.isArray(employee_ids) || employee_ids.length === 0) {
+      return NextResponse.json({ error: 'employee_ids required' }, { status: 400 });
+    }
+
+    if (employee_ids.length > 5) {
+      return NextResponse.json({ error: 'Max 5 employees per dispatch' }, { status: 400 });
+    }
+
     // Create offers with drive time data
-    const expiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString(); // 30 min
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString(); // 60 min window
     const offers = employee_ids.map((cid: string, idx: number) => ({
       job_id: id,
       employee_id: cid,
@@ -106,10 +151,10 @@ export async function POST(
       oldValues: { status: job.status },
       newValues: { status: 'offered', employee_ids },
       request,
-      metadata: { offer_count: employee_ids.length },
+      metadata: { offer_count: employee_ids.length, assignment_type: 'broadcast_offers' },
     });
 
-    return NextResponse.json({ offers: createdOffers });
+    return NextResponse.json({ success: true, offers: createdOffers });
   } catch (err: unknown) {
     return NextResponse.json({ error: (err as Error).message }, { status: 500 });
   }

@@ -11,11 +11,12 @@ export interface DispatchSuggestion {
   employee_id: string;
   full_name: string;
   phone: string | null;
-  tier: string;
   score: number;
   zone_id: string | null;
   drive_minutes: number | null;
   jobs_today: number;
+  hourly_wage: number;
+  estimated_pay: number;
   dispatch_score: number;
   reason: string;
   origin: { lat: number; lng: number } | null;
@@ -23,20 +24,18 @@ export interface DispatchSuggestion {
 
 /**
  * Get smart dispatch suggestions for a job.
- * Ranks employees by: proximity (30%), score (40%), availability (30%)
+ * Since cleaners are employees (not 1099 contractors choosing zones),
+ * all active employees are eligible for jobs. Ranks by: proximity (30%), score (40%), availability (30%).
  */
 export async function getSmartDispatchSuggestions(
   job: any
 ): Promise<DispatchSuggestion[]> {
   const supabase = await createServiceClient();
 
-  if (!job.zone_id) return [];
-
-  // 1. Get all active employees in this zone
+  // 1. Get all active employees across the company
   const { data: employees } = await supabase
     .from('employees')
-    .select('id, full_name, phone, tier, score, zone_id, notes, status')
-    .eq('zone_id', job.zone_id)
+    .select('id, full_name, phone, score, zone_id, notes, status, hourly_wage')
     .eq('status', 'active');
 
   if (!employees || employees.length === 0) return [];
@@ -58,7 +57,7 @@ export async function getSmartDispatchSuggestions(
   for (const c of employees) {
     try {
       if (c.notes) {
-        const n = JSON.parse(c.notes);
+        const n = typeof c.notes === 'string' ? JSON.parse(c.notes) : c.notes;
         if (n.hq_coords?.lat && n.hq_coords?.lng) {
           hqMap.set(c.id, { lat: n.hq_coords.lat, lng: n.hq_coords.lng });
         }
@@ -98,8 +97,8 @@ export async function getSmartDispatchSuggestions(
   const suggestions: DispatchSuggestion[] = [];
 
   for (const employee of employees) {
-    // Skip employees already offered this job
-    if (alreadyOfferedIds.has(employee.id)) continue;
+    // Skip employees already offered this job (unless already assigned)
+    if (alreadyOfferedIds.has(employee.id) && job.assigned_employee_id !== employee.id) continue;
 
     const origin = liveLocMap.get(employee.id) ?? hqMap.get(employee.id) ?? null;
     let driveMinutes: number | null = null;
@@ -129,33 +128,49 @@ export async function getSmartDispatchSuggestions(
     // Proximity score: 30min = 0, 0min = 1, unknown = 0.5
     let proximityScore = 0.5; // default when unknown
     if (driveMinutes !== null) {
-      proximityScore = Math.max(0, 1 - (driveMinutes / 30));
+      proximityScore = Math.max(0, 1 - (driveMinutes / 45));
     }
 
     const dispatchScore = (scoreNorm * 0.4) + (availabilityFactor * 0.3) + (proximityScore * 0.3);
 
+    // Hourly wage & estimated job pay
+    let hourlyWage = 25.0;
+    if ((employee as any).hourly_wage) {
+      hourlyWage = Number((employee as any).hourly_wage);
+    } else if (employee.notes) {
+      try {
+        const n = typeof employee.notes === 'string' ? JSON.parse(employee.notes) : employee.notes;
+        if (n.hourly_wage) hourlyWage = Number(n.hourly_wage);
+      } catch {}
+    }
+
+    const estDurationHours = (job.estimated_duration_minutes ? job.estimated_duration_minutes / 60 : 3);
+    const estimatedPay = Math.round(estDurationHours * hourlyWage * 100) / 100;
+
     // Build reason string
     const reasons: string[] = [];
-    if (driveMinutes !== null) reasons.push(`${driveMinutes}min drive`);
+    if (driveMinutes !== null) reasons.push(`${driveMinutes}m drive`);
     reasons.push(`${employee.score?.toFixed(1) ?? '5.0'}★`);
     if (jobsToday > 0) reasons.push(`${jobsToday} jobs today`);
     if (liveLocMap.has(employee.id)) reasons.push('📍 Live GPS');
+    reasons.push(`$${hourlyWage.toFixed(2)}/hr`);
 
     suggestions.push({
       employee_id: employee.id,
       full_name: employee.full_name,
       phone: employee.phone,
-      tier: employee.tier,
       score: employee.score ?? 5,
       zone_id: employee.zone_id,
       drive_minutes: driveMinutes,
       jobs_today: jobsToday,
+      hourly_wage: hourlyWage,
+      estimated_pay: estimatedPay,
       dispatch_score: Math.round(dispatchScore * 100) / 100,
       reason: reasons.join(' · '),
       origin,
     });
   }
 
-  // Sort by dispatch score descending
+  // Sort by dispatch score descending (best match first)
   return suggestions.sort((a, b) => b.dispatch_score - a.dispatch_score);
 }

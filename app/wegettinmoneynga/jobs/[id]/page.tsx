@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { Separator } from '@/components/ui/separator';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from '@/components/ui/badge';
 import {
   Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger,
 } from '@/components/ui/dialog';
@@ -94,6 +95,28 @@ export default function JobDetailPage() {
     }
   }
 
+  async function handleDirectAssign(employeeId: string, employeeName: string) {
+    setDispatching(true);
+    try {
+      const res = await fetch(`/api/jobs/${params.id}/dispatch`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode: 'direct_assign', employee_id: employeeId }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Failed to assign employee');
+      }
+      toast.success(`Job assigned to ${employeeName}!`);
+      setDispatchOpen(false);
+      fetchJob();
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setDispatching(false);
+    }
+  }
+
   async function handleDispatch() {
     if (selectedEmployees.length === 0) {
       toast.error('Select at least one employee');
@@ -101,24 +124,21 @@ export default function JobDetailPage() {
     }
     setDispatching(true);
     try {
-      // First ensure status is right for dispatch
-      if (job?.status === 'confirmed' || job?.status === 'rescheduled') {
-        const driveTimes = selectedEmployees.map(id => {
-          const c = availableEmployees.find(ac => ac.employee_id === id);
-          return c ? c.drive_minutes : null;
-        });
+      const driveTimes = selectedEmployees.map(id => {
+        const c = availableEmployees.find(ac => ac.employee_id === id);
+        return c ? c.drive_minutes : null;
+      });
 
-        const res = await fetch(`/api/jobs/${params.id}/dispatch`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ employee_ids: selectedEmployees, drive_times: driveTimes }),
-        });
-        if (!res.ok) throw new Error('Dispatch failed');
-        toast.success('Offers sent to employees');
-        setDispatchOpen(false);
-        setSelectedEmployees([]);
-        fetchJob();
-      }
+      const res = await fetch(`/api/jobs/${params.id}/dispatch`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode: 'broadcast_offers', employee_ids: selectedEmployees, drive_times: driveTimes }),
+      });
+      if (!res.ok) throw new Error('Dispatch failed');
+      toast.success(`Offers sent to ${selectedEmployees.length} employee${selectedEmployees.length > 1 ? 's' : ''}`);
+      setDispatchOpen(false);
+      setSelectedEmployees([]);
+      fetchJob();
     } catch (err: unknown) {
       toast.error((err as Error).message);
     } finally {
@@ -152,7 +172,16 @@ export default function JobDetailPage() {
   const nextStatuses = getValidNextStatuses(job.status);
   const customer = (job as any).customer;
   const employee = (job as any).employee;
-  const payoutAmount = job.quoted_price * 0.7;
+
+  const estimatedDurationHours = (job.estimated_duration_minutes ? job.estimated_duration_minutes / 60 : 3.5);
+  let cleanerWage = 25.0;
+  if (employee) {
+    if (employee.hourly_wage) cleanerWage = Number(employee.hourly_wage);
+    else if (employee.notes) {
+      try { cleanerWage = Number(JSON.parse(employee.notes).hourly_wage) || 25.0; } catch {}
+    }
+  }
+  const estimatedCleanerPay = estimatedDurationHours * cleanerWage;
 
   return (
     <div className="space-y-6">
@@ -332,7 +361,7 @@ export default function JobDetailPage() {
             )}
 
             <Separator />
-            <div className="flex justify-between"><span className="text-muted-foreground">Employee Payout (70%)</span><span className="font-bold">${payoutAmount.toFixed(2)}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Est. Cleaner Wage ({estimatedDurationHours.toFixed(1)}h @ ${cleanerWage.toFixed(2)}/hr)</span><span className="font-bold text-indigo-700">${estimatedCleanerPay.toFixed(2)}</span></div>
           </CardContent>
         </Card>
 
@@ -359,7 +388,7 @@ export default function JobDetailPage() {
                 <div className="flex justify-between"><span className="text-muted-foreground">Name</span><Link href={`/wegettinmoneynga/employees/${employee.id}`} className="text-primary hover:underline">{employee.full_name}</Link></div>
                 <div className="flex justify-between"><span className="text-muted-foreground">Phone</span><span>{employee.phone}</span></div>
                 <div className="flex justify-between"><span className="text-muted-foreground">Score</span><span>{employee.score}/5.00</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">Tier</span><span className="capitalize">{employee.tier}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Hourly Wage</span><span className="font-semibold text-indigo-700">${cleanerWage.toFixed(2)}/hr</span></div>
               </>
             ) : <p className="text-muted-foreground">No employee assigned</p>}
           </CardContent>
@@ -368,67 +397,104 @@ export default function JobDetailPage() {
 
       {/* Dispatch Modal */}
       <Dialog open={dispatchOpen} onOpenChange={setDispatchOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>Dispatch Job {job.job_number}</DialogTitle>
             <DialogDescription>
-              Select up to 5 employees to send this job offer to.
+              Assign directly to an employee (Primary) or select up to 5 to broadcast offers.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div className="bg-muted p-3 rounded-lg text-sm space-y-1">
-              <p><strong>{SERVICE_TYPE_LABELS[job.service_type]}</strong> — {format(new Date(job.scheduled_date), 'MMM d, yyyy')} {TIME_WINDOW_LABELS[job.scheduled_window]}</p>
-              <p>{job.address_line1}, {job.city}</p>
-              <p>Payout: <strong>${payoutAmount.toFixed(2)}</strong></p>
+          <div className="space-y-4 flex-1 overflow-hidden flex flex-col">
+            <div className="bg-slate-50 dark:bg-slate-900/50 p-3 rounded-lg border text-sm space-y-1">
+              <div className="flex justify-between items-start">
+                <div>
+                  <p className="font-semibold text-slate-900 dark:text-white">
+                    {SERVICE_TYPE_LABELS[job.service_type]} — {format(new Date(job.scheduled_date), 'MMM d, yyyy')} {TIME_WINDOW_LABELS[job.scheduled_window]}
+                  </p>
+                  <p className="text-muted-foreground text-xs">{job.address_line1}, {job.city}</p>
+                </div>
+                <Badge variant="outline" className="font-mono text-xs text-indigo-700 bg-indigo-50 border-indigo-200">
+                  Est. {estimatedDurationHours.toFixed(1)} hrs
+                </Badge>
+              </div>
             </div>
-            <Separator />
-            <p className="text-sm font-medium">Smart Suggestions</p>
+
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-semibold">Active Cleaners ({availableEmployees.length})</p>
+              <span className="text-xs text-muted-foreground">Ranked by shortest drive & score</span>
+            </div>
+
             {loadingSuggestions ? (
-              <p className="text-sm text-muted-foreground">Calculating routes and scoring...</p>
+              <p className="text-sm text-muted-foreground py-8 text-center">Calculating routes and smart matches...</p>
             ) : availableEmployees.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No employees available for this slot.</p>
+              <p className="text-sm text-muted-foreground py-8 text-center">No active employees found.</p>
             ) : (
-              <div className="space-y-2 max-h-64 overflow-y-auto">
+              <div className="space-y-2 overflow-y-auto flex-1 pr-1 max-h-72">
                 {availableEmployees.map((c, idx) => (
                   <div
                     key={c.employee_id}
-                    className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-colors ${
-                      selectedEmployees.includes(c.employee_id) ? 'border-primary bg-primary/5' : 'hover:bg-muted'
+                    className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${
+                      selectedEmployees.includes(c.employee_id) ? 'border-primary bg-primary/5' : 'hover:bg-slate-50 dark:hover:bg-slate-900/30'
                     }`}
-                    onClick={() => {
-                      setSelectedEmployees((prev) =>
-                        prev.includes(c.employee_id)
-                          ? prev.filter((id) => id !== c.employee_id)
-                          : prev.length < 5 ? [...prev, c.employee_id] : prev
-                      );
-                    }}
                   >
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium text-sm">{c.full_name}</span>
-                        {idx === 0 && <span className="bg-green-100 text-green-700 text-[10px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">Best Match</span>}
-                        {c.drive_minutes !== null && (
-                          <span className="bg-blue-100 text-blue-700 text-[10px] px-1.5 py-0.5 rounded font-medium flex items-center gap-1">
-                            <MapPin className="h-3 w-3" /> {c.drive_minutes}m drive
+                    <div className="flex items-center gap-3 flex-1 min-w-0 pr-3">
+                      <Checkbox 
+                        checked={selectedEmployees.includes(c.employee_id)}
+                        onCheckedChange={() => {
+                          setSelectedEmployees((prev) =>
+                            prev.includes(c.employee_id)
+                              ? prev.filter((id) => id !== c.employee_id)
+                              : prev.length < 5 ? [...prev, c.employee_id] : prev
+                          );
+                        }}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-semibold text-sm truncate">{c.full_name}</span>
+                          {idx === 0 && (
+                            <span className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 text-[10px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">
+                              Best Match
+                            </span>
+                          )}
+                          {c.drive_minutes !== null && (
+                            <span className="bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 text-[10px] px-1.5 py-0.5 rounded font-medium flex items-center gap-1">
+                              <MapPin className="h-3 w-3" /> {c.drive_minutes}m drive
+                            </span>
+                          )}
+                          <span className="text-[11px] font-semibold text-indigo-700 bg-indigo-50 dark:bg-indigo-950/50 px-1.5 py-0.5 rounded border border-indigo-200">
+                            ${(c.hourly_wage || 25).toFixed(2)}/hr · Est. ${(c.estimated_pay || (estimatedDurationHours * 25)).toFixed(2)}
                           </span>
-                        )}
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          Score: {c.score?.toFixed(1) ?? '5.0'}/5.0 · {c.jobs_today} job{c.jobs_today === 1 ? '' : 's'} today
+                        </p>
                       </div>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Score: {c.score}/5 · {c.jobs_today} jobs today
-                      </p>
-                      <p className="text-[10px] text-muted-foreground italic mt-0.5 opacity-80">
-                        {c.reason}
-                      </p>
                     </div>
-                    <Checkbox checked={selectedEmployees.includes(c.employee_id)} />
+
+                    <Button
+                      size="sm"
+                      disabled={dispatching}
+                      onClick={() => handleDirectAssign(c.employee_id, c.full_name)}
+                      className="h-8 px-3 text-xs bg-blue-600 hover:bg-blue-700 text-white font-semibold shrink-0"
+                    >
+                      Assign
+                    </Button>
                   </div>
                 ))}
               </div>
             )}
-            <Button onClick={handleDispatch} disabled={dispatching || selectedEmployees.length === 0} className="w-full">
-              <Send className="h-4 w-4 mr-2" />
-              Send Offer{selectedEmployees.length > 1 ? 's' : ''} ({selectedEmployees.length})
-            </Button>
+
+            <div className="pt-3 border-t flex flex-col gap-2">
+              <Button 
+                onClick={handleDispatch} 
+                disabled={dispatching || selectedEmployees.length === 0} 
+                variant="outline"
+                className="w-full"
+              >
+                <Send className="h-4 w-4 mr-2" />
+                Broadcast Offer{selectedEmployees.length > 1 ? 's' : ''} to Selected ({selectedEmployees.length})
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

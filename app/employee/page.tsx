@@ -49,6 +49,8 @@ export default function EmployeeDashboard() {
   const [activeTimesheet, setActiveTimesheet] = useState<any>(null);
   const [employee, setEmployee] = useState<Employee | null>(null);
   const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [pendingOffers, setPendingOffers] = useState<any[]>([]);
+  const [respondingOfferId, setRespondingOfferId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [isClient, setIsClient] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -128,6 +130,17 @@ export default function EmployeeDashboard() {
           total_completed: statsData.total_completed,
           approx_hours: statsData.approx_hours ?? statsData.week_hours ?? 0,
         });
+      }
+
+      // Fetch pending job offers
+      try {
+        const offersRes = await fetch('/api/offers');
+        if (offersRes.ok) {
+          const offersData = await offersRes.json();
+          setPendingOffers(Array.isArray(offersData) ? offersData : []);
+        }
+      } catch (e) {
+        console.error('Failed to load offers', e);
       }
     } catch (err) {
       console.error(err);
@@ -250,6 +263,31 @@ export default function EmployeeDashboard() {
     }
   }
 
+  async function handleOfferResponse(offerId: string, action: 'accept' | 'decline') {
+    setRespondingOfferId(offerId);
+    try {
+      const res = await fetch(`/api/offers/${offerId}/respond`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || `Failed to ${action} offer`);
+      }
+      if (action === 'accept') {
+        toast.success('Job offer accepted! Added to your schedule.');
+      } else {
+        toast.info('Job offer declined.');
+      }
+      fetchData();
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setRespondingOfferId(null);
+    }
+  }
+
 
 
   if (!isClient || (loading && !employee)) {
@@ -284,6 +322,83 @@ export default function EmployeeDashboard() {
           {isClient ? format(new Date(), 'EEEE, MMMM do, yyyy') : '...'}
         </p>
       </div>
+
+      {/* Pending Job Offers Alert */}
+      {pendingOffers.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <span className="relative flex h-2.5 w-2.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500"></span>
+            </span>
+            <h2 className="text-xs font-bold uppercase tracking-wider text-amber-900 dark:text-amber-300">
+              New Job Offer{pendingOffers.length > 1 ? 's' : ''} ({pendingOffers.length})
+            </h2>
+          </div>
+
+          <div className="space-y-3">
+            {pendingOffers.map((offer) => {
+              const job = offer.job;
+              if (!job) return null;
+              const isResponding = respondingOfferId === offer.id;
+
+              return (
+                <Card key={offer.id} className="border-2 border-amber-400 bg-amber-50/40 dark:bg-amber-950/20 shadow-sm overflow-hidden">
+                  <CardContent className="p-4 space-y-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-sm text-slate-900 dark:text-white">
+                            {SERVICE_TYPE_LABELS[job.service_type as keyof typeof SERVICE_TYPE_LABELS] || job.service_type}
+                          </span>
+                          <Badge className="bg-amber-500 text-white hover:bg-amber-600 text-[10px] font-bold">
+                            Offer
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-slate-600 dark:text-slate-400 mt-1 font-medium">
+                          {format(new Date(job.scheduled_date + 'T12:00:00'), 'EEEE, MMM d, yyyy')} · {TIME_WINDOW_LABELS[job.scheduled_window as keyof typeof TIME_WINDOW_LABELS] || job.scheduled_window}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-xs font-bold text-indigo-700 dark:text-indigo-400 block">
+                          Est. ${(offer.estimated_pay || (offer.estimated_duration_hours * 25)).toFixed(2)}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground">
+                          ~{(offer.estimated_duration_hours || 3).toFixed(1)} hrs
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300 bg-white/80 dark:bg-slate-900/60 p-2.5 rounded-lg border border-amber-200 dark:border-amber-900/50">
+                      <MapPin className="h-4 w-4 text-amber-600 shrink-0" />
+                      <span className="truncate">{job.address_line1}, {job.city}</span>
+                    </div>
+
+                    <div className="flex items-center gap-2 pt-1">
+                      <Button
+                        onClick={() => handleOfferResponse(offer.id, 'accept')}
+                        disabled={isResponding}
+                        className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-9 shadow-sm"
+                      >
+                        {isResponding ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4 mr-1.5" />}
+                        Accept Job
+                      </Button>
+                      <Button
+                        onClick={() => handleOfferResponse(offer.id, 'decline')}
+                        disabled={isResponding}
+                        variant="outline"
+                        className="flex-1 border-slate-300 text-slate-700 dark:text-slate-300 font-semibold text-xs h-9 hover:bg-slate-100 dark:hover:bg-slate-800"
+                      >
+                        Decline
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Clock In/Out Widget */}
       {!loading && (

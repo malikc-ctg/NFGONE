@@ -18,20 +18,32 @@ import type { Job } from '@/types';
 import Link from 'next/link';
 import { format } from 'date-fns';
 
+import { toast } from 'sonner';
+import { TIME_WINDOW_LABELS } from '@/types';
+
 export default function EmployeeJobsPage() {
   const [jobs, setJobs] = useState<Job[]>([]);
+  const [offers, setOffers] = useState<any[]>([]);
+  const [respondingOfferId, setRespondingOfferId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchJobs = useCallback(async () => {
     try {
-      // The backend API is now secured to only return jobs assigned to this employee
-      const res = await fetch('/api/jobs');
-      if (res.ok) {
-        const data = await res.json();
+      const [jobsRes, offersRes] = await Promise.all([
+        fetch('/api/jobs'),
+        fetch('/api/offers')
+      ]);
+
+      if (jobsRes.ok) {
+        const data = await jobsRes.json();
         setJobs(Array.isArray(data) ? data : []);
       }
+      if (offersRes.ok) {
+        const offersData = await offersRes.json();
+        setOffers(Array.isArray(offersData) ? offersData : []);
+      }
     } catch (err) {
-      console.error('Failed to load jobs', err);
+      console.error('Failed to load jobs/offers', err);
     } finally {
       setLoading(false);
     }
@@ -40,6 +52,31 @@ export default function EmployeeJobsPage() {
   useEffect(() => {
     fetchJobs();
   }, [fetchJobs]);
+
+  async function handleOfferResponse(offerId: string, action: 'accept' | 'decline') {
+    setRespondingOfferId(offerId);
+    try {
+      const res = await fetch(`/api/offers/${offerId}/respond`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || `Failed to ${action} offer`);
+      }
+      if (action === 'accept') {
+        toast.success('Job offer accepted! Added to your upcoming jobs.');
+      } else {
+        toast.info('Job offer declined.');
+      }
+      fetchJobs();
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setRespondingOfferId(null);
+    }
+  }
 
   const upcomingJobs = jobs.filter(j => ['assigned', 'accepted', 'on_the_way', 'in_progress'].includes(j.status));
   const completedJobs = jobs.filter(j => ['completed', 'reviewed', 'paid_out', 'disputed'].includes(j.status));
@@ -107,11 +144,75 @@ export default function EmployeeJobsPage() {
         <p className="text-xs text-muted-foreground mt-1">View and manage all your assigned and completed jobs.</p>
       </div>
 
-      <Tabs defaultValue="upcoming" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 mb-4">
+      <Tabs defaultValue={offers.length > 0 ? "offers" : "upcoming"} className="w-full">
+        <TabsList className={`grid w-full ${offers.length > 0 ? 'grid-cols-3' : 'grid-cols-2'} mb-4`}>
+          {offers.length > 0 && (
+            <TabsTrigger value="offers" className="text-xs font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">
+              Offers ({offers.length})
+            </TabsTrigger>
+          )}
           <TabsTrigger value="upcoming" className="text-xs font-bold uppercase tracking-wider">Upcoming ({upcomingJobs.length})</TabsTrigger>
           <TabsTrigger value="completed" className="text-xs font-bold uppercase tracking-wider">Completed ({completedJobs.length})</TabsTrigger>
         </TabsList>
+        
+        {offers.length > 0 && (
+          <TabsContent value="offers" className="space-y-4">
+            {offers.map(offer => {
+              const job = offer.job;
+              if (!job) return null;
+              const isResponding = respondingOfferId === offer.id;
+              return (
+                <Card key={offer.id} className="border-2 border-amber-400 bg-amber-50/40 dark:bg-amber-950/20 shadow-sm overflow-hidden">
+                  <CardContent className="p-4 space-y-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-sm text-foreground">{SERVICE_TYPE_LABELS[job.service_type as keyof typeof SERVICE_TYPE_LABELS] || job.service_type}</span>
+                          <span className="bg-amber-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">New Offer</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1 font-medium">
+                          {format(new Date(job.scheduled_date + 'T12:00:00'), 'EEEE, MMM d, yyyy')} · {TIME_WINDOW_LABELS[job.scheduled_window as keyof typeof TIME_WINDOW_LABELS] || job.scheduled_window}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-xs font-bold text-indigo-700 dark:text-indigo-400 block">
+                          Est. ${(offer.estimated_pay || (offer.estimated_duration_hours * 25)).toFixed(2)}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground">
+                          ~{(offer.estimated_duration_hours || 3).toFixed(1)} hrs
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 text-xs text-slate-700 dark:text-slate-300 bg-white/80 dark:bg-slate-900/60 p-2.5 rounded-lg border border-amber-200 dark:border-amber-900/50">
+                      <MapPin className="h-4 w-4 text-amber-600 shrink-0" />
+                      <span className="truncate">{job.address_line1}, {job.city}</span>
+                    </div>
+
+                    <div className="flex items-center gap-2 pt-1">
+                      <Button
+                        onClick={() => handleOfferResponse(offer.id, 'accept')}
+                        disabled={isResponding}
+                        className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-9 shadow-sm"
+                      >
+                        {isResponding ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4 mr-1.5" />}
+                        Accept Job
+                      </Button>
+                      <Button
+                        onClick={() => handleOfferResponse(offer.id, 'decline')}
+                        disabled={isResponding}
+                        variant="outline"
+                        className="flex-1 border-slate-300 text-slate-700 dark:text-slate-300 font-semibold text-xs h-9 hover:bg-slate-100 dark:hover:bg-slate-800"
+                      >
+                        Decline
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </TabsContent>
+        )}
         
         <TabsContent value="upcoming" className="space-y-4">
           {upcomingJobs.length === 0 ? (
