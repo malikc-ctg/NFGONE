@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
     const supabase = await createServiceClient();
 
     const { data, error } = await supabase
-      .from('employee_applications')
+      .from('contractor_applications')
       .select('*')
       .order('created_at', { ascending: false });
 

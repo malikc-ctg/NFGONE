@@ -43,7 +43,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'This invite has already been accepted or is no longer valid.' }, { status: 400 });
     }
 
-    // 2. Create Auth User
+    // 2. Create or update Auth User
+    let authUserId: string;
     const { data: authData, error: authError } = await supabase.auth.admin.createUser({
       email: employee.email,
       password: password,
@@ -55,12 +56,21 @@ export async function POST(request: Request) {
     });
 
     if (authError) {
-      // If user already exists in auth, that means they signed up another way.
-      // We might want to handle this gracefully in the future, but for now we fail.
-      throw new Error(`Failed to create account: ${authError.message}`);
+      // If user already exists in auth, find and update them
+      const { data: { users } } = await supabase.auth.admin.listUsers();
+      const existingAuth = users.find(u => u.email?.toLowerCase() === employee.email.toLowerCase());
+      if (existingAuth) {
+        authUserId = existingAuth.id;
+        await supabase.auth.admin.updateUserById(authUserId, {
+          password: password,
+          user_metadata: { full_name: fullName, phone: phone }
+        });
+      } else {
+        throw new Error(`Failed to create account: ${authError.message}`);
+      }
+    } else {
+      authUserId = authData.user.id;
     }
-
-    const authUserId = authData.user.id;
 
     // 3. Ensure Profile Exists
     const { error: profileError } = await supabase

@@ -25,7 +25,7 @@ export default function EmployeesPage() {
   const [zones, setZones] = useState<any[]>([]);
   const [form, setForm] = useState({
     full_name: '', email: '', phone: '',
-    tier: 'basic', payout_rate: '0.700', max_jobs_per_day: '2',
+    hourly_wage: '25.00', max_jobs_per_day: '2',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [statusFilter, setStatusFilter] = useState('All');
@@ -58,8 +58,8 @@ export default function EmployeesPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...form,
-          payout_rate: parseFloat(form.payout_rate),
-          max_jobs_per_day: parseInt(form.max_jobs_per_day),
+          hourly_wage: parseFloat(form.hourly_wage) || 25.00,
+          max_jobs_per_day: parseInt(form.max_jobs_per_day) || 2,
         }),
       });
       
@@ -70,7 +70,7 @@ export default function EmployeesPage() {
       setDrawerOpen(false);
       setForm({
         full_name: '', email: '', phone: '',
-        tier: 'basic', payout_rate: '0.700', max_jobs_per_day: '2',
+        hourly_wage: '25.00', max_jobs_per_day: '2',
       });
       fetchEmployees();
     } catch (err: any) { 
@@ -143,17 +143,21 @@ export default function EmployeesPage() {
               <div><Label>Full Name</Label><Input value={form.full_name} onChange={e => setForm({ ...form, full_name: e.target.value })} /></div>
               <div><Label>Email</Label><Input type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} /></div>
               <div><Label>Phone</Label><Input value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} /></div>
-              <div><Label>Tier</Label>
-                <Select value={form.tier} onValueChange={v => setForm({ ...form, tier: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="basic">Basic</SelectItem>
-                    <SelectItem value="pro">Pro</SelectItem>
-                    <SelectItem value="team">Team</SelectItem>
-                  </SelectContent>
-                </Select>
+              <div>
+                <Label>Hourly Wage ($/hr)</Label>
+                <div className="relative mt-1">
+                  <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-muted-foreground font-semibold">$</span>
+                  <Input 
+                    type="number" 
+                    step="0.50" 
+                    min="15" 
+                    className="pl-7" 
+                    placeholder="25.00" 
+                    value={form.hourly_wage} 
+                    onChange={e => setForm({ ...form, hourly_wage: e.target.value })} 
+                  />
+                </div>
               </div>
-              <div><Label>Payout Rate (%)</Label><Input value={form.payout_rate} onChange={e => setForm({ ...form, payout_rate: e.target.value })} /></div>
               <Button onClick={handleSubmit} disabled={isSubmitting} className="w-full">
                 {isSubmitting ? 'Sending Invite...' : 'Send Invite'}
               </Button>
@@ -177,10 +181,9 @@ export default function EmployeesPage() {
                     <TableHead>Name</TableHead>
                     <TableHead>Phone</TableHead>
                     <TableHead>Zone</TableHead>
-                    <TableHead>Tier</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead>Wage</TableHead>
                     <TableHead>Score</TableHead>
-                    <TableHead>Rate</TableHead>
                     <TableHead>Supplies</TableHead>
                     <TableHead>Insurance</TableHead>
                     <TableHead></TableHead>
@@ -188,14 +191,17 @@ export default function EmployeesPage() {
                 </TableHeader>
                 <TableBody>
                   {loadingEmployees ? (
-                    <TableRow><TableCell colSpan={10} className="text-center py-8 text-muted-foreground">Loading...</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">Loading...</TableCell></TableRow>
                   ) : employees.length === 0 ? (
-                    <TableRow><TableCell colSpan={10} className="text-center py-8 text-muted-foreground">No employees yet</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">No employees yet</TableCell></TableRow>
                   ) : employees.map(c => {
                     let insuranceStatus = 'missing';
                     let insuranceLabel = 'Missing';
+                    let wage = 25;
                     try {
                       const notes = c.notes ? JSON.parse(c.notes) : {};
+                      if (notes.hourly_wage) wage = Number(notes.hourly_wage);
+                      else if ((c as any).hourly_wage) wage = Number((c as any).hourly_wage);
                       const ins = notes.insurance_details;
                       if (ins?.status === 'verified') { insuranceStatus = 'verified'; insuranceLabel = 'Verified'; }
                       else if (ins?.file_url) { insuranceStatus = 'pending'; insuranceLabel = 'Pending'; }
@@ -205,10 +211,9 @@ export default function EmployeesPage() {
                         <TableCell className="font-medium">{c.full_name}</TableCell>
                         <TableCell className="text-xs">{c.phone}</TableCell>
                         <TableCell className="text-xs">{(c as any).zone?.name ?? '—'}</TableCell>
-                        <TableCell><Badge variant="outline" className="capitalize text-xs">{c.tier}</Badge></TableCell>
                         <TableCell><Badge variant="outline" className={`text-xs capitalize ${c.status === 'active' ? 'bg-green-100 text-green-700' : c.status === 'probation' ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'}`}>{c.status}</Badge></TableCell>
+                        <TableCell className="text-xs font-semibold text-indigo-700">${wage.toFixed(2)}/hr</TableCell>
                         <TableCell className="text-xs"><Star className="h-3 w-3 inline mr-1 text-amber-500" />{c.score}</TableCell>
-                        <TableCell className="text-xs">{(c.payout_rate * 100).toFixed(0)}%</TableCell>
                         <TableCell className="text-xs">{c.brings_own_supplies ? '✓' : '—'}</TableCell>
                         <TableCell>
                           <Badge variant="outline" className={`text-xs flex items-center gap-1 w-fit ${

@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
     const supabase = await createServiceClient();
 
     const { error } = await supabase
-      .from('employee_applications')
+      .from('contractor_applications')
       .insert({
         full_name: body.fullName,
         business_name: body.businessName || null,

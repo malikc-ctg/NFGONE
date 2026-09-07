@@ -187,9 +187,10 @@ export interface Employee {
   email: string;
   phone: string;
   zone_id: string | null;
-  tier: EmployeeTier;
+  tier?: EmployeeTier;
   status: EmployeeStatus;
-  payout_rate: number;
+  payout_rate?: number;
+  hourly_wage?: number;
   brings_own_supplies: boolean;
   has_vehicle: boolean;
   max_jobs_per_day: number;

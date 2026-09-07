@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
   ArrowLeft, Star, ShieldCheck, ShieldX, ShieldAlert,
-  FileText, ExternalLink, CheckCircle2, XCircle, Clock, Camera
+  FileText, ExternalLink, CheckCircle2, XCircle, Clock, Camera, User
 } from 'lucide-react';
 import type { Employee } from '@/types';
 import Link from 'next/link';
@@ -174,8 +174,10 @@ export default function EmployeeDetailPage() {
         <div>
           <h1 className="text-2xl font-bold">{employee.full_name}</h1>
           <div className="flex gap-2 mt-1">
-            <Badge variant="outline" className="capitalize">{employee.tier}</Badge>
             <Badge variant="outline" className={`capitalize ${employee.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>{employee.status}</Badge>
+            <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-200 font-semibold">
+              ${Number((() => { try { return JSON.parse(employee.notes || '{}').hourly_wage; } catch { return 25; } })() || (employee as any).hourly_wage || 25).toFixed(2)}/hr
+            </Badge>
           </div>
         </div>
       </div>
@@ -198,15 +200,47 @@ export default function EmployeeDetailPage() {
                     <Badge key={cz.zone.id} variant="secondary" className="text-[10px]">{cz.zone.name}</Badge>
                   ))
                 ) : (
-                  <span className="text-xs italic text-muted-foreground">No additional zones</span>
+                  <span className="text-xs text-muted-foreground">None</span>
                 )}
               </div>
             </div>
-            <div className="flex justify-between pt-2 border-t"><span className="text-muted-foreground">Vehicle</span><span>{employee.has_vehicle ? 'Yes' : 'No'}</span></div>
-            
+          </CardContent>
+        </Card>
+
+        {/* Bio */}
+        <Card>
+          <CardHeader><CardTitle>Cleaner Bio</CardTitle></CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-start gap-4">
+              <div className="relative">
+                {hasPhoto ? (
+                  <img
+                    src={photoUrl!}
+                    alt={employee.full_name}
+                    className="w-16 h-16 rounded-full object-cover border-2 border-primary/20 shadow-sm"
+                  />
+                ) : (
+                  <div className="w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center border-2 border-dashed border-slate-300">
+                    <User className="w-8 h-8 text-slate-400" />
+                  </div>
+                )}
+              </div>
+              <div className="flex-1 space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold text-sm">{employee.full_name}</span>
+                  <Badge variant="outline" className={`text-[10px] ${photoStatus === 'verified' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
+                    {photoStatus === 'verified' ? 'Photo Verified' : 'Photo Pending'}
+                  </Badge>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Joined {new Date(employee.created_at).toLocaleDateString(undefined, { month: 'short', year: 'numeric' })}
+                </p>
+              </div>
+            </div>
+
             <div className="pt-2 border-t">
-              <span className="text-muted-foreground block mb-1">Public Bio (Customer-Facing)</span>
-              <p className="text-xs bg-slate-50 p-2 rounded border border-slate-100 italic text-slate-700">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Public Customer Bio</p>
+              <p className="text-xs text-slate-600 dark:text-slate-300 italic leading-relaxed bg-slate-50 dark:bg-slate-900/50 p-2.5 rounded-lg border border-slate-100 dark:border-slate-800">
                 &ldquo;{(() => { try { return JSON.parse(employee.notes || '{}').bio || 'Dedicated professional cleaner committed to making your home sparkle.'; } catch { return 'Dedicated professional cleaner committed to making your home sparkle.'; } })()}&rdquo;
               </p>
             </div>
@@ -218,12 +252,11 @@ export default function EmployeeDetailPage() {
           <CardHeader><CardTitle>Performance</CardTitle></CardHeader>
           <CardContent className="space-y-3 text-sm">
             <div className="flex justify-between items-center"><span className="text-muted-foreground">Score</span><span className="flex items-center gap-1"><Star className="h-4 w-4 text-amber-500" /><span className="font-bold text-lg">{employee.score}</span>/5.00</span></div>
-            <div className="flex justify-between"><span className="text-muted-foreground">Payout Rate</span><span>{(employee.payout_rate * 100).toFixed(0)}%</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Hourly Wage</span><span className="font-semibold text-indigo-700">${Number((() => { try { return JSON.parse(employee.notes || '{}').hourly_wage; } catch { return 25; } })() || (employee as any).hourly_wage || 25).toFixed(2)}/hr</span></div>
             <div className="flex justify-between"><span className="text-muted-foreground">Max Jobs/Day</span><span>{employee.max_jobs_per_day}</span></div>
             <div className="flex justify-between"><span className="text-muted-foreground">Own Supplies</span><span>{employee.brings_own_supplies ? 'Yes' : 'No'}</span></div>
           </CardContent>
         </Card>
-
         {/* Compliance */}
         <Card>
           <CardHeader><CardTitle>Compliance</CardTitle></CardHeader>

@@ -12,7 +12,7 @@ export async function POST(request: Request) {
     // if (auth instanceof NextResponse) return auth;
 
     const body = await request.json();
-    const { full_name, email, phone, zone_id, tier, payout_rate, brings_own_supplies, has_vehicle, max_jobs_per_day } = body;
+    const { full_name, email, phone, zone_id, tier, payout_rate, hourly_wage, brings_own_supplies, has_vehicle, max_jobs_per_day } = body;
 
     if (!email || !full_name || !phone) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -20,32 +20,37 @@ export async function POST(request: Request) {
 
     const supabase = await createServiceClient();
 
-    // 1. Check if user already exists in auth
-    const { data: existingProfile } = await supabase
-      .from('profiles')
-      .select('id')
-      .eq('email', email)
-      .maybeSingle();
-    
-    if (existingProfile) {
-        return NextResponse.json({ error: 'User with this email already exists' }, { status: 400 });
-    }
-
-    // 2. Check if a employee record already exists with this email
+    // Check if an employee record already exists with this email
     const { data: existingEmployee } = await supabase
       .from('employees')
-      .select('id, status')
+      .select('id, status, notes')
       .eq('email', email)
       .maybeSingle();
 
     let employeeId = existingEmployee?.id;
 
-    // 3. Create or update the employee record
-    if (existingEmployee) {
-      if (existingEmployee.status !== 'invited') {
-        return NextResponse.json({ error: 'A employee with this email already exists and is not pending.' }, { status: 400 });
+    // Create or update employee metadata with hourly_wage
+    const wageNum = parseFloat(hourly_wage) || 25.00;
+    let existingNotes: Record<string, any> = {};
+    if (existingEmployee?.notes) {
+      try {
+        existingNotes = typeof existingEmployee.notes === 'string' 
+          ? JSON.parse(existingEmployee.notes) 
+          : existingEmployee.notes;
+        if (typeof existingNotes !== 'object' || existingNotes === null) {
+          existingNotes = { text: String(existingEmployee.notes) };
+        }
+      } catch {
+        existingNotes = { text: existingEmployee.notes };
       }
-      // Update existing invite
+    }
+    const updatedNotes = JSON.stringify({
+      ...existingNotes,
+      hourly_wage: wageNum,
+    });
+
+    if (existingEmployee) {
+      // Re-invite or update the employee record
       const { error: updateError } = await supabase
         .from('employees')
         .update({
@@ -57,16 +62,17 @@ export async function POST(request: Request) {
           brings_own_supplies: !!brings_own_supplies,
           has_vehicle: !!has_vehicle,
           max_jobs_per_day: parseInt(max_jobs_per_day) || 2,
+          notes: updatedNotes,
         })
         .eq('id', employeeId);
         
       if (updateError) throw new Error(`Failed to update employee record: ${updateError.message}`);
     } else {
-      // Create new invite
+      // Create new employee invite
       const { data: newEmployee, error: insertError } = await supabase
         .from('employees')
         .insert({
-          profile_id: null, // Will be set during onboarding
+          profile_id: null,
           full_name,
           email,
           phone,
@@ -77,6 +83,7 @@ export async function POST(request: Request) {
           brings_own_supplies: !!brings_own_supplies,
           has_vehicle: !!has_vehicle,
           max_jobs_per_day: parseInt(max_jobs_per_day) || 2,
+          notes: updatedNotes,
         })
         .select('id')
         .single();

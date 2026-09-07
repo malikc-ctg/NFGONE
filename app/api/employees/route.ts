@@ -70,7 +70,7 @@ export async function GET() {
     const supabase = await createServiceClient();
     const { data, error } = await supabase
       .from('employees')
-      .select('*, zone:zones!employees_zone_id_fkey(*), employee_zones(zone:zones(*))')
+      .select('*, zone:zones!contractors_zone_id_fkey(*), employee_zones:contractor_zones(zone:zones(*))')
       .neq('status', 'deleted')
       .order('full_name');
 

@@ -10,7 +10,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     const supabase = await createServiceClient();
 
     const { data, error } = await supabase
-      .from('employee_applications')
+      .from('contractor_applications')
       .select('*')
       .eq('id', params.id)
       .single();
@@ -51,7 +51,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     updateData.updated_at = new Date().toISOString();
 
     const { data, error } = await supabase
-      .from('employee_applications')
+      .from('contractor_applications')
       .update(updateData)
       .eq('id', params.id)
       .select()
