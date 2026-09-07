@@ -246,15 +246,22 @@ export default function OnboardingPage() {
         if (passwordError) throw passwordError;
 
         if (additionalZoneIds.length > 0) {
-          await supabase.from('employee_zones').delete().eq('employee_id', employee?.id);
+          await supabase.from('contractor_zones').delete().eq('contractor_id', employee?.id);
           const zoneInserts = additionalZoneIds.map(zId => ({
-            employee_id: employee?.id,
+            contractor_id: employee?.id,
             zone_id: zId
           }));
-          await supabase.from('employee_zones').insert(zoneInserts);
+          await supabase.from('contractor_zones').insert(zoneInserts);
         }
 
-        const existingNotes = employee?.notes ? JSON.parse(employee.notes) : {};
+        let existingNotes: any = {};
+        if (employee?.notes) {
+          try {
+            existingNotes = typeof employee.notes === 'string' ? JSON.parse(employee.notes) : employee.notes;
+          } catch {
+            existingNotes = {};
+          }
+        }
         const updatedNotes = {
             ...existingNotes,
             hq_address: hqAddress,

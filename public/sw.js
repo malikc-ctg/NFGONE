@@ -49,8 +49,14 @@ self.addEventListener('fetch', (event) => {
       event.respondWith(
         fetch(event.request)
           .then((response) => {
-            const clone = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+            if (response && response.status === 200 && !response.bodyUsed) {
+              try {
+                const clone = response.clone();
+                caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone)).catch(() => {});
+              } catch (e) {
+                // Ignore clone errors
+              }
+            }
             return response;
           })
           .catch(async () => {
@@ -75,9 +81,16 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
       const fetchPromise = fetch(event.request).then((networkResponse) => {
-        caches.open(CACHE_NAME).then((cache) => {
-          cache.put(event.request, networkResponse.clone());
-        });
+        if (networkResponse && networkResponse.status === 200 && !networkResponse.bodyUsed) {
+          try {
+            const clone = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(event.request, clone);
+            }).catch(() => {});
+          } catch (e) {
+            // Ignore clone errors
+          }
+        }
         return networkResponse;
       }).catch(() => {
         // If fetch fails and no cache, and it's a navigation request, show a generic offline page or fallback to the app shell

@@ -1,6 +1,11 @@
-CREATE TYPE timesheet_status AS ENUM ('open', 'completed', 'approved', 'rejected');
+DO $$ 
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'timesheet_status') THEN
+    CREATE TYPE timesheet_status AS ENUM ('open', 'completed', 'approved', 'rejected');
+  END IF;
+END $$;
 
-CREATE TABLE employee_timesheets (
+CREATE TABLE IF NOT EXISTS employee_timesheets (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   employee_id UUID NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
   work_date DATE NOT NULL DEFAULT CURRENT_DATE,
@@ -36,6 +41,15 @@ CREATE POLICY "Admins can do everything on timesheets"
 ON employee_timesheets FOR ALL
 USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin'));
 
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS update_employee_timesheets_updated_at ON employee_timesheets;
 CREATE TRIGGER update_employee_timesheets_updated_at
 BEFORE UPDATE ON employee_timesheets
 FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();

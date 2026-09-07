@@ -18,13 +18,39 @@ export async function GET() {
 
     // Use service client to bypass RLS recursion issues while still filtering by user.id
     const serviceClient = await createServiceClient();
-    const { data: employee, error: dbError } = await serviceClient
+
+    // 1. Try finding employee by profile_id
+    let { data: employee, error: dbError } = await serviceClient
       .from('employees')
-      .select('*, zone:zones!employees_zone_id_fkey(*), selected_zones:employee_zones(zone:zones(*))')
+      .select('*, zone:zones!contractors_zone_id_fkey(*), selected_zones:contractor_zones(zone:zones(*))')
       .eq('profile_id', user.id)
-      .single();
+      .maybeSingle();
 
+    // 2. If not found by profile_id, check if an employee record exists with this email (e.g. invited employee) and link it
+    if (!employee && user.email) {
+      const { data: empByEmail } = await serviceClient
+        .from('employees')
+        .select('id, profile_id')
+        .ilike('email', user.email)
+        .maybeSingle();
 
+      if (empByEmail) {
+        // Link profile_id to this employee
+        await serviceClient
+          .from('employees')
+          .update({ profile_id: user.id })
+          .eq('id', empByEmail.id);
+
+        const { data: linkedEmp, error: linkedError } = await serviceClient
+          .from('employees')
+          .select('*, zone:zones!contractors_zone_id_fkey(*), selected_zones:contractor_zones(zone:zones(*))')
+          .eq('id', empByEmail.id)
+          .single();
+
+        employee = linkedEmp;
+        dbError = linkedError;
+      }
+    }
 
     if (dbError) {
       console.error('Database error fetching employee:', dbError);
@@ -38,7 +64,7 @@ export async function GET() {
     // Flatten selected_zones for easier frontend use
     const formattedEmployee = {
       ...employee,
-      selected_zone_ids: employee.selected_zones?.map((sz: any) => sz.zone.id) || []
+      selected_zone_ids: employee.selected_zones?.map((sz: any) => sz.zone?.id || sz.zone_id) || []
     };
 
     return NextResponse.json(formattedEmployee);
@@ -49,9 +75,9 @@ export async function GET() {
 
 export async function PATCH(request: Request) {
   try {
-  // Auth check
-  const auth = await requireAuth();
-  if (auth instanceof NextResponse) return auth;
+    // Auth check
+    const auth = await requireAuth();
+    if (auth instanceof NextResponse) return auth;
 
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -67,15 +93,38 @@ export async function PATCH(request: Request) {
     const serviceClient = await createServiceClient();
 
     // First fetch current employee to get notes
-    const { data: currentEmployee, error: fetchError } = await serviceClient
+    let { data: currentEmployee, error: fetchError } = await serviceClient
       .from('employees')
       .select('id, notes')
       .eq('profile_id', user.id)
-      .single();
+      .maybeSingle();
 
-    if (fetchError) throw fetchError;
+    if (!currentEmployee && user.email) {
+      const { data: empByEmail } = await serviceClient
+        .from('employees')
+        .select('id, notes')
+        .ilike('email', user.email)
+        .maybeSingle();
+      if (empByEmail) {
+        currentEmployee = empByEmail;
+      }
+    }
 
-    const existingNotes = currentEmployee.notes ? JSON.parse(currentEmployee.notes) : {};
+    if (!currentEmployee) {
+      return NextResponse.json({ error: 'Employee record not found' }, { status: 404 });
+    }
+
+    let existingNotes: any = {};
+    if (currentEmployee.notes) {
+      try {
+        existingNotes = typeof currentEmployee.notes === 'string'
+          ? JSON.parse(currentEmployee.notes)
+          : currentEmployee.notes;
+      } catch {
+        existingNotes = {};
+      }
+    }
+
     if (max_radius !== undefined) {
       existingNotes.max_radius = max_radius;
     }
@@ -84,15 +133,17 @@ export async function PATCH(request: Request) {
     }
 
     // 1. Update basic employee info and notes
+    const updatePayload: any = {
+      notes: JSON.stringify(existingNotes),
+      updated_at: new Date().toISOString()
+    };
+    if (full_name !== undefined) updatePayload.full_name = full_name;
+    if (phone !== undefined) updatePayload.phone = phone;
+
     const { data: employee, error: employeeError } = await serviceClient
       .from('employees')
-      .update({
-        full_name,
-        phone,
-        notes: JSON.stringify(existingNotes),
-        updated_at: new Date().toISOString()
-      })
-      .eq('profile_id', user.id)
+      .update(updatePayload)
+      .eq('id', currentEmployee.id)
       .select()
       .single();
 
@@ -102,24 +153,23 @@ export async function PATCH(request: Request) {
     if (Array.isArray(zone_ids)) {
       // Clear existing
       await serviceClient
-        .from('employee_zones')
+        .from('contractor_zones')
         .delete()
-        .eq('employee_id', employee.id);
+        .eq('contractor_id', currentEmployee.id);
 
       // Insert new
       if (zone_ids.length > 0) {
         const zoneInserts = zone_ids.map(id => ({
-          employee_id: employee.id,
+          contractor_id: currentEmployee.id,
           zone_id: id
         }));
         const { error: syncError } = await serviceClient
-          .from('employee_zones')
+          .from('contractor_zones')
           .insert(zoneInserts);
         
         if (syncError) throw syncError;
       }
     }
-
 
     return NextResponse.json(employee);
   } catch (err: unknown) {

@@ -88,7 +88,14 @@ export async function POST(request: Request) {
     }
 
     // 4. Update Employee Record
-    const existingNotes = employee.notes ? JSON.parse(employee.notes) : {};
+    let existingNotes: any = {};
+    if (employee.notes) {
+      try {
+        existingNotes = typeof employee.notes === 'string' ? JSON.parse(employee.notes) : employee.notes;
+      } catch {
+        existingNotes = { text: employee.notes };
+      }
+    }
     const updatedNotes = {
         ...existingNotes,
         hq_address: hqAddress,
@@ -116,12 +123,12 @@ export async function POST(request: Request) {
 
     // 5. Insert Additional Zones
     if (additionalZoneIds && additionalZoneIds.length > 0) {
-      await supabase.from('employee_zones').delete().eq('employee_id', invite_id);
+      await supabase.from('contractor_zones').delete().eq('contractor_id', invite_id);
       const zoneInserts = additionalZoneIds.map((zId: string) => ({
-        employee_id: invite_id,
+        contractor_id: invite_id,
         zone_id: zId
       }));
-      await supabase.from('employee_zones').insert(zoneInserts);
+      await supabase.from('contractor_zones').insert(zoneInserts);
     }
 
     return NextResponse.json({ success: true, email: employee.email });
