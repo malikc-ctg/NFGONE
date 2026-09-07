@@ -21,11 +21,22 @@ export async function POST(request: Request) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const { data: employee } = await supabase
+    let { data: employee } = await supabase
       .from('employees')
       .select('id')
       .eq('profile_id', user.id)
-      .single();
+      .maybeSingle();
+
+    if (!employee && user.email) {
+      const { data: empByEmail } = await supabase
+        .from('employees')
+        .select('id')
+        .ilike('email', user.email)
+        .maybeSingle();
+      if (empByEmail) {
+        employee = empByEmail;
+      }
+    }
 
     if (!employee) {
       return NextResponse.json({ error: 'Employee not found' }, { status: 404 });

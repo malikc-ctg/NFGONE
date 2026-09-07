@@ -28,15 +28,35 @@ export async function GET(request: Request) {
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     // Fetch the employee record
-    const { data: employee, error: empError } = await supabase
+    let { data: employee, error: empError } = await supabase
       .from('employees')
       .select('id')
       .eq('profile_id', user.id)
-      .single();
+      .maybeSingle();
 
-    if (empError || !employee) {
+    if (!employee && user.email) {
+      const { data: empByEmail } = await supabase
+        .from('employees')
+        .select('id')
+        .ilike('email', user.email)
+        .maybeSingle();
+      if (empByEmail) {
+        employee = empByEmail;
+      }
+    }
+
+    if (!employee) {
       return NextResponse.json({ error: 'Employee not found' }, { status: 404 });
     }
+
+    // Always check for an active open timesheet
+    const { data: openTimesheet } = await supabase
+      .from('employee_timesheets')
+      .select('*')
+      .eq('employee_id', employee.id)
+      .eq('status', 'open')
+      .order('clock_in_time', { ascending: false })
+      .maybeSingle();
 
     // Get URL params
     const { searchParams } = new URL(request.url);
@@ -55,7 +75,13 @@ export async function GET(request: Request) {
     const { data, error } = await query;
     if (error) throw error;
 
-    return NextResponse.json(data);
+    let results = data || [];
+    // If there is an open timesheet and it's not already in results, prepend it
+    if (openTimesheet && !results.some((t: any) => t.id === openTimesheet.id)) {
+      results = [openTimesheet, ...results];
+    }
+
+    return NextResponse.json(results);
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
@@ -80,26 +106,39 @@ export async function POST(request: Request) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const { data: employee } = await supabase
+    let { data: employee } = await supabase
       .from('employees')
       .select('id')
       .eq('profile_id', user.id)
-      .single();
+      .maybeSingle();
+
+    if (!employee && user.email) {
+      const { data: empByEmail } = await supabase
+        .from('employees')
+        .select('id')
+        .ilike('email', user.email)
+        .maybeSingle();
+      if (empByEmail) {
+        employee = empByEmail;
+      }
+    }
 
     if (!employee) {
       return NextResponse.json({ error: 'Employee not found' }, { status: 404 });
     }
 
-    // Check if there is already an open timesheet for today
+    // Check if there is already an open timesheet
     const { data: existing } = await supabase
       .from('employee_timesheets')
-      .select('id')
+      .select('*')
       .eq('employee_id', employee.id)
       .eq('status', 'open')
+      .order('clock_in_time', { ascending: false })
       .maybeSingle();
 
     if (existing) {
-      return NextResponse.json({ error: 'Already clocked in' }, { status: 400 });
+      // Return the existing open timesheet gracefully
+      return NextResponse.json(existing, { status: 200 });
     }
 
     const body = await request.json().catch(() => ({}));

@@ -106,11 +106,16 @@ export default function EmployeeDashboard() {
 
       setTodaysJobs(filteredJobs);
 
-      const tsRes = await fetch(`/api/employees/time?date=${today}`);
+      const tsRes = await fetch('/api/employees/time');
       if (tsRes.ok) {
         const tsData = await tsRes.json();
-        if (tsData && tsData.length > 0) {
+        const openTs = Array.isArray(tsData) ? tsData.find((t: any) => t.status === 'open') : null;
+        if (openTs) {
+          setActiveTimesheet(openTs);
+        } else if (Array.isArray(tsData) && tsData.length > 0) {
           setActiveTimesheet(tsData[0]);
+        } else {
+          setActiveTimesheet(null);
         }
       }
 
@@ -208,7 +213,11 @@ export default function EmployeeDashboard() {
         const err = await res.json();
         throw new Error(err.error || 'Failed to clock in');
       }
-      
+
+      const newTs = await res.json();
+      if (newTs && newTs.status === 'open') {
+        setActiveTimesheet(newTs);
+      }
       toast.success('Clocked in successfully!');
       fetchData();
     } catch (err: any) {
@@ -225,6 +234,12 @@ export default function EmployeeDashboard() {
       if (!res.ok) {
         const err = await res.json();
         throw new Error(err.error || 'Failed to clock out');
+      }
+      const finishedTs = await res.json().catch(() => null);
+      if (finishedTs) {
+        setActiveTimesheet(finishedTs);
+      } else {
+        setActiveTimesheet(null);
       }
       toast.success('Clocked out successfully!');
       fetchData();
