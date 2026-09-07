@@ -44,6 +44,14 @@ export const DURATION_OPTIONS = [
   { value: 360, label: '6 Hours' },
   { value: 420, label: '7 Hours' },
   { value: 480, label: '8 Hours' },
+  { value: 510, label: '8.5 Hours' },
+  { value: 540, label: '9 Hours' },
+  { value: 570, label: '9.5 Hours' },
+  { value: 600, label: '10 Hours' },
+  { value: 630, label: '10.5 Hours' },
+  { value: 660, label: '11 Hours' },
+  { value: 690, label: '11.5 Hours' },
+  { value: 720, label: '12 Hours' },
 ];
 
 /**
