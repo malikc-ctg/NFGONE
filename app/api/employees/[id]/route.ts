@@ -75,10 +75,34 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     const body = await request.json();
     
     const supabase = await createServiceClient();
+
+    const updatePayload: Record<string, any> = { ...body };
+
+    // If hourly_wage is present, ensure both the column and notes JSON are kept in sync
+    if (body.hourly_wage !== undefined) {
+      const wage = parseFloat(body.hourly_wage);
+      updatePayload.hourly_wage = isNaN(wage) ? 25.00 : Math.round(wage * 100) / 100;
+
+      // Fetch existing notes
+      const { data: emp } = await supabase
+        .from('employees')
+        .select('notes')
+        .eq('id', id)
+        .single();
+
+      if (emp) {
+        let notesObj: Record<string, any> = {};
+        try {
+          notesObj = typeof emp.notes === 'string' ? JSON.parse(emp.notes) : (emp.notes || {});
+        } catch {}
+        notesObj.hourly_wage = updatePayload.hourly_wage;
+        updatePayload.notes = JSON.stringify(notesObj);
+      }
+    }
     
     const { data, error } = await supabase
       .from('employees')
-      .update(body)
+      .update(updatePayload)
       .eq('id', id)
       .select()
       .single();

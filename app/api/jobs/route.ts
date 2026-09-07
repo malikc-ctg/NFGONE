@@ -64,13 +64,11 @@ export async function POST(request: NextRequest) {
       })
       .catch((err) => console.error('Geocoding failed for job:', data.id, err));
 
-    // Auto-dispatch: create job_offers for all verified, active employees in this zone (non-blocking)
+    // Auto-dispatch: create job_offers for all active employees across company (non-blocking)
     supabase
       .from('employees')
       .select('id')
-      .eq('zone_id', zone_id)
       .eq('status', 'active')
-      .eq('insurance_on_file', true)
       .then(async ({ data: employees }) => {
         if (!employees || employees.length === 0) return;
         const expiresAt = new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString(); // 4 hours

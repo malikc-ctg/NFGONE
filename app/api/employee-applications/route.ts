@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
     const requiredFields = [
       'fullName', 'email', 'phone', 'applicantType', 
       'yearsExperience', 'primaryCity', 'serviceAreas',
-      'hasLiabilityInsurance', 'hasRegisteredBusiness', 
+      'hasRegisteredBusiness', 
       'legallyAllowedToWorkOntario', 'hasGoogleBusinessProfile',
       'businessDescription'
     ];
@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
         travel_radius: body.travelRadius || null,
         weekdays_available: body.weekdaysAvailable || [],
         preferred_job_types: body.preferredJobTypes || [],
-        has_liability_insurance: body.hasLiabilityInsurance,
+        has_liability_insurance: body.hasLiabilityInsurance || 'Covered by Company',
         insurance_provider: body.insuranceProvider || null,
         has_registered_business: body.hasRegisteredBusiness,
         business_registration_number: body.businessRegistrationNumber || null,

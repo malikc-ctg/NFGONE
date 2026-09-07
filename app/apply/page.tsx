@@ -40,7 +40,7 @@ export default function ApplyPage() {
     travelRadius: '',
     weekdaysAvailable: [] as string[],
     preferredJobTypes: [] as string[],
-    hasLiabilityInsurance: '',
+    hasLiabilityInsurance: 'Company Covered',
     insuranceProvider: '',
     hasRegisteredBusiness: '',
     businessRegistrationNumber: '',
@@ -426,18 +426,12 @@ export default function ApplyPage() {
                           <h3 className="text-lg font-semibold tracking-wide">Insurance & Compliance</h3>
                         </div>
                         <div className="grid sm:grid-cols-2 gap-6">
-                          <div className="space-y-2">
-                            <Label className="text-white/70">Liability Insurance? <span className="text-red-400">*</span></Label>
-                            <Select required value={form.hasLiabilityInsurance} onValueChange={v => setForm({...form, hasLiabilityInsurance: v})}>
-                              <SelectTrigger className="bg-white/5 border-white/10 text-white focus:ring-white/40 focus:border-white/40 h-11">
-                                <SelectValue placeholder="Select" />
-                              </SelectTrigger>
-                              <SelectContent className="bg-[#021A35] text-white border-white/10">
-                                <SelectItem value="Yes" className="focus:bg-white/10 focus:text-white">Yes</SelectItem>
-                                <SelectItem value="No" className="focus:bg-white/10 focus:text-white">No</SelectItem>
-                                <SelectItem value="In Progress" className="focus:bg-white/10 focus:text-white">In Progress</SelectItem>
-                              </SelectContent>
-                            </Select>
+                          <div className="space-y-2 sm:col-span-2">
+                            <Label className="text-white/70">Liability Insurance</Label>
+                            <div className="bg-emerald-950/40 border border-emerald-500/30 rounded-lg p-3 text-xs text-emerald-200 flex items-center gap-2">
+                              <ShieldCheck className="h-4 w-4 text-emerald-400 shrink-0" />
+                              <span>Commercial General Liability Insurance is fully provided and maintained by Sea of Blue for all cleaning staff. Personal contractor insurance is not required.</span>
+                            </div>
                           </div>
                           <div className="space-y-2">
                             <Label className="text-white/70">Insurance Provider (Optional)</Label>

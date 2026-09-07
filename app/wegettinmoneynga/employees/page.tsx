@@ -11,7 +11,10 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Star, Trash2, ShieldCheck, ShieldAlert, ShieldX, Eye, Check } from 'lucide-react';
+import { Plus, Star, Trash2, ShieldCheck, ShieldAlert, ShieldX, Eye, Check, Pencil, DollarSign } from 'lucide-react';
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import type { Employee } from '@/types';
 import Link from 'next/link';
@@ -23,6 +26,10 @@ export default function EmployeesPage() {
   const [loadingApplications, setLoadingApplications] = useState(true);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [zones, setZones] = useState<any[]>([]);
+  const [wageModalOpen, setWageModalOpen] = useState(false);
+  const [selectedEmployeeForWage, setSelectedEmployeeForWage] = useState<{ id: string; name: string; wage: number } | null>(null);
+  const [newWageInput, setNewWageInput] = useState('25.00');
+  const [savingWage, setSavingWage] = useState(false);
   const [form, setForm] = useState({
     full_name: '', email: '', phone: '',
     hourly_wage: '25.00', max_jobs_per_day: '2',
@@ -112,6 +119,37 @@ export default function EmployeesPage() {
     }
   }
 
+  function openWageModal(id: string, name: string, currentWage: number) {
+    setSelectedEmployeeForWage({ id, name, wage: currentWage });
+    setNewWageInput(currentWage.toFixed(2));
+    setWageModalOpen(true);
+  }
+
+  async function handleSaveWage() {
+    if (!selectedEmployeeForWage) return;
+    const wageNum = parseFloat(newWageInput);
+    if (isNaN(wageNum) || wageNum <= 0) {
+      toast.error('Please enter a valid hourly wage');
+      return;
+    }
+    setSavingWage(true);
+    try {
+      const res = await fetch(`/api/employees/${selectedEmployeeForWage.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ hourly_wage: wageNum })
+      });
+      if (!res.ok) throw new Error('Failed to update wage');
+      toast.success(`Updated ${selectedEmployeeForWage.name}'s wage to $${wageNum.toFixed(2)}/hr`);
+      setWageModalOpen(false);
+      fetchEmployees();
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to update wage');
+    } finally {
+      setSavingWage(false);
+    }
+  }
+
 
   const getStatusBadgeVariant = (status: string) => {
     switch(status) {
@@ -185,7 +223,7 @@ export default function EmployeesPage() {
                     <TableHead>Wage</TableHead>
                     <TableHead>Score</TableHead>
                     <TableHead>Supplies</TableHead>
-                    <TableHead>Insurance</TableHead>
+                    <TableHead>Coverage</TableHead>
                     <TableHead></TableHead>
                   </TableRow>
                 </TableHeader>
@@ -195,16 +233,11 @@ export default function EmployeesPage() {
                   ) : employees.length === 0 ? (
                     <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">No employees yet</TableCell></TableRow>
                   ) : employees.map(c => {
-                    let insuranceStatus = 'missing';
-                    let insuranceLabel = 'Missing';
                     let wage = 25;
                     try {
                       const notes = c.notes ? JSON.parse(c.notes) : {};
                       if (notes.hourly_wage) wage = Number(notes.hourly_wage);
                       else if ((c as any).hourly_wage) wage = Number((c as any).hourly_wage);
-                      const ins = notes.insurance_details;
-                      if (ins?.status === 'verified') { insuranceStatus = 'verified'; insuranceLabel = 'Verified'; }
-                      else if (ins?.file_url) { insuranceStatus = 'pending'; insuranceLabel = 'Pending'; }
                     } catch { /* no-op */ }
                     return (
                       <TableRow key={c.id}>
@@ -212,26 +245,39 @@ export default function EmployeesPage() {
                         <TableCell className="text-xs">{c.phone}</TableCell>
                         <TableCell className="text-xs">{(c as any).zone?.name ?? '—'}</TableCell>
                         <TableCell><Badge variant="outline" className={`text-xs capitalize ${c.status === 'active' ? 'bg-green-100 text-green-700' : c.status === 'probation' ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'}`}>{c.status}</Badge></TableCell>
-                        <TableCell className="text-xs font-semibold text-indigo-700">${wage.toFixed(2)}/hr</TableCell>
+                        <TableCell>
+                          <button
+                            onClick={() => openWageModal(c.id, c.full_name, wage)}
+                            className="group flex items-center gap-1.5 text-xs font-semibold text-indigo-700 hover:text-indigo-900 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/50 px-2 py-1 rounded border border-indigo-200 transition-colors"
+                            title="Click to edit wage"
+                          >
+                            ${wage.toFixed(2)}/hr
+                            <Pencil className="h-3 w-3 opacity-50 group-hover:opacity-100" />
+                          </button>
+                        </TableCell>
                         <TableCell className="text-xs"><Star className="h-3 w-3 inline mr-1 text-amber-500" />{c.score}</TableCell>
                         <TableCell className="text-xs">{c.brings_own_supplies ? '✓' : '—'}</TableCell>
                         <TableCell>
-                          <Badge variant="outline" className={`text-xs flex items-center gap-1 w-fit ${
-                            insuranceStatus === 'verified' ? 'bg-green-100 text-green-700 border-green-200'
-                            : insuranceStatus === 'pending' ? 'bg-amber-100 text-amber-700 border-amber-200'
-                            : 'bg-red-50 text-red-600 border-red-200'
-                          }`}>
-                            {insuranceStatus === 'verified' ? <ShieldCheck className="h-3 w-3" /> : insuranceStatus === 'pending' ? <ShieldAlert className="h-3 w-3" /> : <ShieldX className="h-3 w-3" />}
-                            {insuranceLabel}
+                          <Badge variant="outline" className="text-xs flex items-center gap-1 w-fit bg-emerald-50 text-emerald-700 border-emerald-200 font-medium">
+                            <ShieldCheck className="h-3 w-3 text-emerald-600" />
+                            Company Policy
                           </Badge>
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
-                            {c.status === 'invited' && insuranceStatus === 'verified' && (
+                            {c.status === 'invited' && (
                               <Button variant="ghost" size="sm" className="text-green-600 hover:text-green-700 hover:bg-green-50" onClick={() => handleActivate(c.id, c.full_name)}>
                                 <Check className="h-4 w-4 mr-1" /> Activate
                               </Button>
                             )}
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="text-xs text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50"
+                              onClick={() => openWageModal(c.id, c.full_name, wage)}
+                            >
+                              Edit Wage
+                            </Button>
                             <Link href={`/wegettinmoneynga/employees/${c.id}`}>
                               <Button variant="ghost" size="sm">View</Button>
                             </Link>
@@ -314,6 +360,62 @@ export default function EmployeesPage() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Edit Wage Dialog */}
+      <Dialog open={wageModalOpen} onOpenChange={setWageModalOpen}>
+        <DialogContent className="sm:max-w-[420px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <DollarSign className="h-5 w-5 text-indigo-600" />
+              Edit Hourly Wage
+            </DialogTitle>
+            <DialogDescription>
+              Update the base hourly compensation rate for <span className="font-semibold text-foreground">{selectedEmployeeForWage?.name}</span>.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label>Hourly Wage ($/hr)</Label>
+              <div className="relative">
+                <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-muted-foreground font-semibold">$</span>
+                <Input
+                  type="number"
+                  step="0.50"
+                  min="15"
+                  className="pl-7 text-base font-semibold"
+                  placeholder="25.00"
+                  value={newWageInput}
+                  onChange={e => setNewWageInput(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="bg-slate-50 dark:bg-slate-900/50 p-3 rounded-lg border text-xs text-muted-foreground space-y-1.5">
+              <p className="font-semibold text-slate-800 dark:text-slate-200">Estimated Job Pay Breakdown:</p>
+              <div className="flex justify-between">
+                <span>Standard 3-hour clean:</span>
+                <span className="font-semibold text-indigo-700 dark:text-indigo-400">
+                  ${((parseFloat(newWageInput) || 0) * 3).toFixed(2)}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span>Full 8-hour workday:</span>
+                <span className="font-semibold text-indigo-700 dark:text-indigo-400">
+                  ${((parseFloat(newWageInput) || 0) * 8).toFixed(2)}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setWageModalOpen(false)}>Cancel</Button>
+            <Button onClick={handleSaveWage} disabled={savingWage} className="bg-indigo-600 hover:bg-indigo-700 text-white">
+              {savingWage ? 'Saving...' : 'Save Wage'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
