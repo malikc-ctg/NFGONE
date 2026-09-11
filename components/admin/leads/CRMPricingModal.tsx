@@ -51,7 +51,9 @@ import { CommercialCarpetSection }   from './CommercialCarpetSection';
 import { StripAndWaxSection }        from './StripAndWaxSection';
 import { CommercialCleaningSection } from './CommercialCleaningSection';
 
-// ── Service tab type ──
+// ── Service sectors and services ──
+type Sector = 'residential' | 'commercial';
+
 type ServiceTab =
   | 'residential_cleaning'
   | 'residential_carpet'
@@ -59,13 +61,29 @@ type ServiceTab =
   | 'strip_and_wax'
   | 'commercial_cleaning';
 
-const SERVICE_TABS: { value: ServiceTab; label: string }[] = [
-  { value: 'residential_cleaning', label: 'Residential Cleaning' },
-  { value: 'residential_carpet',   label: 'Residential Carpet'  },
-  { value: 'commercial_carpet',    label: 'Commercial Carpet'   },
-  { value: 'strip_and_wax',        label: 'Strip & Wax'         },
-  { value: 'commercial_cleaning',  label: 'Office Cleaning'     },
+interface ServiceOption {
+  value: ServiceTab;
+  label: string;
+  badge?: string;
+}
+
+const RESIDENTIAL_SERVICES: ServiceOption[] = [
+  { value: 'residential_cleaning', label: 'Home Cleaning' },
+  { value: 'residential_carpet',   label: 'Carpet & Rugs' },
 ];
+
+const COMMERCIAL_SERVICES: ServiceOption[] = [
+  { value: 'commercial_cleaning',  label: 'Office & Janitorial' },
+  { value: 'strip_and_wax',        label: 'Strip & Wax' },
+  { value: 'commercial_carpet',    label: 'Carpet Extraction' },
+];
+
+function getSectorForService(tab: ServiceTab): Sector {
+  if (tab === 'commercial_cleaning' || tab === 'commercial_carpet' || tab === 'strip_and_wax') {
+    return 'commercial';
+  }
+  return 'residential';
+}
 import { toast } from 'sonner';
 import {
   type PropertyType,
@@ -212,13 +230,32 @@ function PackageCard({
 
 export function CRMPricingModal({ onSuccess }: { onSuccess?: () => void }) {
   const [open,       setOpen]       = useState(false);
+  const [sector,     setSector]     = useState<Sector>('residential');
   const [serviceTab, setServiceTab] = useState<ServiceTab>('residential_cleaning');
 
   const handleOpenChange = (v: boolean) => {
     setOpen(v);
     // Reset to the residential cleaning tab on close so state is fresh next open
-    if (!v) setServiceTab('residential_cleaning');
+    if (!v) {
+      setSector('residential');
+      setServiceTab('residential_cleaning');
+    }
   };
+
+  const handleSelectSector = (newSector: Sector) => {
+    setSector(newSector);
+    if (newSector === 'residential') {
+      if (serviceTab !== 'residential_cleaning' && serviceTab !== 'residential_carpet') {
+        setServiceTab('residential_cleaning');
+      }
+    } else {
+      if (serviceTab !== 'commercial_cleaning' && serviceTab !== 'strip_and_wax' && serviceTab !== 'commercial_carpet') {
+        setServiceTab('commercial_cleaning');
+      }
+    }
+  };
+
+  const activeServiceList = sector === 'residential' ? RESIDENTIAL_SERVICES : COMMERCIAL_SERVICES;
 
   return (
     <Dialog modal={false} open={open} onOpenChange={handleOpenChange}>
@@ -238,19 +275,55 @@ export function CRMPricingModal({ onSuccess }: { onSuccess?: () => void }) {
           </DialogDescription>
         </DialogHeader>
 
-        {/* ── Service selector tab strip ── */}
-        <div className="px-6 py-2 border-b shrink-0 bg-muted/20">
-          <div className="flex gap-1 flex-wrap">
-            {SERVICE_TABS.map((tab) => (
+        {/* ── Condensed 2-Tier Sector & Service Selector ── */}
+        <div className="px-6 py-2 border-b shrink-0 bg-muted/30 flex items-center justify-between gap-4 flex-wrap">
+          {/* Sector Toggle */}
+          <div className="flex items-center gap-1 bg-background/80 p-1 rounded-lg border shadow-xs">
+            <button
+              type="button"
+              onClick={() => handleSelectSector('residential')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
+                sector === 'residential'
+                  ? 'bg-primary text-primary-foreground shadow-xs'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+              }`}
+            >
+              <Home className="h-3.5 w-3.5" />
+              Residential
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSelectSector('commercial')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
+                sector === 'commercial'
+                  ? 'bg-primary text-primary-foreground shadow-xs'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+              }`}
+            >
+              <Building2 className="h-3.5 w-3.5" />
+              Commercial
+            </button>
+          </div>
+
+          {/* Sector-Specific Service Pills */}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="text-[11px] font-medium text-muted-foreground mr-1 uppercase tracking-wider">
+              {sector === 'residential' ? 'Residential Services:' : 'Commercial Services:'}
+            </span>
+            {activeServiceList.map((srv) => (
               <Button
-                key={tab.value}
+                key={srv.value}
                 type="button"
-                variant={serviceTab === tab.value ? 'default' : 'outline'}
+                variant={serviceTab === srv.value ? 'default' : 'outline'}
                 size="sm"
-                className="text-xs h-7"
-                onClick={() => setServiceTab(tab.value)}
+                className={`text-xs h-8 px-3 transition-colors ${
+                  serviceTab === srv.value
+                    ? 'font-semibold shadow-xs'
+                    : 'bg-background hover:bg-muted'
+                }`}
+                onClick={() => setServiceTab(srv.value)}
               >
-                {tab.label}
+                {srv.label}
               </Button>
             ))}
           </div>
@@ -349,8 +422,7 @@ function PricingModalContent({
     const first = table[0];
     const key = pkg === 'standard' ? 'standard' :
                 pkg === 'standard_plus' ? 'standardPlus' :
-                pkg === 'deep_clean' ? 'deepClean' :
-                pkg === 'full_reset' ? 'fullReset' : 'moveInOut';
+                pkg === 'deep_clean' ? 'deepClean' : 'moveInOut';
     const val = first[key as keyof typeof first];
     if (Array.isArray(val)) return `From $${val[0]}`;
     return `From $${val}`;

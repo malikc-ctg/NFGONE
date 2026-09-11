@@ -107,7 +107,6 @@ function getPackagePrice(band: SizeBand, pkg: PackageType): number | [number, nu
     case 'standard': return band.standard;
     case 'standard_plus': return band.standardPlus;
     case 'deep_clean': return band.deepClean;
-    case 'full_reset': return band.fullReset;
     case 'move_in_out': return band.moveInOut;
   }
 }
@@ -347,7 +346,7 @@ export function calculateQuote(input: QuoteInput): QuoteResult {
   const requires2PersonCrewFlag =
     propertyType === 'house' &&
     sqft >= 2500 &&
-    (selectedPackage === 'full_reset' || selectedPackage === 'move_in_out');
+    selectedPackage === 'move_in_out';
 
   return {
     sizeBandLabel: band.label,

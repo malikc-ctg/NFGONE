@@ -214,22 +214,16 @@ const SCOPE_DEEP_CLEAN = flattenScopeText(
   'Inside cabinets, interior windows, wall washing, balcony'
 );
 
-const SCOPE_FULL_RESET = flattenScopeText(
-  [STANDARD_ITEMS, STANDARD_PLUS_ADDITIONS, DEEP_CLEAN_ADDITIONS, FULL_RESET_ADDITIONS],
-  'Wall washing (available as add-on), exterior windows'
-);
-
 const SCOPE_MOVE_IN_OUT = flattenScopeText(
   [STANDARD_ITEMS, STANDARD_PLUS_ADDITIONS, DEEP_CLEAN_ADDITIONS, FULL_RESET_ADDITIONS, MOVE_IN_OUT_ADDITIONS],
   'Exterior windows',
-  'Unit must be fully vacant. If occupied, switch to Full Reset.'
+  'Unit must be fully vacant.'
 );
 
 const SCOPE_MAP: Record<PackageType, string> = {
   standard: SCOPE_STANDARD,
   standard_plus: SCOPE_STANDARD_PLUS,
   deep_clean: SCOPE_DEEP_CLEAN,
-  full_reset: SCOPE_FULL_RESET,
   move_in_out: SCOPE_MOVE_IN_OUT,
 };
 
