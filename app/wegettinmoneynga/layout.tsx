@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import {
   LayoutDashboard, Users, Briefcase, UserCheck,
-  Receipt, Settings, ClipboardList, Waves,
+  Settings, ClipboardList, Waves,
   Building2, AlertTriangle, Package,
   TrendingUp, Globe, Shield,
   Menu, X, LogOut, Repeat,
@@ -21,7 +21,6 @@ const sidebarItems = [
   { href: '/wegettinmoneynga/recurring', label: 'Recurring', icon: Repeat },
   { href: '/wegettinmoneynga/customers', label: 'Customers', icon: Users },
   { href: '/wegettinmoneynga/employees', label: 'Employees', icon: UserCheck },
-  { href: '/wegettinmoneynga/payouts', label: 'Payouts', icon: Receipt },
   { href: '/wegettinmoneynga/disputes', label: 'Disputes', icon: AlertTriangle },
   { href: '/wegettinmoneynga/supply', label: 'Supply', icon: Package },
   { href: '/wegettinmoneynga/partners', label: 'Partners', icon: Building2 },
