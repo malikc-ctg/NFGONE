@@ -6,7 +6,7 @@ import { useState, useEffect } from 'react';
 import {
   LayoutDashboard, Users, Briefcase, UserCheck,
   Settings, ClipboardList, Waves,
-  Building2, AlertTriangle, Package,
+  Building2, Package,
   TrendingUp, Globe, Shield,
   Menu, X, LogOut, Repeat,
 } from 'lucide-react';
@@ -21,7 +21,6 @@ const sidebarItems = [
   { href: '/wegettinmoneynga/recurring', label: 'Recurring', icon: Repeat },
   { href: '/wegettinmoneynga/customers', label: 'Customers', icon: Users },
   { href: '/wegettinmoneynga/employees', label: 'Employees', icon: UserCheck },
-  { href: '/wegettinmoneynga/disputes', label: 'Disputes', icon: AlertTriangle },
   { href: '/wegettinmoneynga/supply', label: 'Supply', icon: Package },
   { href: '/wegettinmoneynga/partners', label: 'Partners', icon: Building2 },
   { href: '/wegettinmoneynga/zones', label: 'Zones', icon: Globe },
