@@ -15,13 +15,14 @@ import { format } from 'date-fns';
 import { Plus } from 'lucide-react';
 import { DatePickerWithRange } from '@/components/ui/date-range-picker';
 import { DateRange } from 'react-day-picker';
-const STATUS_FILTERS: { label: string; statuses: JobStatus[] | null }[] = [
-  { label: 'All', statuses: null },
-  { label: 'Needs Dispatch', statuses: ['confirmed'] },
-  { label: 'In Progress', statuses: ['assigned', 'on_the_way', 'in_progress'] },
-  { label: 'Completed', statuses: ['completed', 'reviewed', 'paid_out'] },
-  { label: 'Disputed', statuses: ['disputed'] },
-  { label: 'Cancelled', statuses: ['cancelled', 'rescheduled', 'no_show'] },
+const STATUS_FILTERS: { label: string; filterFn: (j: Job) => boolean }[] = [
+  { label: 'All', filterFn: () => true },
+  { label: '🔁 Recurring', filterFn: (j) => Boolean(j.recurring_booking_id) },
+  { label: 'Needs Dispatch', filterFn: (j) => j.status === 'confirmed' },
+  { label: 'In Progress', filterFn: (j) => ['assigned', 'on_the_way', 'in_progress'].includes(j.status) },
+  { label: 'Completed', filterFn: (j) => ['completed', 'reviewed', 'paid_out'].includes(j.status) },
+  { label: 'Disputed', filterFn: (j) => j.status === 'disputed' },
+  { label: 'Cancelled', filterFn: (j) => ['cancelled', 'rescheduled', 'no_show'].includes(j.status) },
 ];
 
 export default function JobsPage() {
@@ -64,10 +65,8 @@ export default function JobsPage() {
     fetchJobs();
   }, [dateRange]);
 
-  const filter = STATUS_FILTERS[activeFilter];
-  const filtered = filter.statuses
-    ? jobs.filter((j) => filter.statuses!.includes(j.status))
-    : jobs;
+  const filter = STATUS_FILTERS[activeFilter] ?? STATUS_FILTERS[0];
+  const filtered = jobs.filter(filter.filterFn);
 
   return (
     <div className="space-y-6">
@@ -123,7 +122,16 @@ export default function JobsPage() {
               ) : (
                 filtered.map((job) => (
                   <TableRow key={job.id}>
-                    <TableCell className="font-mono text-xs">{job.job_number}</TableCell>
+                    <TableCell className="font-mono text-xs">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span>{job.job_number}</span>
+                        {job.recurring_booking_id && (
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800" title="Recurring Contract Job">
+                            🔁 Recur
+                          </span>
+                        )}
+                      </div>
+                    </TableCell>
                     <TableCell className="text-xs whitespace-nowrap">{format(new Date(job.scheduled_date), 'MMM d, yyyy')}</TableCell>
                     <TableCell className="text-xs hidden md:table-cell font-medium">{formatJobTimeSlot(job)}</TableCell>
                     <TableCell className="text-sm">{(job as any).customer?.full_name ?? '—'}</TableCell>

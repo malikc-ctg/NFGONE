@@ -8,7 +8,7 @@ import {
   Receipt, Settings, ClipboardList, Waves,
   Building2, AlertTriangle, Package,
   UsersRound, TrendingUp, Globe, Shield,
-  Menu, X, LogOut,
+  Menu, X, LogOut, Repeat,
 } from 'lucide-react';
 
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -18,6 +18,7 @@ const sidebarItems = [
   { href: '/wegettinmoneynga', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/wegettinmoneynga/leads', label: 'Leads', icon: ClipboardList },
   { href: '/wegettinmoneynga/jobs', label: 'Jobs', icon: Briefcase },
+  { href: '/wegettinmoneynga/recurring', label: 'Recurring', icon: Repeat },
   { href: '/wegettinmoneynga/customers', label: 'Customers', icon: Users },
   { href: '/wegettinmoneynga/employees', label: 'Employees', icon: UserCheck },
   { href: '/wegettinmoneynga/teams', label: 'Teams', icon: UsersRound },

@@ -23,7 +23,9 @@ export type JobStatus =
 export type ServiceType =
   | 'standard_clean' | 'standard_plus_clean' | 'deep_clean' | 'reset_clean'
   | 'move_in_clean' | 'move_out_clean'
-  | 'recurring_standard' | 'recurring_deep';
+  | 'recurring_standard' | 'recurring_deep'
+  | 'post_construction_clean' | 'junk_removal' | 'painting'
+  | 'commercial_cleaning' | 'strip_and_wax' | 'carpet_clean';
 
 export type TimeWindow = 'morning' | 'afternoon' | 'evening';
 
@@ -90,6 +92,12 @@ export const SERVICE_TYPE_LABELS: Record<ServiceType, string> = {
   move_out_clean: 'Move-Out Clean',
   recurring_standard: 'Recurring Standard',
   recurring_deep: 'Recurring Deep',
+  post_construction_clean: 'Post-Construction Clean',
+  junk_removal: 'Junk Removal',
+  painting: 'Painting',
+  commercial_cleaning: 'Commercial Cleaning',
+  strip_and_wax: 'Strip & Wax',
+  carpet_clean: 'Carpet Cleaning',
 };
 
 export const TIME_WINDOW_LABELS: Record<TimeWindow, string> = {
@@ -435,22 +443,34 @@ export interface Review {
 
 export interface RecurringBooking {
   id: string;
-  customer_id: string;
+  customer_id: string | null;
   preferred_employee_id: string | null;
+  preferred_team_id?: string | null;
   service_type: ServiceType;
   frequency: RecurringFrequency;
+  days_of_week?: string[];
   preferred_day_of_week: DayOfWeek | null;
   preferred_window: TimeWindow | null;
+  preferred_start_time?: string | null;
+  estimated_duration_minutes?: number | null;
   address_line1: string;
   city: string;
   postal_code: string;
   quoted_price: number;
+  monthly_amount?: number | null;
+  billing_type?: string | null;
+  contract_start_date?: string | null;
+  contract_end_date?: string | null;
+  scope_of_work?: string | null;
   discount_rate: number;
   add_ons: AddOn[];
   notes: string | null;
   is_active: boolean;
   last_job_date: string | null;
   next_job_date: string | null;
+  zone_id?: string | null;
+  customer?: Customer;
+  employee?: Employee;
   created_at: string;
   updated_at: string;
 }
@@ -521,14 +541,20 @@ export const MIN_PHOTOS: Record<string, number> = {
 // ---------- Default pricing (CAD) ----------
 
 export const DEFAULT_PRICING: Record<ServiceType, number> = {
-  standard_clean: 250,
-  standard_plus_clean: 350,
-  deep_clean: 500,
+  standard_clean: 199,
+  standard_plus_clean: 229,
+  deep_clean: 299,
   reset_clean: 750,
   move_in_clean: 350,
   move_out_clean: 350,
   recurring_standard: 160,
   recurring_deep: 250,
+  post_construction_clean: 350,
+  junk_removal: 195,
+  painting: 450,
+  commercial_cleaning: 250,
+  strip_and_wax: 300,
+  carpet_clean: 180,
 };
 
 // ---------- Map / Location Interfaces ----------

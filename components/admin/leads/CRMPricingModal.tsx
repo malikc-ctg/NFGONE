@@ -50,6 +50,9 @@ import { ResidentialCarpetSection }  from './ResidentialCarpetSection';
 import { CommercialCarpetSection }   from './CommercialCarpetSection';
 import { StripAndWaxSection }        from './StripAndWaxSection';
 import { CommercialCleaningSection } from './CommercialCleaningSection';
+import { PostConstructionSection }   from './PostConstructionSection';
+import { JunkRemovalSection }         from './JunkRemovalSection';
+import { PaintingSection }            from './PaintingSection';
 
 // ── Service sectors and services ──
 type Sector = 'residential' | 'commercial';
@@ -59,7 +62,10 @@ type ServiceTab =
   | 'residential_carpet'
   | 'commercial_carpet'
   | 'strip_and_wax'
-  | 'commercial_cleaning';
+  | 'commercial_cleaning'
+  | 'post_construction'
+  | 'junk_removal'
+  | 'painting';
 
 interface ServiceOption {
   value: ServiceTab;
@@ -70,12 +76,18 @@ interface ServiceOption {
 const RESIDENTIAL_SERVICES: ServiceOption[] = [
   { value: 'residential_cleaning', label: 'Home Cleaning' },
   { value: 'residential_carpet',   label: 'Carpet & Rugs' },
+  { value: 'post_construction',    label: 'Post-Construction' },
+  { value: 'junk_removal',         label: 'Junk Removal' },
+  { value: 'painting',             label: 'Painting' },
 ];
 
 const COMMERCIAL_SERVICES: ServiceOption[] = [
   { value: 'commercial_cleaning',  label: 'Office & Janitorial' },
   { value: 'strip_and_wax',        label: 'Strip & Wax' },
   { value: 'commercial_carpet',    label: 'Carpet Extraction' },
+  { value: 'post_construction',    label: 'Post-Construction' },
+  { value: 'junk_removal',         label: 'Junk Removal' },
+  { value: 'painting',             label: 'Painting' },
 ];
 
 function getSectorForService(tab: ServiceTab): Sector {
@@ -337,6 +349,9 @@ export function CRMPricingModal({ onSuccess }: { onSuccess?: () => void }) {
         {open && serviceTab === 'commercial_carpet'    && <CommercialCarpetSection />}
         {open && serviceTab === 'strip_and_wax'        && <StripAndWaxSection />}
         {open && serviceTab === 'commercial_cleaning'  && <CommercialCleaningSection />}
+        {open && serviceTab === 'post_construction'    && <PostConstructionSection />}
+        {open && serviceTab === 'junk_removal'         && <JunkRemovalSection />}
+        {open && serviceTab === 'painting'             && <PaintingSection />}
       </DialogContent>
     </Dialog>
   );
