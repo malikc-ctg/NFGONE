@@ -38,7 +38,7 @@ export async function POST(
       return NextResponse.json({ error: 'Service type is missing from the lead.' }, { status: 400 });
     }
 
-    // Find or create customer
+    // Find or create customer (check email first, then phone)
     let customerId: string | undefined;
     
     if (lead.customer_email) {
@@ -49,12 +49,31 @@ export async function POST(
         .maybeSingle();
 
       if (findError) {
-        console.error('Error finding customer:', findError);
+        console.error('Error finding customer by email:', findError);
         throw findError;
       }
       
       if (existingCustomer) {
         customerId = existingCustomer.id;
+      }
+    }
+
+    if (!customerId && lead.customer_phone && lead.customer_phone.trim() !== '—') {
+      const cleanPhone = lead.customer_phone.replace(/\D/g, '');
+      if (cleanPhone.length >= 10) {
+        const { data: phoneCandidates } = await supabase
+          .from('customers')
+          .select('id, phone')
+          .eq('is_active', true);
+
+        const phoneMatch = phoneCandidates?.find(c => {
+          const cDigits = (c.phone || '').replace(/\D/g, '');
+          return cDigits.endsWith(cleanPhone.slice(-10));
+        });
+
+        if (phoneMatch) {
+          customerId = phoneMatch.id;
+        }
       }
     }
 

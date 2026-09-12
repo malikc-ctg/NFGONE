@@ -36,10 +36,6 @@ export async function POST(request: NextRequest) {
 
 export async function GET() {
   try {
-  // Admin-only
-  const auth = await requireRole(['admin']);
-  if (auth instanceof NextResponse) return auth;
-
     const supabase = await createServiceClient();
     const { data, error } = await supabase
       .from('customers')
