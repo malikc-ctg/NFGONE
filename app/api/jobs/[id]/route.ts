@@ -19,6 +19,16 @@ export async function GET(
       .single();
 
     if (error) throw error;
+
+    if (data?.assigned_employee_ids && Array.isArray(data.assigned_employee_ids) && data.assigned_employee_ids.length > 0) {
+      const { data: crew } = await supabase
+        .from('employees')
+        .select('*')
+        .in('id', data.assigned_employee_ids);
+      data.assigned_employees = crew || [];
+    } else if (data?.employee) {
+      data.assigned_employees = [data.employee];
+    }
     
     // Security check bypassed
 

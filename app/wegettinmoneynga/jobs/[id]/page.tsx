@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/dialog';
 import {
   ArrowLeft, Send, MapPin, DollarSign,
-  User, Star, AlertTriangle, Pencil
+  User, Star, AlertTriangle, Pencil, Users, UserCheck,
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -95,20 +95,27 @@ export default function JobDetailPage() {
     }
   }
 
-  async function handleDirectAssign(employeeId: string, employeeName: string) {
+  async function handleAssignCleaners(customEmployeeIds?: string[], nameHint?: string) {
+    const idsToAssign = customEmployeeIds || selectedEmployees;
+    if (idsToAssign.length === 0) {
+      toast.error('Select at least one cleaner to assign');
+      return;
+    }
     setDispatching(true);
     try {
       const res = await fetch(`/api/jobs/${params.id}/dispatch`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mode: 'direct_assign', employee_id: employeeId }),
+        body: JSON.stringify({ mode: 'direct_assign', employee_ids: idsToAssign }),
       });
       if (!res.ok) {
         const err = await res.json();
-        throw new Error(err.error || 'Failed to assign employee');
+        throw new Error(err.error || 'Failed to assign cleaners');
       }
-      toast.success(`Job assigned to ${employeeName}!`);
+      const label = nameHint || `${idsToAssign.length} cleaner${idsToAssign.length > 1 ? 's' : ''}`;
+      toast.success(`Assigned ${label} to job!`);
       setDispatchOpen(false);
+      setSelectedEmployees([]);
       fetchJob();
     } catch (err: any) {
       toast.error(err.message);
@@ -379,18 +386,65 @@ export default function JobDetailPage() {
           </CardContent>
         </Card>
 
-        {/* Employee */}
+        {/* Employee / Assigned Crew */}
         <Card>
-          <CardHeader><CardTitle className="flex items-center gap-2"><Star className="h-4 w-4" />Employee</CardTitle></CardHeader>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <Users className="h-4 w-4 text-blue-600" />
+                {job.assigned_employees && job.assigned_employees.length > 1 
+                  ? `Assigned Crew (${job.assigned_employees.length} Cleaners)` 
+                  : 'Assigned Cleaner'}
+              </CardTitle>
+              <Button size="sm" variant="ghost" className="h-7 text-xs text-blue-600 hover:text-blue-700" onClick={openDispatch}>
+                {job.assigned_employee_id ? 'Change / Add Cleaners' : 'Dispatch'}
+              </Button>
+            </div>
+          </CardHeader>
           <CardContent className="space-y-3 text-sm">
-            {employee ? (
+            {job.assigned_employees && job.assigned_employees.length > 0 ? (
+              <div className="space-y-2.5">
+                {job.assigned_employees.map((emp, idx) => (
+                  <div key={emp.id} className="flex items-center justify-between p-2.5 rounded-lg border bg-muted/20">
+                    <div>
+                      <div className="flex items-center gap-1.5">
+                        <Link href={`/wegettinmoneynga/employees/${emp.id}`} className="font-semibold text-primary hover:underline">
+                          {emp.full_name}
+                        </Link>
+                        {idx === 0 && job.assigned_employees!.length > 1 && (
+                          <span className="text-[10px] bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 px-1.5 py-0.5 rounded font-bold uppercase">
+                            Primary
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-0.5">{emp.phone || emp.email || '—'}</p>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-xs font-semibold text-indigo-700 block">
+                        ${((emp as any).hourly_wage || 25).toFixed(2)}/hr
+                      </span>
+                      <span className="text-[11px] text-muted-foreground">
+                        ★ {emp.score ?? '5.00'}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : employee ? (
               <>
                 <div className="flex justify-between"><span className="text-muted-foreground">Name</span><Link href={`/wegettinmoneynga/employees/${employee.id}`} className="text-primary hover:underline">{employee.full_name}</Link></div>
                 <div className="flex justify-between"><span className="text-muted-foreground">Phone</span><span>{employee.phone}</span></div>
                 <div className="flex justify-between"><span className="text-muted-foreground">Score</span><span>{employee.score}/5.00</span></div>
                 <div className="flex justify-between"><span className="text-muted-foreground">Hourly Wage</span><span className="font-semibold text-indigo-700">${cleanerWage.toFixed(2)}/hr</span></div>
               </>
-            ) : <p className="text-muted-foreground">No employee assigned</p>}
+            ) : (
+              <div className="py-2 text-center text-muted-foreground">
+                <p className="text-xs">No cleaner assigned yet.</p>
+                <Button size="sm" variant="outline" className="mt-2 text-xs" onClick={openDispatch}>
+                  <Send className="h-3 w-3 mr-1" /> Dispatch Cleaners
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -401,7 +455,7 @@ export default function JobDetailPage() {
           <DialogHeader>
             <DialogTitle>Dispatch Job {job.job_number}</DialogTitle>
             <DialogDescription>
-              Assign directly to an employee (Primary) or select up to 5 to broadcast offers.
+              Select one or multiple cleaners to assign directly as a crew, or broadcast offers.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 flex-1 overflow-hidden flex flex-col">
@@ -420,7 +474,7 @@ export default function JobDetailPage() {
             </div>
 
             <div className="flex items-center justify-between">
-              <p className="text-sm font-semibold">Active Cleaners ({availableEmployees.length})</p>
+              <p className="text-sm font-semibold">Available Cleaners ({availableEmployees.length})</p>
               <span className="text-xs text-muted-foreground">Ranked by shortest drive & score</span>
             </div>
 
@@ -444,7 +498,7 @@ export default function JobDetailPage() {
                           setSelectedEmployees((prev) =>
                             prev.includes(c.employee_id)
                               ? prev.filter((id) => id !== c.employee_id)
-                              : prev.length < 5 ? [...prev, c.employee_id] : prev
+                              : [...prev, c.employee_id]
                           );
                         }}
                       />
@@ -474,25 +528,33 @@ export default function JobDetailPage() {
                     <Button
                       size="sm"
                       disabled={dispatching}
-                      onClick={() => handleDirectAssign(c.employee_id, c.full_name)}
-                      className="h-8 px-3 text-xs bg-blue-600 hover:bg-blue-700 text-white font-semibold shrink-0"
+                      onClick={() => handleAssignCleaners([c.employee_id], c.full_name)}
+                      className="h-8 px-3 text-xs bg-slate-900 hover:bg-slate-800 text-white font-medium shrink-0 dark:bg-slate-100 dark:text-slate-900"
                     >
-                      Assign
+                      Assign Solo
                     </Button>
                   </div>
                 ))}
               </div>
             )}
 
-            <div className="pt-3 border-t flex flex-col gap-2">
+            <div className="pt-3 border-t flex flex-col sm:flex-row gap-2">
+              <Button 
+                onClick={() => handleAssignCleaners()} 
+                disabled={dispatching || selectedEmployees.length === 0} 
+                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-sm"
+              >
+                <UserCheck className="h-4 w-4 mr-1.5" />
+                Assign Selected {selectedEmployees.length > 1 ? `Crew (${selectedEmployees.length})` : `Cleaner (${selectedEmployees.length})`}
+              </Button>
               <Button 
                 onClick={handleDispatch} 
                 disabled={dispatching || selectedEmployees.length === 0} 
                 variant="outline"
-                className="w-full"
+                className="flex-1"
               >
-                <Send className="h-4 w-4 mr-2" />
-                Broadcast Offer{selectedEmployees.length > 1 ? 's' : ''} to Selected ({selectedEmployees.length})
+                <Send className="h-4 w-4 mr-1.5" />
+                Broadcast Offers ({selectedEmployees.length})
               </Button>
             </div>
           </div>

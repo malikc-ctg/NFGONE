@@ -138,8 +138,15 @@ export default function JobsPage() {
                     <TableCell className="text-xs max-w-[200px] truncate hidden lg:table-cell">{job.address_line1}, {job.city}</TableCell>
                     <TableCell className="text-xs whitespace-nowrap">{SERVICE_TYPE_LABELS[job.service_type]}</TableCell>
                     <TableCell><StatusBadge status={job.status} /></TableCell>
-                    <TableCell className="text-xs font-medium">${job.quoted_price}</TableCell>
-                    <TableCell className="text-xs hidden md:table-cell">{(job as any).employee?.full_name ?? '—'}</TableCell>
+                    <TableCell className="text-xs hidden md:table-cell">
+                      {(job as any).assigned_employee_ids && (job as any).assigned_employee_ids.length > 1 ? (
+                        <span className="inline-flex items-center gap-1 font-medium text-indigo-700 bg-indigo-50 dark:bg-indigo-950/40 dark:text-indigo-300 px-1.5 py-0.5 rounded border border-indigo-200" title={`Crew of ${(job as any).assigned_employee_ids.length} cleaners`}>
+                          👥 {(job as any).employee?.full_name?.split(' ')[0] || 'Lead'} + {(job as any).assigned_employee_ids.length - 1}
+                        </span>
+                      ) : (
+                        (job as any).employee?.full_name ?? '—'
+                      )}
+                    </TableCell>
                     <TableCell>
                       <Link href={`/wegettinmoneynga/jobs/${job.id}`}>
                         <Button variant="ghost" size="sm">View</Button>

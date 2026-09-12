@@ -274,6 +274,7 @@ export interface Job {
   customer_id: string;
   zone_id: string;
   assigned_employee_id: string | null;
+  assigned_employee_ids?: string[] | null;
   service_type: ServiceType;
   status: JobStatus;
   scheduled_date: string;
@@ -312,6 +313,7 @@ export interface Job {
   // joined
   customer?: Customer;
   employee?: Employee;
+  assigned_employees?: Employee[];
   zone?: Zone;
 }
 
