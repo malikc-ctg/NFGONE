@@ -98,79 +98,6 @@ export function PhotoEvidenceTab({ employees = [] }: PhotoEvidenceTabProps) {
     setInspectModalOpen(true);
   }
 
-  // Quick helper to seed sample audit photo evidence if table is empty
-  async function handleAddSampleEvidence() {
-    try {
-      // Find any available job and employee
-      const [jobsRes, empRes] = await Promise.all([
-        fetch('/api/jobs'),
-        fetch('/api/employees'),
-      ]);
-      const jobs = await jobsRes.json();
-      const emps = await empRes.json();
-
-      const targetJob = Array.isArray(jobs) && jobs.length > 0 ? jobs[0] : null;
-      const targetEmp = Array.isArray(emps) && emps.length > 0 ? emps[0] : null;
-
-      if (!targetJob) {
-        toast.error('No jobs found to attach sample photo evidence to.');
-        return;
-      }
-
-      // We upload a sample demonstration record
-      const samplePhotos = [
-        {
-          job_id: targetJob.id,
-          employee_id: targetEmp?.id || targetJob.assigned_employee_id || null,
-          photo_type: 'before',
-          room: 'Kitchen Stove & Counters',
-          file_url: 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?auto=format&fit=crop&w=1200&q=80',
-          caption: 'Pre-existing grease build-up documented prior to cleaning',
-        },
-        {
-          job_id: targetJob.id,
-          employee_id: targetEmp?.id || targetJob.assigned_employee_id || null,
-          photo_type: 'after',
-          room: 'Kitchen Stove & Counters',
-          file_url: 'https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&w=1200&q=80',
-          caption: 'Completed deep degrease and sanitize verified',
-        },
-        {
-          job_id: targetJob.id,
-          employee_id: targetEmp?.id || targetJob.assigned_employee_id || null,
-          photo_type: 'problem',
-          room: 'Master Bathroom Baseboard',
-          file_url: 'https://images.unsplash.com/photo-1584622781564-1d987f7333c1?auto=format&fit=crop&w=1200&q=80',
-          caption: 'Pre-existing hairline crack and water stain on baseboard noted before starting',
-        },
-      ];
-
-      for (const p of samplePhotos) {
-        // Direct insert via endpoint or fetch
-        const formData = new FormData();
-        // create a blob or call API
-        await fetch('/api/photos/upload', {
-          method: 'POST',
-          body: (() => {
-            const fd = new FormData();
-            fd.append('job_id', p.job_id);
-            fd.append('photo_type', p.photo_type);
-            fd.append('caption', `${p.room}: ${p.caption}`);
-            // create tiny empty mock file
-            const blob = new Blob(['sample'], { type: 'image/jpeg' });
-            fd.append('file', blob, 'sample.jpg');
-            return fd;
-          })(),
-        }).catch(() => null);
-      }
-
-      toast.success('Sample audit photos loaded');
-      fetchPhotos(true);
-    } catch (e: any) {
-      toast.error('Could not create sample: ' + e.message);
-    }
-  }
-
   const getTypeBadge = (type: string) => {
     switch (type) {
       case 'before':
@@ -296,10 +223,10 @@ export function PhotoEvidenceTab({ employees = [] }: PhotoEvidenceTabProps) {
               <span className="text-xs font-semibold text-muted-foreground mr-1">Filter:</span>
               {[
                 { id: 'all', label: 'All Evidence' },
-                { id: 'before', label: '📸 Before Clean' },
-                { id: 'after', label: '✨ After Clean' },
-                { id: 'issues', label: '⚠️ Issues / Damage' },
-                { id: 'checklist', label: '📋 Checklists' },
+                { id: 'before', label: 'Before Clean' },
+                { id: 'after', label: 'After Clean' },
+                { id: 'issues', label: 'Issues & Damage' },
+                { id: 'checklist', label: 'Checklists' },
               ].map((tab) => (
                 <Button
                   key={tab.id}
@@ -404,9 +331,6 @@ export function PhotoEvidenceTab({ employees = [] }: PhotoEvidenceTabProps) {
                     alt={photo.caption || 'Job photo'}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     loading="lazy"
-                    onError={(e: any) => {
-                      e.target.src = 'https://images.unsplash.com/photo-1581578731548-c64695cc6952?auto=format&fit=crop&w=800&q=80';
-                    }}
                   />
                   {/* Top Badge */}
                   <div className="absolute top-2 left-2 flex items-center gap-1.5 shadow-sm">
@@ -530,9 +454,6 @@ export function PhotoEvidenceTab({ employees = [] }: PhotoEvidenceTabProps) {
                   src={selectedPhoto.file_url}
                   alt={selectedPhoto.caption || 'Job audit photo'}
                   className="max-h-[500px] w-auto object-contain"
-                  onError={(e: any) => {
-                    e.target.src = 'https://images.unsplash.com/photo-1581578731548-c64695cc6952?auto=format&fit=crop&w=1200&q=80';
-                  }}
                 />
               </div>
 
