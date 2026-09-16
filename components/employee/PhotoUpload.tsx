@@ -4,10 +4,12 @@ import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Camera, X, Upload, Image as ImageIcon } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface PhotoUploadProps {
   category: 'before' | 'after';
   jobId: string;
+  room?: string;
   onPhotosChange?: (photos: PhotoFile[]) => void;
   maxPhotos?: number;
   title?: string;
@@ -23,7 +25,7 @@ export interface PhotoFile {
   category: 'before' | 'after';
 }
 
-export function PhotoUpload({ category, jobId, onPhotosChange, maxPhotos = 6, title, subtitle, onUploadComplete }: PhotoUploadProps) {
+export function PhotoUpload({ category, jobId, room, onPhotosChange, maxPhotos = 6, title, subtitle, onUploadComplete }: PhotoUploadProps) {
   const [photos, setPhotos] = useState<PhotoFile[]>([]);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -70,17 +72,28 @@ export function PhotoUpload({ category, jobId, onPhotosChange, maxPhotos = 6, ti
         formData.append('job_id', jobId);
         formData.append('photo_type', category);
         formData.append('caption', photo.caption || `${category} photo`);
+        if (room) {
+          formData.append('room', room);
+        }
 
-        await fetch('/api/photos/upload', {
+        const res = await fetch('/api/photos/upload', {
           method: 'POST',
           body: formData,
         });
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({ error: 'Upload failed' }));
+          throw new Error(err.error || `Upload failed with status ${res.status}`);
+        }
       }
-    } catch {
-      console.error('Upload failed');
+
+      toast.success(`${category === 'before' ? 'Before' : 'After'} photo uploaded`);
+      onUploadComplete?.();
+    } catch (err: any) {
+      console.error('Upload failed', err);
+      toast.error(err.message || 'Failed to upload photo. Please try again.');
     } finally {
       setUploading(false);
-      onUploadComplete?.();
     }
   }
 

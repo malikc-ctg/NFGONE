@@ -14,6 +14,7 @@ import {
 import {
   ArrowLeft, Send, MapPin, DollarSign,
   User, Star, AlertTriangle, Pencil, Users, UserCheck,
+  Camera, Upload, Eye, CheckCircle2, Image as ImageIcon,
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -41,6 +42,16 @@ export default function JobDetailPage() {
   const [editOpen, setEditOpen] = useState(false);
   const [editForm, setEditForm] = useState<Partial<Job>>({});
   const [zones, setZones] = useState<any[]>([]);
+
+  // Photo Evidence State
+  const [photoFilter, setPhotoFilter] = useState<string>('all');
+  const [inspectPhoto, setInspectPhoto] = useState<any | null>(null);
+  const [uploadOpen, setUploadOpen] = useState(false);
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [uploadType, setUploadType] = useState<'before' | 'after' | 'problem'>('before');
+  const [uploadRoom, setUploadRoom] = useState('');
+  const [uploadCaption, setUploadCaption] = useState('');
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   useEffect(() => {
     fetch('/api/zones').then(r => r.json()).then(z => setZones(Array.isArray(z) ? z : []));
@@ -170,6 +181,45 @@ export default function JobDetailPage() {
       fetchJob();
     } catch (err: any) {
       toast.error(err.message);
+    }
+  }
+
+  async function handleAdminUploadPhoto(e: React.FormEvent) {
+    e.preventDefault();
+    if (!uploadFile) {
+      toast.error('Please choose an image file to upload');
+      return;
+    }
+    setUploadingPhoto(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', uploadFile);
+      fd.append('job_id', params.id as string);
+      fd.append('photo_type', uploadType);
+      fd.append('room', uploadRoom);
+      fd.append('caption', uploadCaption);
+
+      const res = await fetch('/api/photos/upload', {
+        method: 'POST',
+        body: fd,
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: 'Upload failed' }));
+        throw new Error(err.error || 'Failed to upload photo evidence');
+      }
+
+      toast.success('Photo evidence saved to job & audit trail');
+      setUploadOpen(false);
+      setUploadFile(null);
+      setUploadRoom('');
+      setUploadCaption('');
+      fetchJob();
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.message || 'Could not upload photo');
+    } finally {
+      setUploadingPhoto(false);
     }
   }
 
@@ -448,6 +498,287 @@ export default function JobDetailPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Photo Evidence & Audit Defense Section */}
+      {(() => {
+        const allJobPhotos = (job as any)?.photos || [];
+        const filteredJobPhotos = allJobPhotos.filter((p: any) => {
+          if (photoFilter === 'before') return p.photo_type === 'before';
+          if (photoFilter === 'after') return p.photo_type === 'after';
+          if (photoFilter === 'issues') return ['problem', 'damage', 'issue'].includes(p.photo_type);
+          return true;
+        });
+        const beforeCount = allJobPhotos.filter((p: any) => p.photo_type === 'before').length;
+        const afterCount = allJobPhotos.filter((p: any) => p.photo_type === 'after').length;
+        const issueCount = allJobPhotos.filter((p: any) => ['problem', 'damage', 'issue'].includes(p.photo_type)).length;
+
+        return (
+          <Card className="border shadow-sm">
+            <CardHeader className="pb-3 border-b bg-muted/20">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <div className="p-2 bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 rounded-lg">
+                    <Camera className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-base font-bold flex items-center gap-2">
+                      Photo Evidence &amp; Audit Trail
+                      <span className="text-xs font-normal text-muted-foreground">
+                        ({allJobPhotos.length} photo{allJobPhotos.length === 1 ? '' : 's'})
+                      </span>
+                    </CardTitle>
+                    <p className="text-xs text-muted-foreground">
+                      Time-stamped before/after photos and proof of service for dispute defense and client verification.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Button size="sm" onClick={() => setUploadOpen(true)} className="text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white">
+                    <Upload className="h-3.5 w-3.5 mr-1.5" /> Upload Evidence
+                  </Button>
+                </div>
+              </div>
+
+              {/* Filters */}
+              <div className="flex gap-1.5 pt-3 overflow-x-auto">
+                <Button
+                  size="sm"
+                  variant={photoFilter === 'all' ? 'default' : 'outline'}
+                  className="text-xs h-7 px-2.5"
+                  onClick={() => setPhotoFilter('all')}
+                >
+                  All ({allJobPhotos.length})
+                </Button>
+                <Button
+                  size="sm"
+                  variant={photoFilter === 'before' ? 'default' : 'outline'}
+                  className="text-xs h-7 px-2.5"
+                  onClick={() => setPhotoFilter('before')}
+                >
+                  Before Clean ({beforeCount})
+                </Button>
+                <Button
+                  size="sm"
+                  variant={photoFilter === 'after' ? 'default' : 'outline'}
+                  className="text-xs h-7 px-2.5"
+                  onClick={() => setPhotoFilter('after')}
+                >
+                  After Clean ({afterCount})
+                </Button>
+                <Button
+                  size="sm"
+                  variant={photoFilter === 'issues' ? 'default' : 'outline'}
+                  className="text-xs h-7 px-2.5"
+                  onClick={() => setPhotoFilter('issues')}
+                >
+                  Issues / Damage ({issueCount})
+                </Button>
+              </div>
+            </CardHeader>
+
+            <CardContent className="p-4">
+              {allJobPhotos.length === 0 ? (
+                <div className="py-10 text-center space-y-3">
+                  <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center mx-auto text-muted-foreground">
+                    <Camera className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold">No photo evidence recorded yet</p>
+                    <p className="text-xs text-muted-foreground max-w-sm mx-auto mt-0.5">
+                      Photos captured by cleaners during the job or uploaded by dispatch will be permanently logged here and linked to the company audit trail.
+                    </p>
+                  </div>
+                  <Button size="sm" variant="outline" onClick={() => setUploadOpen(true)} className="text-xs">
+                    <Upload className="h-3.5 w-3.5 mr-1" /> Upload First Photo
+                  </Button>
+                </div>
+              ) : filteredJobPhotos.length === 0 ? (
+                <div className="py-8 text-center text-sm text-muted-foreground">
+                  No photos match the selected filter.
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                  {filteredJobPhotos.map((p: any) => (
+                    <div
+                      key={p.id}
+                      onClick={() => setInspectPhoto(p)}
+                      className="group relative rounded-xl border bg-muted/10 overflow-hidden cursor-pointer hover:shadow-md transition-all flex flex-col"
+                    >
+                      <div className="relative aspect-square w-full bg-slate-100 dark:bg-slate-900 overflow-hidden">
+                        <img
+                          src={p.file_url}
+                          alt={p.caption || 'Job evidence'}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          loading="lazy"
+                        />
+                        <div className="absolute top-2 left-2 flex gap-1">
+                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded shadow-sm text-white ${
+                            p.photo_type === 'before'
+                              ? 'bg-amber-600'
+                              : p.photo_type === 'after'
+                              ? 'bg-emerald-600'
+                              : 'bg-rose-600'
+                          }`}>
+                            {p.photo_type === 'before' ? 'BEFORE' : p.photo_type === 'after' ? 'AFTER' : 'ISSUE'}
+                          </span>
+                        </div>
+                        {p.room && (
+                          <div className="absolute top-2 right-2 bg-black/60 text-white text-[10px] font-medium px-1.5 py-0.5 rounded backdrop-blur-sm">
+                            {p.room}
+                          </div>
+                        )}
+                        <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                          <span className="text-white text-xs font-semibold bg-black/60 px-2 py-1 rounded flex items-center gap-1">
+                            <Eye className="h-3 w-3" /> Inspect
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="p-2 text-xs space-y-1 bg-background flex-1 flex flex-col justify-between">
+                        <p className="font-medium text-foreground truncate" title={p.caption || p.room || 'Evidence photo'}>
+                          {p.caption || p.room || 'Evidence photo'}
+                        </p>
+                        <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                          <span>{p.employee?.full_name || 'Staff'}</span>
+                          <span>{p.uploaded_at ? format(new Date(p.uploaded_at), 'MMM d, h:mm a') : '—'}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        );
+      })()}
+
+      {/* Inspect Photo Dialog */}
+      <Dialog open={!!inspectPhoto} onOpenChange={(open) => !open && setInspectPhoto(null)}>
+        <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col p-4">
+          <DialogHeader className="pb-2 border-b">
+            <div className="flex items-center justify-between pr-6">
+              <DialogTitle className="text-base font-bold flex items-center gap-2">
+                Photo Evidence Inspection
+                {inspectPhoto && (
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded text-white ${
+                    inspectPhoto.photo_type === 'before'
+                      ? 'bg-amber-600'
+                      : inspectPhoto.photo_type === 'after'
+                      ? 'bg-emerald-600'
+                      : 'bg-rose-600'
+                  }`}>
+                    {inspectPhoto.photo_type?.toUpperCase()}
+                  </span>
+                )}
+              </DialogTitle>
+            </div>
+            <DialogDescription className="text-xs">
+              Logged in audit trail for job #{job.job_number}
+            </DialogDescription>
+          </DialogHeader>
+
+          {inspectPhoto && (
+            <div className="space-y-3 overflow-y-auto py-2">
+              <div className="rounded-lg overflow-hidden bg-black/90 flex items-center justify-center max-h-[500px]">
+                <img
+                  src={inspectPhoto.file_url}
+                  alt={inspectPhoto.caption || 'Evidence'}
+                  className="max-h-[500px] w-auto object-contain"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-muted/20 p-3 rounded-lg text-xs">
+                <div>
+                  <span className="text-muted-foreground block text-[10px]">Room / Area</span>
+                  <span className="font-semibold">{inspectPhoto.room || 'General'}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground block text-[10px]">Uploaded By</span>
+                  <span className="font-semibold">{inspectPhoto.employee?.full_name || 'Staff'}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground block text-[10px]">Timestamp</span>
+                  <span className="font-semibold">{inspectPhoto.uploaded_at ? format(new Date(inspectPhoto.uploaded_at), 'MMM d, yyyy h:mm a') : '—'}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground block text-[10px]">Direct Link</span>
+                  <a href={inspectPhoto.file_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline font-semibold block truncate">
+                    Open Full Image
+                  </a>
+                </div>
+              </div>
+
+              {inspectPhoto.caption && (
+                <div className="p-3 rounded-lg border bg-background text-xs">
+                  <span className="text-muted-foreground block text-[10px] mb-1">Notes / Caption</span>
+                  <p className="text-foreground">{inspectPhoto.caption}</p>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Upload Photo Dialog */}
+      <Dialog open={uploadOpen} onOpenChange={setUploadOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Upload Photo Evidence</DialogTitle>
+            <DialogDescription className="text-xs">
+              Attach proof of service, condition before clean, or issues encountered to this job.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleAdminUploadPhoto} className="space-y-4">
+            <div>
+              <Label className="text-xs font-semibold">Evidence Type</Label>
+              <Select value={uploadType} onValueChange={(v: any) => setUploadType(v)}>
+                <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="before">Before Clean (Pre-existing Condition)</SelectItem>
+                  <SelectItem value="after">After Clean (Completed Work)</SelectItem>
+                  <SelectItem value="problem">Problem / Damage / Issue Found</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label className="text-xs font-semibold">Room / Location (optional)</Label>
+              <Input
+                placeholder="e.g. Kitchen, Master Bath, Living Room"
+                value={uploadRoom}
+                onChange={(e) => setUploadRoom(e.target.value)}
+                className="mt-1"
+              />
+            </div>
+
+            <div>
+              <Label className="text-xs font-semibold">Notes / Caption (optional)</Label>
+              <Input
+                placeholder="e.g. Documented stubborn grease on oven before treatment"
+                value={uploadCaption}
+                onChange={(e) => setUploadCaption(e.target.value)}
+                className="mt-1"
+              />
+            </div>
+
+            <div>
+              <Label className="text-xs font-semibold">Photo File</Label>
+              <Input
+                type="file"
+                accept="image/*"
+                required
+                onChange={(e) => setUploadFile(e.target.files?.[0] || null)}
+                className="mt-1 cursor-pointer"
+              />
+            </div>
+
+            <Button type="submit" disabled={uploadingPhoto || !uploadFile} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold">
+              {uploadingPhoto ? 'Uploading & Logging...' : 'Save Evidence to Job & Audit'}
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {/* Dispatch Modal */}
       <Dialog open={dispatchOpen} onOpenChange={setDispatchOpen}>

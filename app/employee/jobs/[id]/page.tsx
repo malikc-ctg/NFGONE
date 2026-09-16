@@ -10,6 +10,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
+import { Badge } from '@/components/ui/badge';
 import {
   ArrowLeft, MapPin, Navigation, Clock, Timer,
   CheckCircle2, User, Sparkles, Bath, BedDouble,
@@ -25,9 +26,17 @@ import { PhotoUpload } from '@/components/employee/PhotoUpload';
 import { SupplyCheck } from '@/components/employee/SupplyCheck';
 import { smartFetch } from '@/lib/offline-queue';
 
-function RoomChecklist({ title, items, onItemChange, jobId }: { title: string, items: Record<string, boolean>, onItemChange: (key: string, checked: boolean) => void, jobId: string }) {
-  const [beforeDone, setBeforeDone] = useState(false);
-  const [afterDone, setAfterDone] = useState(false);
+function RoomChecklist({ title, items, onItemChange, jobId, existingPhotos = [] }: { title: string, items: Record<string, boolean>, onItemChange: (key: string, checked: boolean) => void, jobId: string, existingPhotos?: any[] }) {
+  const hasBefore = existingPhotos.some(p => p.photo_type === 'before' && (!p.room || p.room.toLowerCase() === title.toLowerCase()));
+  const hasAfter = existingPhotos.some(p => p.photo_type === 'after' && (!p.room || p.room.toLowerCase() === title.toLowerCase()));
+
+  const [beforeDone, setBeforeDone] = useState(hasBefore);
+  const [afterDone, setAfterDone] = useState(hasAfter);
+
+  useEffect(() => {
+    if (hasBefore) setBeforeDone(true);
+    if (hasAfter) setAfterDone(true);
+  }, [hasBefore, hasAfter]);
   
   const allChecked = Object.values(items).every(v => v === true);
 
@@ -45,7 +54,7 @@ function RoomChecklist({ title, items, onItemChange, jobId }: { title: string, i
             <span className={`text-sm font-semibold ${beforeDone ? 'text-green-700' : 'text-slate-700'}`}>Before Photo</span>
           </div>
           {!beforeDone ? (
-            <PhotoUpload category="before" jobId={jobId} title={`${title} Before`} subtitle="Take a photo before starting" maxPhotos={1} onUploadComplete={() => setBeforeDone(true)} />
+            <PhotoUpload category="before" jobId={jobId} room={title} title={`${title} Before`} subtitle="Take a photo before starting" maxPhotos={1} onUploadComplete={() => setBeforeDone(true)} />
           ) : (
             <p className="text-xs text-green-600 flex items-center gap-1"><CheckCircle2 className="h-4 w-4"/> Photo saved</p>
           )}
@@ -74,7 +83,7 @@ function RoomChecklist({ title, items, onItemChange, jobId }: { title: string, i
             <span className={`text-sm font-semibold ${afterDone ? 'text-green-700' : 'text-slate-700'}`}>After Photo</span>
           </div>
           {!afterDone ? (
-            <PhotoUpload category="after" jobId={jobId} title={`${title} After`} subtitle="Take a photo when finished" maxPhotos={1} onUploadComplete={() => setAfterDone(true)} />
+            <PhotoUpload category="after" jobId={jobId} room={title} title={`${title} After`} subtitle="Take a photo when finished" maxPhotos={1} onUploadComplete={() => setAfterDone(true)} />
           ) : (
             <p className="text-xs text-green-600 flex items-center gap-1"><CheckCircle2 className="h-4 w-4"/> Photo saved</p>
           )}
@@ -523,6 +532,7 @@ export default function EmployeeJobDetailPage() {
             <RoomChecklist 
               jobId={job.id} 
               title="Kitchen" 
+              existingPhotos={(job as any)?.photos || []}
               items={checklist.kitchen as Record<string, boolean>} 
               onItemChange={(key, val) => setChecklist({ ...checklist, kitchen: { ...checklist.kitchen, [key]: val } })} 
             />
@@ -532,6 +542,7 @@ export default function EmployeeJobDetailPage() {
                 key={`bath-${i}`} 
                 jobId={job.id} 
                 title={`Bathroom ${i + 1}`} 
+                existingPhotos={(job as any)?.photos || []}
                 items={bath as Record<string, boolean>} 
                 onItemChange={(key, val) => { const newBaths = [...checklist.bathrooms]; newBaths[i] = { ...newBaths[i], [key]: val }; setChecklist({ ...checklist, bathrooms: newBaths }); }} 
               />
@@ -542,6 +553,7 @@ export default function EmployeeJobDetailPage() {
                 key={`bed-${i}`} 
                 jobId={job.id} 
                 title={`Bedroom ${i + 1}`} 
+                existingPhotos={(job as any)?.photos || []}
                 items={bed as Record<string, boolean>} 
                 onItemChange={(key, val) => { const newBeds = [...checklist.bedrooms]; newBeds[i] = { ...newBeds[i], [key]: val }; setChecklist({ ...checklist, bedrooms: newBeds }); }} 
               />
@@ -550,6 +562,7 @@ export default function EmployeeJobDetailPage() {
             <RoomChecklist 
               jobId={job.id} 
               title="Living Areas" 
+              existingPhotos={(job as any)?.photos || []}
               items={checklist.living_areas as Record<string, boolean>} 
               onItemChange={(key, val) => setChecklist({ ...checklist, living_areas: { ...checklist.living_areas, [key]: val } })} 
             />
@@ -587,15 +600,50 @@ export default function EmployeeJobDetailPage() {
 
       {/* Completed view */}
       {['completed', 'reviewed', 'paid_out'].includes(job.status) && (
-        <Card><CardContent className="p-6 text-center">
-          <CheckCircle2 className="h-12 w-12 text-green-500 mx-auto mb-3" />
-          <h2 className="font-bold text-lg">Job Complete</h2>
-          <p className="text-muted-foreground text-sm mt-1">
-            Approx Hours Spent: {job.estimated_duration_minutes
-              ? `${Math.floor(job.estimated_duration_minutes / 60)}h ${job.estimated_duration_minutes % 60 ? `${job.estimated_duration_minutes % 60}m` : ''}`.trim()
-              : '2-3 hrs'}
-          </p>
-        </CardContent></Card>
+        <div className="space-y-4">
+          <Card><CardContent className="p-6 text-center">
+            <CheckCircle2 className="h-12 w-12 text-green-500 mx-auto mb-3" />
+            <h2 className="font-bold text-lg">Job Complete</h2>
+            <p className="text-muted-foreground text-sm mt-1">
+              Approx Hours Spent: {job.estimated_duration_minutes
+                ? `${Math.floor(job.estimated_duration_minutes / 60)}h ${job.estimated_duration_minutes % 60 ? `${job.estimated_duration_minutes % 60}m` : ''}`.trim()
+                : '2-3 hrs'}
+            </p>
+          </CardContent></Card>
+
+          {/* Job Photo Evidence gallery */}
+          {(job as any).photos && (job as any).photos.length > 0 && (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base font-bold flex items-center justify-between">
+                  <span>Job Photo Evidence ({(job as any).photos.length})</span>
+                  <Badge variant="outline" className="text-xs">Documented</Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {(job as any).photos.map((p: any) => (
+                    <div key={p.id} className="relative rounded-lg overflow-hidden border bg-muted/20 group aspect-square">
+                      <img src={p.file_url} alt={p.caption || 'Job photo'} className="w-full h-full object-cover" />
+                      <div className="absolute top-1.5 left-1.5">
+                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded text-white ${
+                          p.photo_type === 'before' ? 'bg-amber-600' : p.photo_type === 'after' ? 'bg-emerald-600' : 'bg-red-600'
+                        }`}>
+                          {p.photo_type.toUpperCase()}
+                        </span>
+                      </div>
+                      {p.room && (
+                        <div className="absolute bottom-0 inset-x-0 bg-black/60 p-1 text-[10px] text-white truncate font-medium">
+                          {p.room}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
       )}
 
     </div>

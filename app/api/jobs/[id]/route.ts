@@ -20,6 +20,24 @@ export async function GET(
 
     if (error) throw error;
 
+    // Fetch photos attached to this job
+    const { data: photos } = await supabase
+      .from('job_photos')
+      .select('*, employee:employees(id, full_name, phone)')
+      .eq('job_id', params.id)
+      .order('uploaded_at', { ascending: true });
+
+    data.photos = photos || [];
+
+    // Fetch checklists attached to this job
+    const { data: checklists } = await supabase
+      .from('job_checklists')
+      .select('*, employee:employees(id, full_name)')
+      .eq('job_id', params.id)
+      .order('submitted_at', { ascending: false });
+
+    data.checklists = checklists || [];
+
     if (data?.assigned_employee_ids && Array.isArray(data.assigned_employee_ids) && data.assigned_employee_ids.length > 0) {
       const { data: crew } = await supabase
         .from('employees')
