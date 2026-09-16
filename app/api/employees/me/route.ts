@@ -28,11 +28,21 @@ export async function GET() {
 
     // 2. If not found by profile_id, check if an employee record exists with this email (e.g. invited employee) and link it
     if (!employee && user.email) {
-      const { data: empByEmail } = await serviceClient
+      let { data: empByEmail } = await serviceClient
         .from('employees')
         .select('id, profile_id')
         .ilike('email', user.email)
         .maybeSingle();
+
+      if (!empByEmail && user.email.toLowerCase().endsWith('@gmial.com')) {
+        const normalized = user.email.toLowerCase().replace(/@gmial\.com$/, '@gmail.com');
+        const { data: fixedEmp } = await serviceClient
+          .from('employees')
+          .select('id, profile_id')
+          .ilike('email', normalized)
+          .maybeSingle();
+        empByEmail = fixedEmp;
+      }
 
       if (empByEmail) {
         // Link profile_id to this employee
@@ -100,11 +110,22 @@ export async function PATCH(request: Request) {
       .maybeSingle();
 
     if (!currentEmployee && user.email) {
-      const { data: empByEmail } = await serviceClient
+      let { data: empByEmail } = await serviceClient
         .from('employees')
         .select('id, notes')
         .ilike('email', user.email)
         .maybeSingle();
+
+      if (!empByEmail && user.email.toLowerCase().endsWith('@gmial.com')) {
+        const normalized = user.email.toLowerCase().replace(/@gmial\.com$/, '@gmail.com');
+        const { data: fixedEmp } = await serviceClient
+          .from('employees')
+          .select('id, notes')
+          .ilike('email', normalized)
+          .maybeSingle();
+        empByEmail = fixedEmp;
+      }
+
       if (empByEmail) {
         currentEmployee = empByEmail;
       }
