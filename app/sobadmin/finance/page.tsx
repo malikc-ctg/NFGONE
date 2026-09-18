@@ -102,7 +102,7 @@ export default function FinancePage() {
       console.error('Failed to load QuickBooks data:', err);
       setQbLoading(false);
     });
-  }, [tab]);
+  }, [tab, refreshKey]);
 
   // Group by zone for overview table
   const zoneMap = new Map<string, ZoneMonthlyPnl[]>();
