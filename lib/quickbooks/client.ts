@@ -9,7 +9,7 @@ import type {
   QuickBooksEnvironment,
 } from './types';
 
-const TOKEN_ENDPOINT = 'https://oauth.platform.intuit.com/oauth/v1/tokens/bearer';
+const TOKEN_ENDPOINT = 'https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer';
 const REVOKE_ENDPOINT = 'https://developer.api.intuit.com/v2/oauth2/tokens/revoke';
 const AUTH_ENDPOINT = 'https://appcenter.intuit.com/connect/oauth2';
 
@@ -76,7 +76,17 @@ export async function exchangeCodeForTokens(
       body: body.toString(),
     });
 
-    const data = await res.json();
+    const rawText = await res.text();
+    let data: any = {};
+    try {
+      data = JSON.parse(rawText);
+    } catch {
+      return {
+        success: false,
+        error: `HTTP ${res.status}: ${rawText.slice(0, 200) || 'Empty response from Intuit token endpoint'}`,
+      };
+    }
+
     if (!res.ok) {
       return {
         success: false,
@@ -186,7 +196,15 @@ export async function getValidConnection(): Promise<QuickBooksConnectionRecord |
       body: body.toString(),
     });
 
-    const refreshed = await res.json();
+    const rawRefreshed = await res.text();
+    let refreshed: any = {};
+    try {
+      refreshed = JSON.parse(rawRefreshed);
+    } catch {
+      console.error('[QuickBooks] Non-JSON refresh response:', rawRefreshed);
+      return null;
+    }
+
     if (!res.ok) {
       console.error('[QuickBooks] Token refresh failed:', refreshed);
       return null;
