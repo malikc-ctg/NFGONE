@@ -10,7 +10,7 @@ export async function middleware(request: NextRequest) {
   if (hostname.includes('seaofblue.ca') || hostname.includes('customer.localhost')) {
     // Do not prefix API routes or global shared pages
     const isApi = url.pathname.startsWith('/api');
-    const isGlobalPage = /^\/(contact|terms|privacy|employees|employee|wegettinmoneynga|partner|booking|tracking|reset-password|apply|sitemap\.xml|robots\.txt)(\/|$)/.test(url.pathname);
+    const isGlobalPage = /^\/(monitoring|contact|terms|privacy|employees|employee|sobadmin|partner|booking|tracking|reset-password|apply|sitemap\.xml|robots\.txt)(\/|$)/.test(url.pathname);
     
     if (!isApi && !isGlobalPage) {
       if (!url.pathname.startsWith('/customer-site')) {
@@ -26,6 +26,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|manifest.json|sw.js|icons|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!monitoring|_next/static|_next/image|favicon.ico|manifest.json|sw.js|icons|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 };

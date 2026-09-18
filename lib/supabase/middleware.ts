@@ -40,9 +40,9 @@ export async function updateSession(request: NextRequest) {
   // Protect admin routes: redirect unauthenticated users to admin login
   const pathname = request.nextUrl.pathname;
   
-  const isAdminRoute = pathname.startsWith('/wegettinmoneynga');
-  const isAdminLogin = pathname === '/wegettinmoneynga/login';
-  const isAdminApi = pathname.startsWith('/api/wegettinmoneynga');
+  const isAdminRoute = pathname.startsWith('/sobadmin');
+  const isAdminLogin = pathname === '/sobadmin/login';
+  const isAdminApi = pathname.startsWith('/api/sobadmin');
 
   const isEmployeeRoute = pathname.startsWith('/employee');
   const isEmployeeLogin = pathname === '/employee/login';
@@ -54,7 +54,7 @@ export async function updateSession(request: NextRequest) {
   // Admin auth redirect bypassed — auto-load admin console without login
   // if (isAdminRoute && !isAdminLogin && !isAdminApi && !user) {
   //   const loginUrl = request.nextUrl.clone();
-  //   loginUrl.pathname = '/wegettinmoneynga/login';
+  //   loginUrl.pathname = '/sobadmin/login';
   //   loginUrl.searchParams.set('redirect', pathname);
   //   return NextResponse.redirect(loginUrl);
   // }

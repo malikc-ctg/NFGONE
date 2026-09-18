@@ -102,3 +102,61 @@ self.addEventListener('fetch', (event) => {
     })
   );
 });
+
+// ======== WEB PUSH NOTIFICATIONS ========
+
+self.addEventListener('push', (event) => {
+  if (!event.data) return;
+
+  let payload;
+  try {
+    payload = event.data.json();
+  } catch (e) {
+    payload = {
+      title: 'Sea of Blue',
+      body: event.data.text(),
+      icon: '/favicon.png',
+    };
+  }
+
+  const { title, body, icon, badge, data, tag } = payload;
+
+  const options = {
+    body: body || 'You have a new notification',
+    icon: icon || '/favicon.png',
+    badge: badge || '/favicon.png',
+    vibrate: [200, 100, 200, 100, 200],
+    tag: tag || 'sob-notification',
+    renotify: true,
+    requireInteraction: true,
+    data: data || {},
+    actions: [
+      { action: 'open', title: 'View' },
+      { action: 'dismiss', title: 'Dismiss' },
+    ],
+  };
+
+  event.waitUntil(self.registration.showNotification(title || 'Sea of Blue', options));
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+
+  if (event.action === 'dismiss') return;
+
+  const urlToOpen = event.notification.data?.url || '/employee';
+
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
+      // Focus existing tab if found
+      for (const client of windowClients) {
+        if (client.url.includes('/employee') && 'focus' in client) {
+          client.navigate(urlToOpen);
+          return client.focus();
+        }
+      }
+      // Otherwise open a new tab
+      return clients.openWindow(urlToOpen);
+    })
+  );
+});

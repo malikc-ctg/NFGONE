@@ -6,7 +6,7 @@ export default function robots(): MetadataRoute.Robots {
       userAgent: '*',
       allow: '/',
       disallow: [
-        '/wegettinmoneynga/',
+        '/sobadmin/',
         '/employee/',
         '/customer-site/dashboard/',
         '/customer-site/onboarding/',

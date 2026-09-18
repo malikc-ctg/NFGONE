@@ -80,7 +80,7 @@ export async function generateMonthlyInvoices(
 
       const dueDate = new Date(year, month, 15).toISOString().split('T')[0]; // 15th of next month
 
-      await supabase.from('partner_invoices').insert({
+      const { data: newInvoice } = await supabase.from('partner_invoices').insert({
         partner_id: partner.id,
         invoice_number: invoiceNumber,
         period_start: periodStart,
@@ -91,7 +91,16 @@ export async function generateMonthlyInvoices(
         total_due: totalDue,
         status: 'draft',
         due_date: dueDate,
-      });
+      }).select('id').single();
+
+      if (newInvoice?.id) {
+        try {
+          const { syncPartnerInvoiceToQBO } = await import('@/lib/quickbooks/sync');
+          await syncPartnerInvoiceToQBO(newInvoice.id);
+        } catch {
+          // Non-blocking: fail quietly if QuickBooks is not configured or offline
+        }
+      }
 
       generated++;
     } catch (err) {

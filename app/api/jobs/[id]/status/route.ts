@@ -14,6 +14,7 @@ import ReviewRequest from '@/emails/customer/ReviewRequest';
 import CustomerJobCancelled from '@/emails/customer/JobCancelled';
 import EmployeeJobCancelled from '@/emails/employee/JobCancelled';
 import React from 'react';
+import { sendJobAssignedPush, sendGenericPush } from '@/lib/web-push';
 export async function PATCH(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -160,6 +161,39 @@ export async function PATCH(
          }
       }
 
+       // ---- WEB PUSH to assigned employee ----
+       if (extraFields.assigned_employee_id && job.assigned_employee_id !== extraFields.assigned_employee_id) {
+         try {
+           const { data: assignedEmp } = await supabase
+             .from('employees')
+             .select('notes, full_name')
+             .eq('id', extraFields.assigned_employee_id)
+             .single();
+
+           if (assignedEmp?.notes) {
+             let empNotes: any = {};
+             try {
+               empNotes = typeof assignedEmp.notes === 'string'
+                 ? JSON.parse(assignedEmp.notes)
+                 : assignedEmp.notes;
+             } catch {}
+
+             if (empNotes.push_subscription) {
+               await sendJobAssignedPush(
+                 empNotes.push_subscription,
+                 id,
+                 `${data.address_line1}, ${data.city}`,
+                 data.service_type || 'Standard Clean',
+                 date,
+                 time
+               );
+             }
+           }
+         } catch (pushErr) {
+           console.error('Failed to send job assignment push:', pushErr);
+         }
+       }
+
       // 2. If job status progressed
       if (newStatus && newStatus !== job.status) {
         if (newStatus === 'on_the_way' && cEmail) {
@@ -174,18 +208,28 @@ export async function PATCH(
              subject: 'Service Started',
              react: React.createElement(ServiceStarted, { customerName: cName, startTime: 'now' })
            });
-         } else if (newStatus === 'completed' && cEmail) {
-           await sendEmail({
-             to: cEmail,
-             subject: 'All Done!',
-             react: React.createElement(ServiceCompleted, { customerName: cName, completionTime: 'now' })
-           });
-           await sendEmail({
-             to: cEmail,
-             subject: 'How did we do?',
-             react: React.createElement(ReviewRequest, { customerName: cName, date, reviewLink: 'https://seaofblue.app/reviews' })
-           });
-         } else if (newStatus === 'cancelled') {
+          } else if (newStatus === 'completed') {
+            if (cEmail) {
+              await sendEmail({
+                to: cEmail,
+                subject: 'All Done!',
+                react: React.createElement(ServiceCompleted, { customerName: cName, completionTime: 'now' })
+              });
+              await sendEmail({
+                to: cEmail,
+                subject: 'How did we do?',
+                react: React.createElement(ReviewRequest, { customerName: cName, date, reviewLink: 'https://seaofblue.app/reviews' })
+              });
+            }
+
+            // Auto-sync completed job to QuickBooks Online
+            try {
+              const { syncJobToQBO } = await import('@/lib/quickbooks/sync');
+              await syncJobToQBO(id);
+            } catch {
+              // Non-blocking: fail quietly if QuickBooks is not configured
+            }
+          } else if (newStatus === 'cancelled') {
            // 3. Expire pending offers if the job is cancelled
            const serviceClient = await createServiceClient();
            await serviceClient.from('job_offers').update({ status: 'expired' }).eq('job_id', id).eq('status', 'pending');

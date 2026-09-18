@@ -4,9 +4,9 @@ import path from 'path';
 const files = [
   'components/contractor/AvailabilityModal.tsx',
   'app/booking/page.tsx',
-  'app/wegettinmoneynga/jobs/new/page.tsx',
-  'app/wegettinmoneynga/leads/page.tsx',
-  'app/wegettinmoneynga/leads/[id]/page.tsx',
+  'app/sobadmin/jobs/new/page.tsx',
+  'app/sobadmin/leads/page.tsx',
+  'app/sobadmin/leads/[id]/page.tsx',
   'app/customer-site/quote/page.tsx',
   'app/customer-site/portal/quote/page.tsx',
   'app/partner/book/page.tsx',

@@ -372,7 +372,7 @@ export function PhotoEvidenceTab({ employees = [] }: PhotoEvidenceTabProps) {
                     <div className="pt-2">
                       <div className="flex items-center justify-between">
                         <Link
-                          href={`/wegettinmoneynga/jobs/${photo.job_id}`}
+                          href={`/sobadmin/jobs/${photo.job_id}`}
                           className="font-bold text-xs text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
                         >
                           {job.job_number || 'Job #'}
@@ -497,7 +497,7 @@ export function PhotoEvidenceTab({ employees = [] }: PhotoEvidenceTabProps) {
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Job Number:</span>
                       <Link
-                        href={`/wegettinmoneynga/jobs/${selectedPhoto.job_id}`}
+                        href={`/sobadmin/jobs/${selectedPhoto.job_id}`}
                         className="font-bold text-blue-600 hover:underline flex items-center gap-1"
                       >
                         {selectedPhoto.job?.job_number || 'View Job'}
@@ -536,7 +536,7 @@ export function PhotoEvidenceTab({ employees = [] }: PhotoEvidenceTabProps) {
 
               {/* Footer Actions */}
               <div className="flex items-center justify-between pt-2 border-t">
-                <Link href={`/wegettinmoneynga/jobs/${selectedPhoto.job_id}`}>
+                <Link href={`/sobadmin/jobs/${selectedPhoto.job_id}`}>
                   <Button variant="outline" size="sm" className="text-xs gap-1.5">
                     <ExternalLink className="h-3.5 w-3.5" />
                     Open Full Job Details

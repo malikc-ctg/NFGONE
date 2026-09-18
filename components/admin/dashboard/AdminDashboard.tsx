@@ -183,7 +183,7 @@ export function AdminDashboard() {
       sub: `${leads.length} total leads received`,
       icon: Sparkles, 
       color: 'purple',
-      href: '/wegettinmoneynga/leads',
+      href: '/sobadmin/leads',
     },
     { 
       label: 'Visible Revenue', 
@@ -261,7 +261,7 @@ export function AdminDashboard() {
         <div className="flex items-center gap-2 flex-wrap sm:justify-end">
           <CRMPricingModal onSuccess={loadData} />
 
-          <Link href="/wegettinmoneynga/jobs/new">
+          <Link href="/sobadmin/jobs/new">
             <Button size="sm" className="h-9 px-3 text-xs font-semibold gap-1.5 shadow-xs">
               <Plus className="h-4 w-4" />
               New Job
@@ -404,7 +404,7 @@ export function AdminDashboard() {
                 return (
                   <Link 
                     key={job.id} 
-                    href={`/wegettinmoneynga/jobs/${job.id}`}
+                    href={`/sobadmin/jobs/${job.id}`}
                     className="block group"
                   >
                     <div className="bg-card border border-border rounded-2xl p-4 md:p-5 hover:border-primary/50 hover:shadow-md transition-all shadow-xs">
@@ -504,7 +504,7 @@ export function AdminDashboard() {
                   <Button variant="outline" size="sm" onClick={() => setTimeframe('all')}>
                     View All {allJobs.length} Jobs
                   </Button>
-                  <Link href="/wegettinmoneynga/jobs/new">
+                  <Link href="/sobadmin/jobs/new">
                     <Button size="sm">
                       <Plus className="h-3.5 w-3.5 mr-1" />
                       Book a Job
@@ -525,7 +525,7 @@ export function AdminDashboard() {
                 <Sparkles className="h-4 w-4 text-purple-600" />
                 Recent Inbound Leads
               </h3>
-              <Link href="/wegettinmoneynga/leads" className="text-xs font-semibold text-primary hover:underline flex items-center">
+              <Link href="/sobadmin/leads" className="text-xs font-semibold text-primary hover:underline flex items-center">
                 View All ({leads.length})
                 <ChevronRight className="h-3 w-3" />
               </Link>
@@ -535,7 +535,7 @@ export function AdminDashboard() {
               {leads.slice(0, 3).map((lead) => (
                 <Link 
                   key={lead.id} 
-                  href={`/wegettinmoneynga/leads/${lead.id}`}
+                  href={`/sobadmin/leads/${lead.id}`}
                   className="block p-3 rounded-xl bg-muted/40 hover:bg-muted/70 transition-colors border border-border/40"
                 >
                   <div className="flex items-center justify-between">
@@ -574,7 +574,7 @@ export function AdminDashboard() {
               {employees.slice(0, 5).map((c) => (
                 <Link
                   key={c.id}
-                  href={`/wegettinmoneynga/employees/${c.id}`}
+                  href={`/sobadmin/employees/${c.id}`}
                   className="flex items-center justify-between p-2 rounded-xl hover:bg-muted/50 transition-colors"
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
@@ -594,7 +594,7 @@ export function AdminDashboard() {
                 </Link>
               ))}
 
-              <Link href="/wegettinmoneynga/employees" className="block pt-1">
+              <Link href="/sobadmin/employees" className="block pt-1">
                 <Button variant="ghost" size="sm" className="w-full text-xs font-bold uppercase tracking-wider text-muted-foreground hover:text-foreground">
                   View All Employees
                 </Button>
@@ -609,7 +609,7 @@ export function AdminDashboard() {
                 <Globe className="h-4 w-4 text-blue-600" />
                 Service Zones
               </h3>
-              <Link href="/wegettinmoneynga/zones" className="text-xs font-semibold text-primary hover:underline">
+              <Link href="/sobadmin/zones" className="text-xs font-semibold text-primary hover:underline">
                 Manage
               </Link>
             </div>

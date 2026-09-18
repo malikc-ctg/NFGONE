@@ -23,6 +23,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
+import PushNotificationPrompt from '@/components/employee/PushNotificationPrompt';
 
 interface DashboardStats {
   score: number;
@@ -319,6 +320,9 @@ export default function EmployeeDashboard() {
           {isClient ? format(new Date(), 'EEEE, MMMM do, yyyy') : '...'}
         </p>
       </div>
+
+      {/* Push Notification Prompt */}
+      <PushNotificationPrompt />
 
       {/* Pending Job Offers Alert */}
       {pendingOffers.length > 0 && (

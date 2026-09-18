@@ -2,14 +2,21 @@ import { createServiceClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { calculateMonthlyMRR, calculateNextRunDate } from '@/lib/recurring-utils';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const supabase = await createServiceClient();
+    const customerId = request.nextUrl.searchParams.get('customer_id');
 
-    const { data, error } = await supabase
+    let query = supabase
       .from('recurring_bookings')
       .select('*, customer:customers(*), employee:employees(*)')
       .order('created_at', { ascending: false });
+
+    if (customerId) {
+      query = query.eq('customer_id', customerId);
+    }
+
+    const { data, error } = await query;
 
     if (error) throw error;
     return NextResponse.json(data || []);

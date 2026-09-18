@@ -151,7 +151,7 @@ export function TimesheetsTab({ employees }: TimesheetsTabProps) {
         params.append('end_date', endDate);
       }
 
-      const res = await fetch(`/api/wegettinmoneynga/timesheets?${params.toString()}`);
+      const res = await fetch(`/api/sobadmin/timesheets?${params.toString()}`);
       if (!res.ok) throw new Error('Failed to load timesheets');
       const data = await res.json();
       setTimesheets(data.timesheets || []);
@@ -172,7 +172,7 @@ export function TimesheetsTab({ employees }: TimesheetsTabProps) {
   // Handle Quick Status Change (Approve / Reject)
   async function handleStatusChange(id: string, newStatus: 'approved' | 'rejected') {
     try {
-      const res = await fetch(`/api/wegettinmoneynga/timesheets/${id}`, {
+      const res = await fetch(`/api/sobadmin/timesheets/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus }),
@@ -189,7 +189,7 @@ export function TimesheetsTab({ employees }: TimesheetsTabProps) {
   async function handleForceClockOut(id: string, employeeName: string) {
     if (!confirm(`Force clock out for ${employeeName}? This will set clock-out to right now and compute hours.`)) return;
     try {
-      const res = await fetch(`/api/wegettinmoneynga/timesheets/${id}`, {
+      const res = await fetch(`/api/sobadmin/timesheets/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ force_clock_out: true, status: 'completed' }),
@@ -206,7 +206,7 @@ export function TimesheetsTab({ employees }: TimesheetsTabProps) {
   async function handleDeleteTimesheet(id: string) {
     if (!confirm('Are you sure you want to delete this timesheet entry?')) return;
     try {
-      const res = await fetch(`/api/wegettinmoneynga/timesheets/${id}`, {
+      const res = await fetch(`/api/sobadmin/timesheets/${id}`, {
         method: 'DELETE',
       });
       if (!res.ok) throw new Error('Failed to delete timesheet');
@@ -238,7 +238,7 @@ export function TimesheetsTab({ employees }: TimesheetsTabProps) {
 
       const totalMins = parseInt(manualForm.total_minutes, 10);
 
-      const res = await fetch('/api/wegettinmoneynga/timesheets', {
+      const res = await fetch('/api/sobadmin/timesheets', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -306,7 +306,7 @@ export function TimesheetsTab({ employees }: TimesheetsTabProps) {
 
       const totalMins = editForm.total_minutes ? parseInt(editForm.total_minutes, 10) : undefined;
 
-      const res = await fetch(`/api/wegettinmoneynga/timesheets/${selectedTimesheet.id}`, {
+      const res = await fetch(`/api/sobadmin/timesheets/${selectedTimesheet.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

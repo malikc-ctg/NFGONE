@@ -26,7 +26,7 @@ export default function ResetPasswordPage() {
   const loginLink = (() => {
     switch(portal) {
       case 'employee': return '/employee/login';
-      case 'admin': return '/wegettinmoneynga/login';
+      case 'admin': return '/sobadmin/login';
       default: return '/customer-site/login';
     }
   })();

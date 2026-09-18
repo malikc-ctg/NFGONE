@@ -30,7 +30,7 @@ interface LenisProviderProps {
 // Portals that own their own scroll containers — Lenis must NOT intercept these.
 // Any pathname starting with one of these prefixes will skip Lenis entirely.
 const LENIS_EXCLUDED_PREFIXES = [
-  '/wegettinmoneynga',
+  '/sobadmin',
   '/employee',
   '/reset-password',
 ];

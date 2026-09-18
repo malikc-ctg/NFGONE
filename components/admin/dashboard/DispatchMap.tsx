@@ -541,7 +541,7 @@ export default function DispatchMap({ onBack }: Props) {
             <span style="font-size:13px;font-weight:800;color:#22c55e;">$${(job.final_price ?? job.quoted_price)?.toFixed(0) ?? '—'}</span>
           </div>
           ${job.employee ? `<p style="font-size:10px;color:#666;">Assigned: <strong style="color:#bbb">${job.employee.full_name}</strong></p>` : ''}
-          <a href="/wegettinmoneynga/jobs/${job.id}" target="_blank" style="display:inline-flex;align-items:center;gap:4px;font-size:11px;color:#60a5fa;margin-top:6px;text-decoration:none;font-weight:700;">View Job Details ↗</a>
+          <a href="/sobadmin/jobs/${job.id}" target="_blank" style="display:inline-flex;align-items:center;gap:4px;font-size:11px;color:#60a5fa;margin-top:6px;text-decoration:none;font-weight:700;">View Job Details ↗</a>
         </div>`;
         if (!jobMarkersRef.current[job.id]) {
           const el = mkJobMarker(job.status);
@@ -572,7 +572,7 @@ export default function DispatchMap({ onBack }: Props) {
           <p style="font-weight:800;font-size:14px;margin:0 0 2px;color:#fff;">${c?.full_name ?? 'Employee'}</p>
           <p style="font-size:10px;color:#999;margin:0 0 6px;text-transform:capitalize;">${c?.tier ?? ''} Tier</p>
           ${c?.phone ? `<p style="font-size:10px;color:#666;margin:0 0 6px;">📞 ${c.phone}</p>` : ''}
-          <a href="/wegettinmoneynga/employees/${c?.id}" target="_blank" style="display:inline-flex;align-items:center;gap:4px;font-size:11px;color:#60a5fa;text-decoration:none;font-weight:700;">View Profile ↗</a>
+          <a href="/sobadmin/employees/${c?.id}" target="_blank" style="display:inline-flex;align-items:center;gap:4px;font-size:11px;color:#60a5fa;text-decoration:none;font-weight:700;">View Profile ↗</a>
         </div>`;
         if (!locMarkersRef.current[loc.id]) {
           locMarkersRef.current[loc.id] = new mapboxgl.Marker({ element: mkEmployeeMarker() })
@@ -599,7 +599,7 @@ export default function DispatchMap({ onBack }: Props) {
             <span style="font-size:10px;color:#93c5fd;font-weight:800;">HEADQUARTERS</span>
           </div>
           <p style="font-weight:800;font-size:14px;margin:0 0 6px;color:#fff;">${hq.full_name}</p>
-          <a href="/wegettinmoneynga/employees/${hq.id}" target="_blank" style="display:inline-flex;align-items:center;gap:4px;font-size:11px;color:#60a5fa;text-decoration:none;font-weight:700;">View Profile ↗</a>
+          <a href="/sobadmin/employees/${hq.id}" target="_blank" style="display:inline-flex;align-items:center;gap:4px;font-size:11px;color:#60a5fa;text-decoration:none;font-weight:700;">View Profile ↗</a>
         </div>`;
         if (!hqMarkersRef.current[hq.id]) {
           hqMarkersRef.current[hq.id] = new mapboxgl.Marker({ element: mkHQMarker() })
