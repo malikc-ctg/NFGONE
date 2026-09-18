@@ -2,10 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth, requireRole } from '@/lib/api-auth';
 import {
   getProfitAndLoss,
-  getBalanceSheet,
   getAgedReceivables,
   getTaxSummary,
-  getAccountBalances
+  getAccountBalances,
+  getRecentInvoices,
 } from '@/lib/quickbooks/reports';
 
 export const dynamic = 'force-dynamic';
@@ -25,9 +25,6 @@ export async function GET(req: NextRequest) {
       case 'pnl':
         data = await getProfitAndLoss(startDate, endDate);
         break;
-      case 'balance_sheet':
-        data = await getBalanceSheet();
-        break;
       case 'aged_receivables':
         data = await getAgedReceivables();
         break;
@@ -37,11 +34,14 @@ export async function GET(req: NextRequest) {
       case 'accounts':
         data = await getAccountBalances();
         break;
+      case 'invoices':
+        data = await getRecentInvoices(25);
+        break;
       default:
         return NextResponse.json({ error: 'Invalid report type' }, { status: 400 });
     }
 
-    return NextResponse.json({ data });
+    return NextResponse.json(data);
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

@@ -15,20 +15,23 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Missing ids parameter' }, { status: 400 });
     }
 
-    const ids = idsParam.split(',');
+    const ids = idsParam.split(',').filter(Boolean);
     const results = await Promise.all(
       ids.map(async (id) => {
-        const inv = await getInvoiceById(id);
+        const inv = await getInvoiceById(id.trim());
         return {
-          id,
+          Id: id.trim(),
+          id: id.trim(),
           status: inv ? 'Found' : 'Not Found',
-          balance: inv?.Balance || 0,
-          dueDate: inv?.DueDate || null
+          Balance: Number(inv?.Balance || 0),
+          TotalAmt: Number(inv?.TotalAmt || 0),
+          DueDate: inv?.DueDate || null,
+          DocNumber: inv?.DocNumber || null,
         };
       })
     );
 
-    return NextResponse.json({ data: results });
+    return NextResponse.json({ invoices: results, data: results });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
