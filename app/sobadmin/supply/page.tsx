@@ -117,6 +117,9 @@ export default function SupplyPage() {
   // Adjusting stock row id
   const [updatingId, setUpdatingId] = useState<string | null>(null);
 
+  // QBO vendor spend
+  const [qboSpend, setQboSpend] = useState<{ vendors: Array<{ vendorName: string; totalPaid: number }> } | null>(null);
+
   async function loadInventory(isManualRefresh = false) {
     if (isManualRefresh) setRefreshing(true);
     else setLoading(true);
@@ -143,6 +146,17 @@ export default function SupplyPage() {
 
   useEffect(() => {
     loadInventory();
+  }, []);
+
+  // Fetch QBO vendor spend data
+  useEffect(() => {
+    const now = new Date();
+    const startOfMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+    const today = now.toISOString().split('T')[0];
+    fetch(`/api/integrations/quickbooks/expenses?start_date=${startOfMonth}&end_date=${today}&group_by=vendor`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data) setQboSpend(data); })
+      .catch(() => {});
   }, []);
 
   // Filtered rows
@@ -397,6 +411,41 @@ export default function SupplyPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* QBO Monthly Vendor Spend */}
+      {qboSpend && qboSpend.vendors.length > 0 && (
+        <Card className="border-blue-100">
+          <CardHeader className="flex flex-row items-center justify-between pb-3 space-y-0">
+            <div>
+              <CardTitle className="text-sm font-semibold">Monthly Vendor Spend (QuickBooks)</CardTitle>
+              <p className="text-xs text-muted-foreground mt-0.5">Current month vendor purchases from QuickBooks</p>
+            </div>
+            <DollarSign className="h-4 w-4 text-blue-500" />
+          </CardHeader>
+          <CardContent className="p-0">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border bg-muted/30">
+                  <th className="text-left px-5 py-2.5 text-xs font-medium text-muted-foreground">Vendor</th>
+                  <th className="text-right px-5 py-2.5 text-xs font-medium text-muted-foreground">Amount Spent</th>
+                </tr>
+              </thead>
+              <tbody>
+                {qboSpend.vendors.map((v) => (
+                  <tr key={v.vendorName} className="border-b border-border/50 hover:bg-muted/20">
+                    <td className="px-5 py-2.5 font-medium">{v.vendorName}</td>
+                    <td className="px-5 py-2.5 text-right font-semibold">${v.totalPaid.toFixed(2)}</td>
+                  </tr>
+                ))}
+                <tr className="bg-muted/30 font-semibold">
+                  <td className="px-5 py-2.5">Total</td>
+                  <td className="px-5 py-2.5 text-right">${qboSpend.vendors.reduce((s, v) => s + v.totalPaid, 0).toFixed(2)}</td>
+                </tr>
+              </tbody>
+            </table>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Low Stock Warning Banner */}
       {lowStockRows.length > 0 && (

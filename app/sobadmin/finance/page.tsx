@@ -39,7 +39,9 @@ function ExpansionBadge({ score }: { score: ZoneExpansionScore }) {
 }
 
 export default function FinancePage() {
-  const [tab, setTab] = useState<'overview' | 'forecast'>('overview');
+  const [tab, setTab] = useState<'overview' | 'forecast' | 'quickbooks'>('overview');
+  const [qbData, setQbData] = useState<any>(null);
+  const [qbLoading, setQbLoading] = useState(false);
   const [pnl, setPnl] = useState<ZoneMonthlyPnl[]>([]);
   const [zones, setZones] = useState<Zone[]>([]);
   const [selectedZone, setSelectedZone] = useState<string>('');
@@ -80,6 +82,24 @@ export default function FinancePage() {
       fetch(`/api/finance/forecast?zone_id=${selectedZone}`).then(r => r.json()).then(setForecast);
     }
   }, [selectedZone, tab]);
+
+  useEffect(() => {
+    if (tab !== 'quickbooks') return;
+    setQbLoading(true);
+    const now = new Date();
+    const startOfYear = `${now.getFullYear()}-01-01`;
+    const today = now.toISOString().split('T')[0];
+    Promise.all([
+      fetch(`/api/integrations/quickbooks/reports?type=pnl&start_date=${startOfYear}&end_date=${today}`).then(r => r.json()),
+      fetch(`/api/integrations/quickbooks/reports?type=balance_sheet`).then(r => r.json()),
+      fetch(`/api/integrations/quickbooks/reports?type=aged_receivables`).then(r => r.json()),
+      fetch(`/api/integrations/quickbooks/reports?type=tax_summary&start_date=${startOfYear}&end_date=${today}`).then(r => r.json()),
+      fetch(`/api/integrations/quickbooks/reports?type=accounts`).then(r => r.json()),
+    ]).then(([pnl, balanceSheet, receivables, tax, accounts]) => {
+      setQbData({ pnl, balanceSheet, receivables, tax, accounts });
+      setQbLoading(false);
+    }).catch(() => setQbLoading(false));
+  }, [tab]);
 
   // Group by zone for overview table
   const zoneMap = new Map<string, ZoneMonthlyPnl[]>();
@@ -124,7 +144,7 @@ export default function FinancePage() {
 
       {/* Tabs */}
       <div className="flex gap-1 bg-muted/50 p-1 rounded-lg w-fit">
-        {(['overview', 'forecast'] as const).map((t) => (
+        {(['overview', 'forecast', 'quickbooks'] as const).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -307,6 +327,125 @@ export default function FinancePage() {
                     </div>
                   </div>
                 )}
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {tab === 'quickbooks' && (
+        <div className="space-y-6">
+          {qbLoading ? (
+            <div className="p-12 text-center text-muted-foreground text-sm">Loading QuickBooks data…</div>
+          ) : !qbData ? (
+            <div className="p-12 text-center text-muted-foreground text-sm">No data available</div>
+          ) : (
+            <>
+              {/* Top row of 4 stat cards */}
+              <div className="grid grid-cols-4 gap-4">
+                <StatCard label="Revenue" value={formatCAD(qbData.pnl?.income || 0)} sub="From P&L" />
+                <StatCard label="Expenses" value={formatCAD(qbData.pnl?.expenses || 0)} sub="From P&L" />
+                <StatCard label="Net Income" value={formatCAD(qbData.pnl?.netIncome || 0)} sub="From P&L" />
+                <StatCard label="Net HST Owed" value={formatCAD(qbData.tax?.netTaxOwed || 0)} sub="From Tax Summary" />
+              </div>
+
+              {/* Bank & Account Balances card */}
+              <div className="bg-card border border-border rounded-xl p-6">
+                <h3 className="font-semibold text-sm mb-4">Bank & Account Balances</h3>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-border bg-muted/30">
+                        <th className="text-left px-4 py-2 font-medium text-muted-foreground">Account Name</th>
+                        <th className="text-right px-4 py-2 font-medium text-muted-foreground">Balance</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(qbData.balanceSheet?.bankAccounts || []).map((account: any, i: number) => (
+                        <tr key={i} className="border-b border-border/50">
+                          <td className="px-4 py-2">{account.name}</td>
+                          <td className="px-4 py-2 text-right">{formatCAD(account.balance)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Aged Receivables card */}
+              <div className="bg-card border border-border rounded-xl p-6">
+                <h3 className="font-semibold text-sm mb-4">Aged Receivables</h3>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-border bg-muted/30">
+                        <th className="text-left px-4 py-2 font-medium text-muted-foreground">Customer</th>
+                        <th className="text-left px-4 py-2 font-medium text-muted-foreground">Invoice #</th>
+                        <th className="text-right px-4 py-2 font-medium text-muted-foreground">Amount</th>
+                        <th className="text-right px-4 py-2 font-medium text-muted-foreground">Due Date</th>
+                        <th className="text-right px-4 py-2 font-medium text-muted-foreground">Days Overdue</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(qbData.receivables?.rows || []).map((row: any, i: number) => (
+                        <tr key={i} className="border-b border-border/50">
+                          <td className="px-4 py-2">{row.customerName}</td>
+                          <td className="px-4 py-2">{row.invoiceNumber}</td>
+                          <td className="px-4 py-2 text-right">{formatCAD(row.amount)}</td>
+                          <td className="px-4 py-2 text-right">{row.dueDate}</td>
+                          <td className="px-4 py-2 text-right text-red-500">{row.daysOverdue} days</td>
+                        </tr>
+                      ))}
+                      <tr className="bg-muted/30 font-semibold">
+                        <td className="px-4 py-2" colSpan={2}>Total Overdue</td>
+                        <td className="px-4 py-2 text-right text-red-500">{formatCAD(qbData.receivables?.totalOverdue || 0)}</td>
+                        <td colSpan={2}></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* HST Tax Tracker card */}
+              <div className="bg-card border border-border rounded-xl p-6">
+                <h3 className="font-semibold text-sm mb-4">HST Tax Tracker</h3>
+                <div className="space-y-4">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Tax Collected</span>
+                    <span className="font-medium">{formatCAD(qbData.tax?.taxCollected || 0)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Tax Paid (ITCs)</span>
+                    <span className="font-medium">{formatCAD(qbData.tax?.taxPaid || 0)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm font-semibold border-t border-border pt-2">
+                    <span>Net HST Owing</span>
+                    <span className={qbData.tax?.netTaxOwed > 0 ? "text-red-500" : "text-green-500"}>
+                      {formatCAD(qbData.tax?.netTaxOwed || 0)}
+                    </span>
+                  </div>
+                  {/* Visual Bar */}
+                  <div className="h-4 bg-muted rounded-full overflow-hidden flex">
+                    <div 
+                      className="bg-red-400 h-full" 
+                      style={{ 
+                        width: `${Math.max(0, Math.min(100, (qbData.tax?.taxCollected || 0) / ((qbData.tax?.taxCollected || 1) + (qbData.tax?.taxPaid || 0)) * 100))}%` 
+                      }} 
+                      title="Tax Collected"
+                    />
+                    <div 
+                      className="bg-green-400 h-full" 
+                      style={{ 
+                        width: `${Math.max(0, Math.min(100, (qbData.tax?.taxPaid || 0) / ((qbData.tax?.taxCollected || 1) + (qbData.tax?.taxPaid || 0)) * 100))}%` 
+                      }} 
+                      title="Tax Paid"
+                    />
+                  </div>
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>Collected (Red)</span>
+                    <span>Paid (Green)</span>
+                  </div>
+                </div>
               </div>
             </>
           )}

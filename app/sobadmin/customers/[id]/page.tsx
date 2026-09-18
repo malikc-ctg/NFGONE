@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Plus, Repeat, Calendar, Clock, Sparkles } from 'lucide-react';
+import { ArrowLeft, Plus, Repeat, Calendar, Clock, Sparkles, DollarSign } from 'lucide-react';
 import type { Customer, RecurringBooking } from '@/types';
 import Link from 'next/link';
 import { AddCustomerServiceModal } from '@/components/admin/customers/AddCustomerServiceModal';
@@ -21,6 +21,7 @@ export default function CustomerDetailPage() {
   const [recurringLoading, setRecurringLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalTab, setModalTab] = useState<'recurring' | 'one_time'>('recurring');
+  const [qboData, setQboData] = useState<{ balance: number; lifetimeSpend: number } | null>(null);
 
   const fetchCustomerData = useCallback(async () => {
     // Fetch customer details
@@ -54,6 +55,17 @@ export default function CustomerDetailPage() {
         console.error('Failed to load recurring bookings', e);
       } finally {
         setRecurringLoading(false);
+      }
+
+      // Fetch QBO financial data
+      try {
+        const qboRes = await fetch(`/api/integrations/quickbooks/customers/${params.id}`);
+        if (qboRes.ok) {
+          const qboJson = await qboRes.json();
+          setQboData(qboJson);
+        }
+      } catch (e) {
+        console.error('Failed to load QBO data', e);
       }
     } else {
       setJobsLoading(false);
@@ -148,6 +160,28 @@ export default function CustomerDetailPage() {
             </div>
           </CardContent>
         </Card>
+        {qboData && (
+          <Card className="border-emerald-100">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <DollarSign className="h-4 w-4 text-emerald-600" />
+                QuickBooks Summary
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Outstanding Balance</span>
+                <span className={`font-bold ${qboData.balance > 0 ? 'text-amber-600' : 'text-emerald-600'}`}>
+                  ${qboData.balance.toFixed(2)}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Lifetime Spend</span>
+                <span className="font-bold text-foreground">${qboData.lifetimeSpend.toFixed(2)}</span>
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {/* Recurring Contracts Section */}

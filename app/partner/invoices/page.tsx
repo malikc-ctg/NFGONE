@@ -28,6 +28,23 @@ export default function PartnerInvoicesPage() {
       .then(d => { setInvoices(Array.isArray(d) ? d : []); setLoading(false); });
   }, []);
 
+  const [qboStatuses, setQboStatuses] = useState<Record<string, any>>({});
+
+  useEffect(() => {
+    const qboIds = invoices.filter(i => (i as any).qbo_invoice_id).map(i => (i as any).qbo_invoice_id);
+    if (qboIds.length === 0) return;
+    fetch(`/api/integrations/quickbooks/invoices?ids=${qboIds.join(',')}`)
+      .then(r => r.json())
+      .then(data => {
+        if (data.invoices) {
+          const map: Record<string, any> = {};
+          data.invoices.forEach((inv: any) => { map[inv.Id] = inv; });
+          setQboStatuses(map);
+        }
+      })
+      .catch(() => {});
+  }, [invoices]);
+
   // Aggregate totals
   const totalFeesPaid = invoices.filter(i => i.status === 'paid').reduce((sum, i) => sum + (i.total_posting_fees ?? 0), 0);
   const totalCommissions = invoices.reduce((sum, i) => sum + (i.total_commission_earned ?? 0), 0);
@@ -89,6 +106,7 @@ export default function PartnerInvoicesPage() {
                 <th className="text-right px-4 py-3 text-xs font-medium text-muted-foreground">Credits</th>
                 <th className="text-right px-4 py-3 text-xs font-medium text-muted-foreground">Total Due</th>
                 <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Status</th>
+                <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Payment Status</th>
                 <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground">Due Date</th>
                 <th className="px-4 py-3" />
               </tr>
@@ -121,6 +139,19 @@ export default function PartnerInvoicesPage() {
                     <span className={`px-2 py-0.5 rounded-full text-xs font-medium capitalize ${STATUS_STYLES[inv.status]}`}>
                       {inv.status}
                     </span>
+                  </td>
+                  <td className="px-4 py-3.5">
+                    {(() => {
+                      const qboInvId = (inv as any).qbo_invoice_id;
+                      const qboInv = qboInvId ? qboStatuses[qboInvId] : null;
+                      if (!qboInvId) return <span className="text-xs text-muted-foreground">Not synced</span>;
+                      if (!qboInv) return <span className="text-xs text-muted-foreground">Loading…</span>;
+                      const balance = Number(qboInv.Balance ?? 0);
+                      const total = Number(qboInv.TotalAmt ?? 0);
+                      if (balance === 0 && total > 0) return <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">Paid ✓</span>;
+                      if (balance < total) return <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700">Partial (${balance.toFixed(2)} remaining)</span>;
+                      return <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">Awaiting Payment</span>;
+                    })()}
                   </td>
                   <td className="px-4 py-3.5 text-muted-foreground text-xs whitespace-nowrap">
                     {inv.due_date ? format(new Date(inv.due_date), 'MMM d, yyyy') : '—'}

@@ -1,0 +1,48 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth, requireRole } from '@/lib/api-auth';
+import {
+  getProfitAndLoss,
+  getBalanceSheet,
+  getAgedReceivables,
+  getTaxSummary,
+  getAccountBalances
+} from '@/lib/quickbooks/reports';
+
+export const dynamic = 'force-dynamic';
+
+export async function GET(req: NextRequest) {
+  try {
+    await requireAuth();
+    await requireRole(['admin']);
+
+    const { searchParams } = new URL(req.url);
+    const type = searchParams.get('type');
+    const startDate = searchParams.get('start_date') || '';
+    const endDate = searchParams.get('end_date') || '';
+
+    let data;
+    switch (type) {
+      case 'pnl':
+        data = await getProfitAndLoss(startDate, endDate);
+        break;
+      case 'balance_sheet':
+        data = await getBalanceSheet();
+        break;
+      case 'aged_receivables':
+        data = await getAgedReceivables();
+        break;
+      case 'tax_summary':
+        data = await getTaxSummary(startDate, endDate);
+        break;
+      case 'accounts':
+        data = await getAccountBalances();
+        break;
+      default:
+        return NextResponse.json({ error: 'Invalid report type' }, { status: 400 });
+    }
+
+    return NextResponse.json({ data });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
