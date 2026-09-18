@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { getQuickBooksStatus } from '@/lib/quickbooks/client';
 import { getRecentSyncLogs } from '@/lib/quickbooks/sync';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   try {
     const status = await getQuickBooksStatus();

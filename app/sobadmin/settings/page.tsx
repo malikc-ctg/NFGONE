@@ -80,7 +80,7 @@ function SettingsContent() {
   // Load QuickBooks Status
   function loadQboStatus() {
     setQboLoading(true);
-    fetch('/api/integrations/quickbooks/status')
+    fetch(`/api/integrations/quickbooks/status?t=${Date.now()}`, { cache: 'no-store' })
       .then((r) => r.json())
       .then((data) => {
         setQboStatus(data);
