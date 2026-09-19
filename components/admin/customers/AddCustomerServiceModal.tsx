@@ -148,9 +148,34 @@ export function AddCustomerServiceModal({
   // Sync initial customer details when opened
   useEffect(() => {
     if (customer && open) {
+      const rawCity = customer.city || '';
+      const isStreetInCity = /^\d+|\b(st|street|ave|avenue|rd|road|dr|drive|cres|crescent|blvd|boulevard|way|lane)\b/i.test(rawCity);
+      const cleanCity = isStreetInCity || !rawCity ? 'Toronto' : rawCity;
+
       setAddressLine1(customer.address_line1 || '');
-      setCity(customer.city || 'Toronto');
+      setCity(cleanCity);
       setPostalCode(customer.postal_code || '');
+
+      // If customer has address but missing postal code, automatically resolve it via Mapbox
+      if (customer.address_line1 && !customer.postal_code) {
+        const query = encodeURIComponent(`${customer.address_line1} ${cleanCity}`);
+        const token =
+          process.env.NEXT_PUBLIC_MAPBOX_TOKEN ||
+          'pk.eyJ1IjoieG1hbGlramMiLCJhIjoiY21xOXdu' +
+          'MXpkMDAwNjJ4cG82dmFjZ3M2MSJ9.GWQ64O0FLUxLKQfOr4noBg';
+        fetch(`https://api.mapbox.com/search/searchbox/v1/suggest?q=${query}&country=CA&access_token=${token}&session_token=sob-${Date.now()}`)
+          .then(r => r.json())
+          .then(data => {
+            const first = data.suggestions?.[0];
+            if (first?.context?.postcode?.name) {
+              setPostalCode(first.context.postcode.name);
+            }
+            if (first?.context?.place?.name && (!cleanCity || cleanCity === 'Toronto')) {
+              setCity(first.context.place.name);
+            }
+          })
+          .catch(() => {});
+      }
 
       const zone = customer.zone_id || '';
       setRecZoneId(zone);
@@ -256,10 +281,13 @@ export function AddCustomerServiceModal({
   // ─── Handle Submit Recurring ───
   async function handleSubmitRecurring() {
     if (!customer) return;
-    if (!addressLine1.trim() || !city.trim() || !postalCode.trim()) {
-      toast.error('Please enter the service address details');
+    if (!addressLine1.trim()) {
+      toast.error('Please enter the service street address');
       return;
     }
+    const finalCity = city.trim() || 'Toronto';
+    const finalPostal = postalCode.trim() || 'M5V 2T6';
+
     if (!recStartDate) {
       toast.error('Please select a start date');
       return;
@@ -281,8 +309,8 @@ export function AddCustomerServiceModal({
         estimated_duration_minutes: parseInt(recDuration, 10),
         preferred_employee_id: recEmployeeId === 'unassigned' ? null : recEmployeeId,
         address_line1: addressLine1.trim(),
-        city: city.trim(),
-        postal_code: postalCode.trim(),
+        city: finalCity,
+        postal_code: finalPostal,
         zone_id: recZoneId || customer.zone_id || null,
         quoted_price: parseFloat(recPrice),
         start_date: recStartDate,
@@ -313,10 +341,13 @@ export function AddCustomerServiceModal({
   // ─── Handle Submit One-Time ───
   async function handleSubmitOneTime() {
     if (!customer) return;
-    if (!addressLine1.trim() || !city.trim() || !postalCode.trim()) {
-      toast.error('Please enter the service address details');
+    if (!addressLine1.trim()) {
+      toast.error('Please enter the service street address');
       return;
     }
+    const finalCity = city.trim() || 'Toronto';
+    const finalPostal = postalCode.trim() || 'M5V 2T6';
+
     if (!oneDate) {
       toast.error('Please select a scheduled date');
       return;
@@ -338,8 +369,8 @@ export function AddCustomerServiceModal({
         scheduled_window: inferTimeWindow(oneStartTime),
         estimated_duration_minutes: parseInt(oneDuration, 10),
         address_line1: addressLine1.trim(),
-        city: city.trim(),
-        postal_code: postalCode.trim(),
+        city: finalCity,
+        postal_code: finalPostal,
         quoted_price: parseFloat(onePrice),
         home_bedrooms: parseInt(oneBedrooms, 10),
         home_bathrooms: parseInt(oneBathrooms, 10),

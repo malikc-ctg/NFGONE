@@ -51,7 +51,10 @@ export async function POST(request: NextRequest) {
       start_date = new Date().toISOString().split('T')[0],
     } = body;
 
-    if (!service_type || !frequency || !address_line1 || !city || !postal_code || quoted_price === undefined) {
+    const finalCity = (city || '').trim() || 'Toronto';
+    const finalPostalCode = (postal_code || '').trim() || 'M5V 2T6';
+
+    if (!service_type || !frequency || !address_line1 || quoted_price === undefined) {
       return NextResponse.json({ error: 'Missing required fields for recurring contract' }, { status: 400 });
     }
 
@@ -83,8 +86,8 @@ export async function POST(request: NextRequest) {
         preferred_employee_id: preferred_employee_id || null,
         preferred_team_id: preferred_team_id || null,
         address_line1,
-        city,
-        postal_code,
+        city: finalCity,
+        postal_code: finalPostalCode,
         quoted_price: Number(quoted_price),
         monthly_amount,
         billing_type: 'per_visit',

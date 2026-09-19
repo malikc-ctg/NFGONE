@@ -26,8 +26,11 @@ export async function POST(request: NextRequest) {
       estimated_duration_minutes, deposit_amount,
     } = body;
 
+    const finalCity = (city || '').trim() || 'Toronto';
+    const finalPostalCode = (postal_code || '').trim() || 'M5V 2T6';
+
     if (!customer_id || !zone_id || !service_type || !scheduled_date ||
-        !address_line1 || !city || !postal_code || !quoted_price) {
+        !address_line1 || quoted_price === undefined) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
@@ -37,8 +40,8 @@ export async function POST(request: NextRequest) {
         customer_id, zone_id, service_type, scheduled_date,
         scheduled_window: scheduled_window || 'afternoon',
         scheduled_start_time: scheduled_start_time || '15:00',
-        address_line1, address_line2, city,
-        postal_code, quoted_price, access_instructions,
+        address_line1, address_line2, city: finalCity,
+        postal_code: finalPostalCode, quoted_price, access_instructions,
         home_bedrooms, home_bathrooms, home_size_sqft,
         has_pets: has_pets ?? false,
         add_ons: add_ons ?? [],
@@ -53,7 +56,7 @@ export async function POST(request: NextRequest) {
     if (error) throw error;
 
     // Geocode the address and update the job (non-blocking)
-    geocodeAddress(address_line1, city, postal_code)
+    geocodeAddress(address_line1, finalCity, finalPostalCode)
       .then(async (coords) => {
         if (coords) {
           await supabase
