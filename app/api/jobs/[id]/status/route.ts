@@ -5,13 +5,7 @@ import type { JobStatus } from '@/types';
 import { requireRole, requireAuth } from '@/lib/api-auth';
 import { sendEmail } from '@/lib/resend';
 import { logAudit } from '@/lib/audit';
-import EmployeeAssigned from '@/emails/customer/EmployeeAssigned';
 import JobAssigned from '@/emails/employee/JobAssigned';
-import EmployeeEnRoute from '@/emails/customer/EmployeeEnRoute';
-import ServiceStarted from '@/emails/customer/ServiceStarted';
-import ServiceCompleted from '@/emails/customer/ServiceCompleted';
-import ReviewRequest from '@/emails/customer/ReviewRequest';
-import CustomerJobCancelled from '@/emails/customer/JobCancelled';
 import EmployeeJobCancelled from '@/emails/employee/JobCancelled';
 import React from 'react';
 import { sendJobAssignedPush, sendGenericPush } from '@/lib/web-push';
@@ -147,25 +141,14 @@ export async function PATCH(
 
     // ----- EMAIL DISPATCH LOGIC -----
     try {
-      const custObj = Array.isArray(data.customer) ? data.customer[0] : data.customer;
       const contObj = Array.isArray(data.employee) ? data.employee[0] : data.employee;
-
-      const cName = custObj?.full_name || 'Customer';
-      const cEmail = custObj?.email;
       const contName = contObj?.full_name || 'Employee';
       const contEmail = contObj?.email;
       const date = data.scheduled_date || 'TBD';
       const time = data.scheduled_window || 'TBD';
       
-      // 1. If a employee was just assigned
+      // 1. If an employee was just assigned
       if (extraFields.assigned_employee_id && job.assigned_employee_id !== extraFields.assigned_employee_id) {
-         if (cEmail) {
-           await sendEmail({
-             to: cEmail,
-             subject: `Your Cleaner is Set for ${date}`,
-             react: React.createElement(EmployeeAssigned, { customerName: cName, date, timeWindow: time })
-           });
-         }
          if (contEmail) {
            await sendEmail({
              to: contEmail,
@@ -217,51 +200,19 @@ export async function PATCH(
 
       // 2. If job status progressed
       if (newStatus && newStatus !== job.status) {
-        if (newStatus === 'on_the_way' && cEmail) {
-           await sendEmail({
-             to: cEmail,
-             subject: 'Your Cleaner is On the Way',
-             react: React.createElement(EmployeeEnRoute, { customerName: cName, arrivalTime: 'shortly' })
-           });
-        } else if (newStatus === 'in_progress' && cEmail) {
-           await sendEmail({
-             to: cEmail,
-             subject: 'Service Started',
-             react: React.createElement(ServiceStarted, { customerName: cName, startTime: 'now' })
-           });
-          } else if (newStatus === 'completed') {
-            if (cEmail) {
-              await sendEmail({
-                to: cEmail,
-                subject: 'All Done!',
-                react: React.createElement(ServiceCompleted, { customerName: cName, completionTime: 'now' })
-              });
-              await sendEmail({
-                to: cEmail,
-                subject: 'How did we do?',
-                react: React.createElement(ReviewRequest, { customerName: cName, date, reviewLink: 'https://seaofblue.app/reviews' })
-              });
-            }
-
-            // Auto-sync completed job to QuickBooks Online
-            try {
-              const { syncJobToQBO } = await import('@/lib/quickbooks/sync');
-              await syncJobToQBO(id);
-            } catch {
-              // Non-blocking: fail quietly if QuickBooks is not configured
-            }
-          } else if (newStatus === 'cancelled') {
-           // 3. Expire pending offers if the job is cancelled
+         if (newStatus === 'completed') {
+           // Auto-sync completed job to QuickBooks Online
+           try {
+             const { syncJobToQBO } = await import('@/lib/quickbooks/sync');
+             await syncJobToQBO(id);
+           } catch {
+             // Non-blocking: fail quietly if QuickBooks is not configured
+           }
+         } else if (newStatus === 'cancelled') {
+           // Expire pending offers if the job is cancelled
            const serviceClient = await createServiceClient();
            await serviceClient.from('job_offers').update({ status: 'expired' }).eq('job_id', id).eq('status', 'pending');
            
-           if (cEmail) {
-             await sendEmail({
-               to: cEmail,
-               subject: `Booking Cancelled - ${date}`,
-               react: React.createElement(CustomerJobCancelled, { customerName: cName, date })
-             });
-           }
            if (contEmail) {
              await sendEmail({
                to: contEmail,

@@ -1,8 +1,6 @@
 'use server';
 
 import { createServiceClient } from '@/lib/supabase/server';
-import { sendEmail } from '@/lib/resend';
-import BookingRequestReceived from '@/emails/customer/BookingRequestReceived';
 import React from 'react';
 import { calculateQuote } from '@/lib/pricing/calculator';
 import type { PackageType, Frequency, PropertyType } from '@/lib/pricing/constants';
@@ -57,18 +55,6 @@ export async function submitQuoteRequest(data: {
       console.error('Supabase error inserting lead:', error);
       return { success: false, error: error.message };
     }
-
-    // Send confirmation email to the customer
-    await sendEmail({
-      to: data.email,
-      subject: 'Request Received - Sea of Blue',
-      react: React.createElement(BookingRequestReceived, {
-        customerName: data.firstName,
-        serviceType: data.category,
-        date: data.scheduled_date || 'a future date',
-        timeWindow: data.scheduled_window || 'the preferred time'
-      })
-    });
 
     return { success: true, lead: leadData };
 
@@ -307,18 +293,6 @@ export async function createCustomerAccountAndLinkQuote(data: any) {
     if (leadError) {
       console.error('Supabase error inserting lead for new account:', leadError);
     }
-
-    // 4. Send Confirmation Email
-    await sendEmail({
-      to: data.email,
-      subject: 'Account Created & Request Received - Sea of Blue',
-      react: React.createElement(BookingRequestReceived, {
-        customerName: data.firstName,
-        serviceType: data.category,
-        date: data.scheduled_date || 'a future date',
-        timeWindow: data.scheduled_window || 'the preferred time'
-      })
-    });
 
     return { success: true };
   } catch (err: any) {

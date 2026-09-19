@@ -1,10 +1,7 @@
 import { createServiceClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { requireRole } from '@/lib/api-auth';
-import { sendEmail } from '@/lib/resend';
 import { logAudit } from '@/lib/audit';
-import BookingConfirmed from '@/emails/customer/BookingConfirmed';
-import React from 'react';
 
 export async function POST(
   request: NextRequest,
@@ -149,19 +146,6 @@ export async function POST(
 
     if (updateError) {
       console.error('Error updating lead status:', updateError);
-    }
-
-    // Send the Booking Confirmed email to the customer
-    if (lead.customer_email) {
-      await sendEmail({
-        to: lead.customer_email,
-        subject: `Your booking is confirmed for ${job.scheduled_date}`,
-        react: React.createElement(BookingConfirmed, {
-          customerName: lead.customer_name ?? 'Customer',
-          date: job.scheduled_date || 'TBD',
-          timeWindow: job.scheduled_window || 'TBD'
-        })
-      });
     }
 
     logAudit({

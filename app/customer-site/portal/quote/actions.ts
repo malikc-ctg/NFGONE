@@ -1,9 +1,6 @@
 'use server';
 
 import { createClient, createServiceClient } from '@/lib/supabase/server';
-import { sendEmail } from '@/lib/resend';
-import BookingRequestReceived from '@/emails/customer/BookingRequestReceived';
-import React from 'react';
 
 export async function submitInternalQuoteRequest(data: {
   category: string;
@@ -71,20 +68,6 @@ export async function submitInternalQuoteRequest(data: {
     if (leadError) {
       console.error('Supabase error inserting internal lead:', leadError);
       return { success: false, error: leadError.message };
-    }
-
-    // 5. Send confirmation email to the customer
-    if (customer.email) {
-      await sendEmail({
-        to: customer.email,
-        subject: 'Quote Request Received - Sea of Blue',
-        react: React.createElement(BookingRequestReceived, {
-          customerName: customer.full_name?.split(' ')[0] || 'Customer',
-          serviceType: data.category,
-          date: data.scheduled_date || 'a future date',
-          timeWindow: data.scheduled_window || 'the preferred time'
-        })
-      });
     }
 
     return { success: true, lead: leadData };
