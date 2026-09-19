@@ -19,12 +19,26 @@ import {
   POST_CONSTRUCTION_STAGE_LABELS,
   type PostConstructionStage,
 } from '@/lib/pricing/post-construction-calculator';
+import { LeadContactFields, type LeadContactData } from './LeadContactFields';
+
+interface PostConstructionSectionProps {
+  contact: LeadContactData;
+  onContactChange: (field: keyof LeadContactData, value: string) => void;
+  onSuccess?: () => void;
+  onClose?: () => void;
+}
 
 function fmt(n: number) {
   return `$${n.toFixed(2)}`;
 }
 
-export function PostConstructionSection() {
+export function PostConstructionSection({
+  contact,
+  onContactChange,
+  onSuccess,
+  onClose,
+}: PostConstructionSectionProps) {
+  const [loading, setLoading] = useState(false);
   const [sqftStr, setSqftStr] = useState('1500');
   const [stage, setStage] = useState<PostConstructionStage>('final');
   const [windowScrapingCount, setWindowScrapingCount] = useState(0);
@@ -67,10 +81,68 @@ export function PostConstructionSection() {
     toast.success('Post-construction quote copied to clipboard');
   };
 
+  const handleGenerateLead = async () => {
+    if (!contact.customerName.trim()) {
+      toast.error('Customer name is required to create a lead');
+      return;
+    }
+    if (!result) return;
+
+    setLoading(true);
+    try {
+      const notes = [
+        `Post-Construction Clean — ${POST_CONSTRUCTION_STAGE_LABELS[stage].label} stage`,
+        `Area: ${sqft.toLocaleString()} sqft (Base: ${fmt(result.stagePrice)})`,
+        result.addOnBreakdown.length > 0
+          ? `Add-ons: ${result.addOnBreakdown.map((a) => `${a.label} (${fmt(a.price)})`).join(', ')}`
+          : null,
+        `Estimated Total: ${fmt(result.total)}`,
+        `Estimated Labor: ~${result.estimatedHours} crew hours`,
+      ].filter(Boolean).join(' | ');
+
+      const res = await fetch('/api/pricing-quotes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customer_name: contact.customerName,
+          customer_phone: contact.customerPhone,
+          customer_email: contact.customerEmail,
+          address: contact.address,
+          source: contact.source,
+          service_type: 'post_construction_clean',
+          package_name: 'Post-Construction Clean',
+          calculated_price: result.total,
+          sqft: sqft,
+          estimated_hours: result.estimatedHours,
+          notes,
+          breakdown: result,
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'Failed to generate quote');
+      }
+
+      toast.success('Quote generated and lead created');
+      if (onSuccess) onSuccess();
+      if (onClose) onClose();
+    } catch (err: any) {
+      toast.error(err.message || 'An error occurred');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="flex-1 overflow-hidden flex flex-col md:flex-row">
       {/* ── LEFT: Form ── */}
       <div className="w-full md:w-[60%] overflow-y-auto p-5 space-y-6">
+        {/* Contact Information */}
+        <LeadContactFields contact={contact} onChange={onContactChange} />
+
+        <hr className="border-muted" />
+
         {/* Header Intro */}
         <div className="flex items-center gap-2 text-primary font-bold text-sm">
           <HardHat className="h-4 w-4" />
@@ -225,14 +297,24 @@ export function PostConstructionSection() {
           </div>
         </div>
 
-        <div className="pt-4 border-t flex gap-2">
+        <div className="pt-4 border-t flex flex-col gap-2">
           <Button
             type="button"
-            className="w-full"
+            className="w-full font-bold text-sm"
+            size="lg"
+            disabled={!result || !contact.customerName.trim() || loading}
+            onClick={handleGenerateLead}
+          >
+            {loading ? 'Generating...' : 'Generate Quote & Lead'}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full text-xs"
             disabled={!result}
             onClick={handleCopy}
           >
-            <Copy className="h-4 w-4 mr-1.5" />
+            <Copy className="h-3.5 w-3.5 mr-1.5" />
             Copy Quote
           </Button>
         </div>

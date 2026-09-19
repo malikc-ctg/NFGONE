@@ -10,6 +10,14 @@ import {
   calcCommercialCarpet,
   type CommercialCarpetTier,
 } from '@/lib/pricing/carpet-calculator';
+import { LeadContactFields, type LeadContactData } from './LeadContactFields';
+
+interface CommercialCarpetSectionProps {
+  contact: LeadContactData;
+  onContactChange: (field: keyof LeadContactData, value: string) => void;
+  onSuccess?: () => void;
+  onClose?: () => void;
+}
 
 // ── Stepper (re-declared locally) ──
 function Stepper({
@@ -69,7 +77,13 @@ function fmt(n: number) {
 // CommercialCarpetSection
 // ----------------------------------------------------------------
 
-export function CommercialCarpetSection() {
+export function CommercialCarpetSection({
+  contact,
+  onContactChange,
+  onSuccess,
+  onClose,
+}: CommercialCarpetSectionProps) {
+  const [loading, setLoading] = useState(false);
   const [tier, setTier]     = useState<CommercialCarpetTier>('standard');
   const [sqftStr, setSqftStr] = useState('');
 
@@ -99,11 +113,64 @@ export function CommercialCarpetSection() {
     toast.success('Quote copied to clipboard');
   };
 
+  const handleGenerateLead = async () => {
+    if (!contact.customerName.trim()) {
+      toast.error('Customer name is required to create a lead');
+      return;
+    }
+    if (!result) return;
+
+    setLoading(true);
+    try {
+      const notes = [
+        `Commercial Carpet Extraction (${tier === 'standard' ? 'Standard' : 'Premium'})`,
+        `Square footage: ${sqft.toLocaleString()} sqft`,
+        `Rate: $${result.rate.toFixed(2)}/sqft`,
+        `TOTAL: ${fmt(result.total)}`,
+      ].join(' | ');
+
+      const res = await fetch('/api/pricing-quotes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customer_name: contact.customerName,
+          customer_phone: contact.customerPhone,
+          customer_email: contact.customerEmail,
+          address: contact.address,
+          source: contact.source,
+          service_type: 'carpet_clean',
+          package_name: 'Commercial Carpet Extraction',
+          calculated_price: result.total,
+          sqft: sqft,
+          notes,
+          breakdown: result,
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'Failed to generate quote');
+      }
+
+      toast.success('Quote generated and lead created');
+      if (onSuccess) onSuccess();
+      if (onClose) onClose();
+    } catch (err: any) {
+      toast.error(err.message || 'An error occurred');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="flex-1 overflow-hidden flex flex-col md:flex-row">
       {/* ── LEFT: Form ── */}
       <div className="w-full md:w-[60%] overflow-y-auto">
         <div className="p-5 space-y-5">
+          {/* Contact Information */}
+          <LeadContactFields contact={contact} onChange={onContactChange} />
+
+          <hr className="border-muted" />
 
           {/* 1. Quality Tier */}
           <section className="space-y-3">
@@ -263,13 +330,20 @@ export function CommercialCarpetSection() {
               <Button
                 className="w-full text-sm font-bold"
                 size="lg"
+                onClick={handleGenerateLead}
+                disabled={!hasValidInput || !contact.customerName.trim() || loading}
+              >
+                {loading ? 'Generating...' : 'Generate Quote & Lead'}
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full text-xs"
                 onClick={handleCopy}
                 disabled={!hasValidInput}
               >
-                <Copy className="h-4 w-4 mr-2" />
+                <Copy className="h-3.5 w-3.5 mr-1.5" />
                 Copy Quote
               </Button>
-              {/* TODO: wire up Generate Quote & Lead once /api/pricing-quotes supports commercial carpet */}
             </div>
           </div>
         </div>

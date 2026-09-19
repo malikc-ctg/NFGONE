@@ -53,6 +53,7 @@ import { CommercialCleaningSection } from './CommercialCleaningSection';
 import { PostConstructionSection }   from './PostConstructionSection';
 import { JunkRemovalSection }         from './JunkRemovalSection';
 import { PaintingSection }            from './PaintingSection';
+import { LeadContactFields, type LeadContactData } from './LeadContactFields';
 
 // ── Service sectors and services ──
 type Sector = 'residential' | 'commercial';
@@ -244,6 +245,17 @@ export function CRMPricingModal({ onSuccess }: { onSuccess?: () => void }) {
   const [open,       setOpen]       = useState(false);
   const [sector,     setSector]     = useState<Sector>('residential');
   const [serviceTab, setServiceTab] = useState<ServiceTab>('residential_cleaning');
+  const [contact,    setContact]    = useState<LeadContactData>({
+    customerName: '',
+    customerPhone: '',
+    customerEmail: '',
+    address: '',
+    source: 'inbound_call',
+  });
+
+  const handleContactChange = useCallback((field: keyof LeadContactData, value: string) => {
+    setContact((prev) => ({ ...prev, [field]: value }));
+  }, []);
 
   const handleOpenChange = (v: boolean) => {
     setOpen(v);
@@ -251,6 +263,13 @@ export function CRMPricingModal({ onSuccess }: { onSuccess?: () => void }) {
     if (!v) {
       setSector('residential');
       setServiceTab('residential_cleaning');
+      setContact({
+        customerName: '',
+        customerPhone: '',
+        customerEmail: '',
+        address: '',
+        source: 'inbound_call',
+      });
     }
   };
 
@@ -343,15 +362,69 @@ export function CRMPricingModal({ onSuccess }: { onSuccess?: () => void }) {
 
         {/* ── Active section ── */}
         {open && serviceTab === 'residential_cleaning' && (
-          <PricingModalContent onSuccess={onSuccess} onClose={() => handleOpenChange(false)} />
+          <PricingModalContent
+            contact={contact}
+            onContactChange={handleContactChange}
+            onSuccess={onSuccess}
+            onClose={() => handleOpenChange(false)}
+          />
         )}
-        {open && serviceTab === 'residential_carpet'   && <ResidentialCarpetSection />}
-        {open && serviceTab === 'commercial_carpet'    && <CommercialCarpetSection />}
-        {open && serviceTab === 'strip_and_wax'        && <StripAndWaxSection />}
-        {open && serviceTab === 'commercial_cleaning'  && <CommercialCleaningSection />}
-        {open && serviceTab === 'post_construction'    && <PostConstructionSection />}
-        {open && serviceTab === 'junk_removal'         && <JunkRemovalSection />}
-        {open && serviceTab === 'painting'             && <PaintingSection />}
+        {open && serviceTab === 'residential_carpet'   && (
+          <ResidentialCarpetSection
+            contact={contact}
+            onContactChange={handleContactChange}
+            onSuccess={onSuccess}
+            onClose={() => handleOpenChange(false)}
+          />
+        )}
+        {open && serviceTab === 'commercial_carpet'    && (
+          <CommercialCarpetSection
+            contact={contact}
+            onContactChange={handleContactChange}
+            onSuccess={onSuccess}
+            onClose={() => handleOpenChange(false)}
+          />
+        )}
+        {open && serviceTab === 'strip_and_wax'        && (
+          <StripAndWaxSection
+            contact={contact}
+            onContactChange={handleContactChange}
+            onSuccess={onSuccess}
+            onClose={() => handleOpenChange(false)}
+          />
+        )}
+        {open && serviceTab === 'commercial_cleaning'  && (
+          <CommercialCleaningSection
+            contact={contact}
+            onContactChange={handleContactChange}
+            onSuccess={onSuccess}
+            onClose={() => handleOpenChange(false)}
+          />
+        )}
+        {open && serviceTab === 'post_construction'    && (
+          <PostConstructionSection
+            contact={contact}
+            onContactChange={handleContactChange}
+            onSuccess={onSuccess}
+            onClose={() => handleOpenChange(false)}
+          />
+        )}
+        {open && serviceTab === 'junk_removal'         && (
+          <JunkRemovalSection
+            contact={contact}
+            onContactChange={handleContactChange}
+            onSuccess={onSuccess}
+            onClose={() => handleOpenChange(false)}
+          />
+        )}
+        {open && serviceTab === 'painting'             && (
+          <PaintingSection
+            contact={contact}
+            onContactChange={handleContactChange}
+            onSuccess={onSuccess}
+            onClose={() => handleOpenChange(false)}
+          />
+        )}
       </DialogContent>
     </Dialog>
   );
@@ -362,22 +435,19 @@ export function CRMPricingModal({ onSuccess }: { onSuccess?: () => void }) {
 // ============================================================
 
 function PricingModalContent({
+  contact,
+  onContactChange,
   onSuccess,
   onClose,
 }: {
+  contact: LeadContactData;
+  onContactChange: (field: keyof LeadContactData, value: string) => void;
   onSuccess?: () => void;
   onClose: () => void;
 }) {
   const [loading, setLoading] = useState(false);
   const [quoteFinalized, setQuoteFinalized] = useState(false);
   const [scopeText, setScopeText] = useState('');
-
-  // --- Contact ---
-  const [customerName, setCustomerName] = useState('');
-  const [customerPhone, setCustomerPhone] = useState('');
-  const [customerEmail, setCustomerEmail] = useState('');
-  const [address, setAddress] = useState('');
-  const [source, setSource] = useState('inbound_call');
 
   // --- Property ---
   const [propertyType, setPropertyType] = useState<PropertyType>('condo');
@@ -518,7 +588,7 @@ function PricingModalContent({
 
   const handleCopyScopeOfWork = () => {
     const text = generateScopeOfWork({
-      customerName,
+      customerName: contact.customerName || 'Customer',
       propertyType,
       sizeBandLabel: quote.sizeBandLabel,
       selectedPackage,
@@ -534,7 +604,7 @@ function PricingModalContent({
   };
 
   const handleGenerateQuote = async () => {
-    if (!customerName) {
+    if (!contact.customerName.trim()) {
       toast.error('Please enter the customer name.');
       return;
     }
@@ -555,7 +625,7 @@ function PricingModalContent({
     try {
       const computedTotal = typeof finalPrice === 'number' ? finalPrice : (finalPrice as [number, number])[1];
       const sowText = generateScopeOfWork({
-        customerName,
+        customerName: contact.customerName,
         propertyType,
         sizeBandLabel: quote.sizeBandLabel,
         selectedPackage,
@@ -570,11 +640,11 @@ function PricingModalContent({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          customer_name: customerName,
-          customer_phone: customerPhone,
-          customer_email: customerEmail,
-          address,
-          source,
+          customer_name: contact.customerName,
+          customer_phone: contact.customerPhone,
+          customer_email: contact.customerEmail,
+          address: contact.address,
+          source: contact.source,
           property_type: propertyType,
           package_name: PACKAGE_TO_SERVICE_TYPE[selectedPackage],
           frequency: frequencyEnabled ? frequency : 'one_time',
@@ -645,62 +715,7 @@ function PricingModalContent({
         <div className="p-5 space-y-5">
 
           {/* ── Contact Info ── */}
-          <section className="space-y-3">
-            <h3 className="font-semibold text-sm uppercase tracking-wider text-muted-foreground">Contact</h3>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label className="text-xs">Full Name *</Label>
-                <Input
-                  value={customerName}
-                  onChange={(e) => setCustomerName(e.target.value)}
-                  placeholder="John Doe"
-                  className="h-8 text-sm"
-                />
-              </div>
-              <div>
-                <Label className="text-xs">Phone</Label>
-                <Input
-                  value={customerPhone}
-                  onChange={(e) => setCustomerPhone(e.target.value)}
-                  placeholder="(555) 555-5555"
-                  className="h-8 text-sm"
-                />
-              </div>
-              <div>
-                <Label className="text-xs">Email</Label>
-                <Input
-                  type="email"
-                  value={customerEmail}
-                  onChange={(e) => setCustomerEmail(e.target.value)}
-                  placeholder="john@example.com"
-                  className="h-8 text-sm"
-                />
-              </div>
-              <div>
-                <Label className="text-xs">Address / City</Label>
-                <AddressAutocomplete
-                  value={address}
-                  onChange={(e) => setAddress(e.target.value)}
-                  onAddressSelect={(addr) => setAddress(`${addr.address_line1}, ${addr.city}`)}
-                />
-              </div>
-              <div>
-                <Label className="text-xs">Lead Source *</Label>
-                <Select value={source} onValueChange={setSource}>
-                  <SelectTrigger className="h-8 text-sm">
-                    <SelectValue placeholder="Select source" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="inbound_call">Inbound Call</SelectItem>
-                    <SelectItem value="website">Website</SelectItem>
-                    <SelectItem value="referral">Referral</SelectItem>
-                    <SelectItem value="realtor">Realtor</SelectItem>
-                    <SelectItem value="lsa">Local Service Ads (LSA)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </section>
+          <LeadContactFields contact={contact} onChange={onContactChange} />
 
           <hr className="border-muted" />
 
@@ -1168,7 +1183,7 @@ function PricingModalContent({
                 size="lg"
                 onClick={handleGenerateQuote}
                 disabled={
-                  !customerName ||
+                  !contact.customerName.trim() ||
                   loading ||
                   (quote.requiresCustomQuote && quote.total === 0 && manualPrice === null) ||
                   (selectedPackage === 'move_in_out' && !vacancyConfirmed) ||

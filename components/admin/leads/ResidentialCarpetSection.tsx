@@ -17,6 +17,14 @@ import {
   type ResidentialCarpetTier,
   type ResidentialCarpetInput,
 } from '@/lib/pricing/carpet-calculator';
+import { LeadContactFields, type LeadContactData } from './LeadContactFields';
+
+interface ResidentialCarpetSectionProps {
+  contact: LeadContactData;
+  onContactChange: (field: keyof LeadContactData, value: string) => void;
+  onSuccess?: () => void;
+  onClose?: () => void;
+}
 
 // ── Stepper (re-declared locally — Stepper inside CRMPricingModal.tsx is not extracted
 //    to avoid touching that file. Duplication is intentional per project constraints.) ──
@@ -78,7 +86,14 @@ function fmtRange(lo: number, hi: number) {
 // ResidentialCarpetSection
 // ----------------------------------------------------------------
 
-export function ResidentialCarpetSection() {
+export function ResidentialCarpetSection({
+  contact,
+  onContactChange,
+  onSuccess,
+  onClose,
+}: ResidentialCarpetSectionProps) {
+  const [loading, setLoading] = useState(false);
+
   // ── Tier ──
   const [tier, setTier] = useState<ResidentialCarpetTier>('standard');
 
@@ -155,11 +170,77 @@ export function ResidentialCarpetSection() {
     toast.success('Quote copied to clipboard');
   };
 
+  const handleGenerateLead = async () => {
+    if (!contact.customerName.trim()) {
+      toast.error('Customer name is required to create a lead');
+      return;
+    }
+    setLoading(true);
+    try {
+      const computedTotal = result.isRange
+        ? (result.total as [number, number])[1]
+        : (result.total as number);
+
+      const notes = [
+        `Residential Carpet Cleaning (${tier === 'standard' ? 'Standard' : 'Premium'})`,
+        `Rooms: ${[
+          bedrooms ? `${bedrooms} Bed` : null,
+          livingRooms ? `${livingRooms} Living` : null,
+          basementRooms ? `${basementRooms} Basement` : null,
+          hallways ? `${hallways} Hallway` : null,
+          stairsFlights ? `${stairsFlights} Flight(s)` : null,
+          stairsHalfFlights ? `${stairsHalfFlights} Half-flight(s)` : null,
+        ].filter(Boolean).join(', ') || 'None'}`,
+        result.addOnLines.length > 0
+          ? `Add-ons: ${result.addOnLines.map((a) => a.label).join(', ')}`
+          : null,
+        `Total: ${totalDisplay}`,
+      ].filter(Boolean).join(' | ');
+
+      const res = await fetch('/api/pricing-quotes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customer_name: contact.customerName,
+          customer_phone: contact.customerPhone,
+          customer_email: contact.customerEmail,
+          address: contact.address,
+          source: contact.source,
+          service_type: 'carpet_clean',
+          package_name: 'Residential Carpet Cleaning',
+          calculated_price: computedTotal,
+          price_min: result.isRange ? (result.total as [number, number])[0] : null,
+          price_max: result.isRange ? (result.total as [number, number])[1] : null,
+          is_range: result.isRange,
+          notes,
+          breakdown: result,
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'Failed to generate quote');
+      }
+
+      toast.success('Quote generated and lead created');
+      if (onSuccess) onSuccess();
+      if (onClose) onClose();
+    } catch (err: any) {
+      toast.error(err.message || 'An error occurred');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="flex-1 overflow-hidden flex flex-col md:flex-row">
       {/* ── LEFT: Form ── */}
       <div className="w-full md:w-[60%] overflow-y-auto">
         <div className="p-5 space-y-5">
+          {/* Contact Information */}
+          <LeadContactFields contact={contact} onChange={onContactChange} />
+
+          <hr className="border-muted" />
 
           {/* 1. Quality Tier */}
           <section className="space-y-3">
@@ -342,13 +423,20 @@ export function ResidentialCarpetSection() {
               <Button
                 className="w-full text-sm font-bold"
                 size="lg"
+                onClick={handleGenerateLead}
+                disabled={allZero || !contact.customerName.trim() || loading}
+              >
+                {loading ? 'Generating...' : 'Generate Quote & Lead'}
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full text-xs"
                 onClick={handleCopy}
                 disabled={allZero}
               >
-                <Copy className="h-4 w-4 mr-2" />
+                <Copy className="h-3.5 w-3.5 mr-1.5" />
                 Copy Quote
               </Button>
-              {/* TODO: wire up Generate Quote & Lead once /api/pricing-quotes supports carpet service types */}
             </div>
           </div>
         </div>

@@ -19,6 +19,14 @@ import {
   type CommercialCleaningComplexity,
   type CommercialCleaningFrequency,
 } from '@/lib/pricing/commercial-calculator';
+import { LeadContactFields, type LeadContactData } from './LeadContactFields';
+
+interface CommercialCleaningSectionProps {
+  contact: LeadContactData;
+  onContactChange: (field: keyof LeadContactData, value: string) => void;
+  onSuccess?: () => void;
+  onClose?: () => void;
+}
 
 // ── Stepper (re-declared locally) ──
 function Stepper({
@@ -101,7 +109,14 @@ const FREQUENCY_OPTIONS: {
 // CommercialCleaningSection
 // ----------------------------------------------------------------
 
-export function CommercialCleaningSection() {
+export function CommercialCleaningSection({
+  contact,
+  onContactChange,
+  onSuccess,
+  onClose,
+}: CommercialCleaningSectionProps) {
+  const [loading, setLoading] = useState(false);
+
   // ── Core inputs ──
   const [sqftStr,    setSqftStr]    = useState('');
   const [complexity, setComplexity] = useState<CommercialCleaningComplexity>('small');
@@ -151,6 +166,11 @@ export function CommercialCleaningSection() {
     ],
   );
 
+  const complexityOption   = COMPLEXITY_OPTIONS.find((o) => o.value === complexity)!;
+  const frequencyOption    = FREQUENCY_OPTIONS.find((o) => o.value === frequency)!;
+  const hasOneTimeAddOns   = result?.addOnLines.some((a) => a.isOneTime)  ?? false;
+  const hasRecurringAddOns = result?.addOnLines.some((a) => !a.isOneTime) ?? false;
+
   const handleCopy = () => {
     if (!result) return;
     const freqLabel = FREQUENCY_OPTIONS.find((f) => f.value === frequency)?.label ?? frequency;
@@ -184,16 +204,67 @@ export function CommercialCleaningSection() {
     toast.success('Quote copied to clipboard');
   };
 
-  const complexityOption   = COMPLEXITY_OPTIONS.find((o) => o.value === complexity)!;
-  const frequencyOption    = FREQUENCY_OPTIONS.find((o) => o.value === frequency)!;
-  const hasOneTimeAddOns   = result?.addOnLines.some((a) => a.isOneTime)  ?? false;
-  const hasRecurringAddOns = result?.addOnLines.some((a) => !a.isOneTime) ?? false;
+  const handleGenerateLead = async () => {
+    if (!contact.customerName.trim()) {
+      toast.error('Customer name is required to create a lead');
+      return;
+    }
+    if (!result) return;
+
+    setLoading(true);
+    try {
+      const finalPrice = result.monthlyWithRecurringAddOns || result.monthlyTotal;
+      const notes = [
+        `Commercial Cleaning & Janitorial (${complexityOption?.label || complexity}, ${frequencyOption?.label || frequency})`,
+        `Square footage: ${sqft.toLocaleString()} sqft`,
+        `Base visit: ${fmt(result.basePerVisit)} | Monthly: ${fmt(result.monthlyTotal)}`,
+        result.addOnLines.length > 0 ? `Add-ons: ${result.addOnLines.map(a => a.label).join(', ')}` : null,
+        `TOTAL: ${fmt(finalPrice)}/mo`,
+      ].filter(Boolean).join(' | ');
+
+      const res = await fetch('/api/pricing-quotes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customer_name: contact.customerName,
+          customer_phone: contact.customerPhone,
+          customer_email: contact.customerEmail,
+          address: contact.address,
+          source: contact.source,
+          service_type: 'commercial_cleaning',
+          package_name: 'Commercial Cleaning & Janitorial',
+          calculated_price: finalPrice,
+          sqft: sqft,
+          frequency: frequency,
+          notes,
+          breakdown: result,
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'Failed to generate quote');
+      }
+
+      toast.success('Quote generated and lead created');
+      if (onSuccess) onSuccess();
+      if (onClose) onClose();
+    } catch (err: any) {
+      toast.error(err.message || 'An error occurred');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="flex-1 overflow-hidden flex flex-col md:flex-row">
       {/* ── LEFT: Form ── */}
       <div className="w-full md:w-[60%] overflow-y-auto">
         <div className="p-5 space-y-5">
+          {/* Contact Information */}
+          <LeadContactFields contact={contact} onChange={onContactChange} />
+
+          <hr className="border-muted" />
 
           {/* 1. Square Footage */}
           <section className="space-y-3">
@@ -541,13 +612,20 @@ export function CommercialCleaningSection() {
               <Button
                 className="w-full text-sm font-bold"
                 size="lg"
+                onClick={handleGenerateLead}
+                disabled={!hasValidInput || !contact.customerName.trim() || loading}
+              >
+                {loading ? 'Generating...' : 'Generate Quote & Lead'}
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full text-xs"
                 onClick={handleCopy}
                 disabled={!hasValidInput}
               >
-                <Copy className="h-4 w-4 mr-2" />
+                <Copy className="h-3.5 w-3.5 mr-1.5" />
                 Copy Quote
               </Button>
-              {/* TODO: wire up Generate Quote & Lead once /api/pricing-quotes supports commercial cleaning */}
             </div>
           </div>
         </div>

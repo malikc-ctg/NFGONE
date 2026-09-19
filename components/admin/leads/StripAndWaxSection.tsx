@@ -8,6 +8,14 @@ import { Switch } from '@/components/ui/switch';
 import { AlertTriangle, Copy, Info } from 'lucide-react';
 import { toast } from 'sonner';
 import { calcStripAndWax } from '@/lib/pricing/commercial-calculator';
+import { LeadContactFields, type LeadContactData } from './LeadContactFields';
+
+interface StripAndWaxSectionProps {
+  contact: LeadContactData;
+  onContactChange: (field: keyof LeadContactData, value: string) => void;
+  onSuccess?: () => void;
+  onClose?: () => void;
+}
 
 function fmt(n: number) {
   return `$${n.toFixed(2)}`;
@@ -21,7 +29,13 @@ function fmtRange(lo: number, hi: number) {
 // StripAndWaxSection
 // ----------------------------------------------------------------
 
-export function StripAndWaxSection() {
+export function StripAndWaxSection({
+  contact,
+  onContactChange,
+  onSuccess,
+  onClose,
+}: StripAndWaxSectionProps) {
+  const [loading, setLoading] = useState(false);
   const [sqftStr,      setSqftStr]      = useState('');
   const [burnishAddon, setBurnishAddon] = useState(false);
 
@@ -55,11 +69,67 @@ export function StripAndWaxSection() {
     toast.success('Quote copied to clipboard');
   };
 
+  const handleGenerateLead = async () => {
+    if (!contact.customerName.trim()) {
+      toast.error('Customer name is required to create a lead');
+      return;
+    }
+    if (!result) return;
+
+    setLoading(true);
+    try {
+      const notes = [
+        'Commercial Strip & Wax Quote',
+        `Square footage: ${sqft.toLocaleString()} sqft`,
+        `Rate: $0.55/sqft`,
+        burnishAddon && result.burnishLow !== null && result.burnishHigh !== null
+          ? `Recurring maintenance option: ${fmtRange(result.burnishLow, result.burnishHigh)}/visit`
+          : null,
+        `TOTAL: ${fmt(result.stripTotal)}`,
+      ].filter(Boolean).join(' | ');
+
+      const res = await fetch('/api/pricing-quotes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customer_name: contact.customerName,
+          customer_phone: contact.customerPhone,
+          customer_email: contact.customerEmail,
+          address: contact.address,
+          source: contact.source,
+          service_type: 'strip_and_wax',
+          package_name: 'Commercial Strip & Wax',
+          calculated_price: result.stripTotal,
+          sqft: sqft,
+          notes,
+          breakdown: result,
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'Failed to generate quote');
+      }
+
+      toast.success('Quote generated and lead created');
+      if (onSuccess) onSuccess();
+      if (onClose) onClose();
+    } catch (err: any) {
+      toast.error(err.message || 'An error occurred');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="flex-1 overflow-hidden flex flex-col md:flex-row">
       {/* ── LEFT: Form ── */}
       <div className="w-full md:w-[60%] overflow-y-auto">
         <div className="p-5 space-y-5">
+          {/* Contact Information */}
+          <LeadContactFields contact={contact} onChange={onContactChange} />
+
+          <hr className="border-muted" />
 
           {/* 1. Square Footage */}
           <section className="space-y-3">
@@ -195,13 +265,20 @@ export function StripAndWaxSection() {
               <Button
                 className="w-full text-sm font-bold"
                 size="lg"
+                onClick={handleGenerateLead}
+                disabled={!hasValidInput || !contact.customerName.trim() || loading}
+              >
+                {loading ? 'Generating...' : 'Generate Quote & Lead'}
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full text-xs"
                 onClick={handleCopy}
                 disabled={!hasValidInput}
               >
-                <Copy className="h-4 w-4 mr-2" />
+                <Copy className="h-3.5 w-3.5 mr-1.5" />
                 Copy Quote
               </Button>
-              {/* TODO: wire up Generate Quote & Lead once /api/pricing-quotes supports strip & wax */}
             </div>
           </div>
         </div>

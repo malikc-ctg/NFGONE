@@ -167,6 +167,7 @@ export default function LeadDetailPage() {
             <div className="flex justify-between"><span className="text-muted-foreground">Service</span><span>{lead.service_type ? SERVICE_TYPE_LABELS[lead.service_type] : '—'}</span></div>
             <div className="flex justify-between"><span className="text-muted-foreground">Date</span><span>{lead.preferred_date ? format(new Date(lead.preferred_date), 'MMM d, yyyy') : '—'}</span></div>
             <div className="flex justify-between"><span className="text-muted-foreground">Preferred Time</span><span>{lead.preferred_start_time ? format12Hour(lead.preferred_start_time) : (lead.preferred_window ? TIME_WINDOW_LABELS[lead.preferred_window] : '—')}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Square Footage</span><span>{lead.home_size_sqft ? `${lead.home_size_sqft.toLocaleString()} sqft` : '—'}</span></div>
             <div className="flex justify-between"><span className="text-muted-foreground">Bedrooms</span><span>{lead.home_bedrooms ?? '—'}</span></div>
             <div className="flex justify-between"><span className="text-muted-foreground">Bathrooms</span><span>{lead.home_bathrooms ?? '—'}</span></div>
             <div className="flex justify-between"><span className="text-muted-foreground">Condition</span><span className="capitalize">{lead.condition ?? '—'}</span></div>
@@ -175,6 +176,17 @@ export default function LeadDetailPage() {
           </CardContent>
         </Card>
       </div>
+
+      {lead.notes && (
+        <Card>
+          <CardHeader><CardTitle>Scope of Work / Quote Breakdown</CardTitle></CardHeader>
+          <CardContent>
+            <div className="text-sm whitespace-pre-wrap font-mono bg-muted/40 p-4 rounded-lg border text-foreground">
+              {lead.notes}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="flex gap-3">
         <Select onValueChange={updateStatus}>

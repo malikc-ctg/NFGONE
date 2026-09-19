@@ -18,6 +18,14 @@ import {
   type PaintCoats,
   type PaintSupplyOption,
 } from '@/lib/pricing/painting-calculator';
+import { LeadContactFields, type LeadContactData } from './LeadContactFields';
+
+interface PaintingSectionProps {
+  contact: LeadContactData;
+  onContactChange: (field: keyof LeadContactData, value: string) => void;
+  onSuccess?: () => void;
+  onClose?: () => void;
+}
 
 function fmt(n: number) {
   return `$${n.toFixed(2)}`;
@@ -68,7 +76,13 @@ function StepperRow({
   );
 }
 
-export function PaintingSection() {
+export function PaintingSection({
+  contact,
+  onContactChange,
+  onSuccess,
+  onClose,
+}: PaintingSectionProps) {
+  const [loading, setLoading] = useState(false);
   const [standardRooms, setStandardRooms] = useState(2);
   const [largeRooms, setLargeRooms] = useState(0);
   const [bathroomsOrHallways, setBathroomsOrHallways] = useState(1);
@@ -126,10 +140,66 @@ export function PaintingSection() {
     toast.success('Painting quote copied to clipboard');
   };
 
+  const handleGenerateLead = async () => {
+    if (!contact.customerName.trim()) {
+      toast.error('Customer name is required to create a lead');
+      return;
+    }
+    if (!result) return;
+
+    setLoading(true);
+    try {
+      const notes = [
+        `Painting Estimate — ${result.roomCountTotal} rooms (${coats === 'two_coats' ? '2 Coats' : '1 Coat'})`,
+        `Supplies: ${paintSupply === 'contractor_supplies' ? 'Sea of Blue Supplies' : 'Customer Supplies'}`,
+        result.breakdown.length > 0
+          ? `Items: ${result.breakdown.map((b) => `${b.label} (${fmt(b.price)})`).join(', ')}`
+          : null,
+        `Total Quote: ${fmt(result.total)}`,
+        `Est. Duration: ~${result.estimatedDays} day(s)`,
+      ].filter(Boolean).join(' | ');
+
+      const res = await fetch('/api/pricing-quotes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customer_name: contact.customerName,
+          customer_phone: contact.customerPhone,
+          customer_email: contact.customerEmail,
+          address: contact.address,
+          source: contact.source,
+          service_type: 'painting',
+          package_name: 'Painting',
+          calculated_price: result.total,
+          notes,
+          breakdown: result,
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'Failed to generate quote');
+      }
+
+      toast.success('Quote generated and lead created');
+      if (onSuccess) onSuccess();
+      if (onClose) onClose();
+    } catch (err: any) {
+      toast.error(err.message || 'An error occurred');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="flex-1 overflow-hidden flex flex-col md:flex-row">
       {/* ── LEFT: Form ── */}
       <div className="w-full md:w-[60%] overflow-y-auto p-5 space-y-6">
+        {/* Contact Information */}
+        <LeadContactFields contact={contact} onChange={onContactChange} />
+
+        <hr className="border-muted" />
+
         {/* Header Intro */}
         <div className="flex items-center gap-2 text-primary font-bold text-sm">
           <Paintbrush className="h-4 w-4" />
@@ -285,14 +355,24 @@ export function PaintingSection() {
           </div>
         </div>
 
-        <div className="pt-4 border-t flex gap-2">
+        <div className="pt-4 border-t flex flex-col gap-2">
           <Button
             type="button"
-            className="w-full"
+            className="w-full font-bold text-sm"
+            size="lg"
+            disabled={result.total <= 0 || !contact.customerName.trim() || loading}
+            onClick={handleGenerateLead}
+          >
+            {loading ? 'Generating...' : 'Generate Quote & Lead'}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full text-xs"
             disabled={result.total <= 0}
             onClick={handleCopy}
           >
-            <Copy className="h-4 w-4 mr-1.5" />
+            <Copy className="h-3.5 w-3.5 mr-1.5" />
             Copy Quote
           </Button>
         </div>
