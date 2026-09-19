@@ -135,15 +135,6 @@ export function LeadContactFields({
               />
             </div>
             <div>
-              <Label className="text-xs font-medium">Company / Org (Optional)</Label>
-              <Input
-                value={contact.companyName || ''}
-                onChange={(e) => onChange('companyName', e.target.value)}
-                placeholder="e.g. Property Mgmt, Airbnb"
-                className="h-8 text-sm"
-              />
-            </div>
-            <div>
               <Label className="text-xs font-medium">Phone</Label>
               <Input
                 value={contact.customerPhone}
@@ -160,16 +151,6 @@ export function LeadContactFields({
                 onChange={(e) => onChange('customerEmail', e.target.value)}
                 placeholder="sarah@example.com"
                 className="h-8 text-sm"
-              />
-            </div>
-            <div>
-              <Label className="text-xs font-medium">Property Address</Label>
-              <AddressAutocomplete
-                value={contact.address}
-                onChange={(e) => onChange('address', e.target.value)}
-                onAddressSelect={(addr) =>
-                  onChange('address', `${addr.address_line1}, ${addr.city}`)
-                }
               />
             </div>
             <div>
@@ -190,6 +171,16 @@ export function LeadContactFields({
                   <SelectItem value="google_search">Google Search</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            <div className="col-span-2">
+              <Label className="text-xs font-medium">Property Address</Label>
+              <AddressAutocomplete
+                value={contact.address}
+                onChange={(e) => onChange('address', e.target.value)}
+                onAddressSelect={(addr) =>
+                  onChange('address', `${addr.address_line1}, ${addr.city}`)
+                }
+              />
             </div>
           </>
         )}
