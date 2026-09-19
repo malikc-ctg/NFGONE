@@ -147,7 +147,7 @@ export default function LeadsPage() {
               <TableRow>
                 <TableHead>Date</TableHead>
                 <TableHead>Source</TableHead>
-                <TableHead>Name</TableHead>
+                <TableHead>Client / Contact</TableHead>
                 <TableHead>Phone</TableHead>
                 <TableHead>City</TableHead>
                 <TableHead>Service</TableHead>
@@ -166,7 +166,19 @@ export default function LeadsPage() {
                   <TableRow key={lead.id}>
                     <TableCell className="text-xs">{format(new Date(lead.created_at), 'MMM d')}</TableCell>
                     <TableCell className="text-xs capitalize">{lead.source}</TableCell>
-                    <TableCell className="text-sm font-medium">{lead.customer_name ?? '—'}</TableCell>
+                    <TableCell className="text-sm">
+                      {lead.company_name ? (
+                        <div>
+                          <div className="font-semibold text-foreground leading-tight">{lead.company_name}</div>
+                          <div className="text-xs text-muted-foreground mt-0.5">
+                            <span className="text-foreground/85 font-medium">Attn: {lead.customer_name || 'Main Contact'}</span>
+                            {lead.contact_title ? ` · ${lead.contact_title}` : ''}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="font-medium">{lead.customer_name ?? '—'}</div>
+                      )}
+                    </TableCell>
                     <TableCell className="text-xs">{lead.customer_phone ?? '—'}</TableCell>
                     <TableCell className="text-xs">{lead.city ?? '—'}</TableCell>
                     <TableCell className="text-xs">{lead.service_type ? SERVICE_TYPE_LABELS[lead.service_type] : '—'}</TableCell>

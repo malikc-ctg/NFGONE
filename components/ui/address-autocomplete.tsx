@@ -9,6 +9,10 @@ const AddressAutofill = dynamic(
   { ssr: false }
 )
 
+const FALLBACK_MAPBOX_TOKEN =
+  'pk.eyJ1IjoieG1hbGlramMiLCJhIjoiY21xOXdu' +
+  'MXpkMDAwNjJ4cG82dmFjZ3M2MSJ9.GWQ64O0FLUxLKQfOr4noBg'
+
 interface AddressAutocompleteProps extends React.InputHTMLAttributes<HTMLInputElement> {
   onAddressSelect?: (address: {
     address_line1: string
@@ -25,7 +29,7 @@ export const AddressAutocomplete = React.forwardRef<HTMLInputElement, AddressAut
 
     return (
       <AddressAutofill
-        accessToken={process.env.NEXT_PUBLIC_MAPBOX_TOKEN || ""}
+        accessToken={process.env.NEXT_PUBLIC_MAPBOX_TOKEN || FALLBACK_MAPBOX_TOKEN}
         theme={{
           variables: {
             colorPrimary: "#3b82f6",
@@ -43,10 +47,10 @@ export const AddressAutocomplete = React.forwardRef<HTMLInputElement, AddressAut
           if (feature) {
             isSelecting.current = true
             const address = {
-              address_line1: feature.properties.address_line1 || feature.properties.place_name || "",
-              city: (feature.properties as any).address_level2 || (feature.properties as any).place || "",
-              state: (feature.properties as any).address_level1 || (feature.properties as any).region || "",
-              postal_code: feature.properties.postcode || "",
+              address_line1: feature.properties.address_line1 || feature.properties.full_address || feature.properties.place_name || "",
+              city: (feature.properties as any).address_level2 || (feature.properties as any).place || (feature.properties as any).context?.place?.name || "",
+              state: (feature.properties as any).address_level1 || (feature.properties as any).region || (feature.properties as any).context?.region?.name || "",
+              postal_code: feature.properties.postcode || (feature.properties as any).context?.postcode?.name || "",
             }
             if (onAddressSelect) {
               onAddressSelect(address)

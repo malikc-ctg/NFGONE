@@ -246,7 +246,9 @@ export function CRMPricingModal({ onSuccess }: { onSuccess?: () => void }) {
   const [sector,     setSector]     = useState<Sector>('residential');
   const [serviceTab, setServiceTab] = useState<ServiceTab>('residential_cleaning');
   const [contact,    setContact]    = useState<LeadContactData>({
+    companyName: '',
     customerName: '',
+    contactTitle: '',
     customerPhone: '',
     customerEmail: '',
     address: '',
@@ -264,7 +266,9 @@ export function CRMPricingModal({ onSuccess }: { onSuccess?: () => void }) {
       setSector('residential');
       setServiceTab('residential_cleaning');
       setContact({
+        companyName: '',
         customerName: '',
+        contactTitle: '',
         customerPhone: '',
         customerEmail: '',
         address: '',
@@ -640,7 +644,9 @@ function PricingModalContent({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          company_name: contact.companyName || null,
           customer_name: contact.customerName,
+          contact_title: contact.contactTitle || null,
           customer_phone: contact.customerPhone,
           customer_email: contact.customerEmail,
           address: contact.address,

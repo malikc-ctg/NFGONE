@@ -150,6 +150,8 @@ export function PaintingSection({
     setLoading(true);
     try {
       const notes = [
+        contact.companyName ? `Company: ${contact.companyName}` : null,
+        `Main Contact: ${contact.customerName}${contact.contactTitle ? ` (${contact.contactTitle})` : ''}`,
         `Painting Estimate — ${result.roomCountTotal} rooms (${coats === 'two_coats' ? '2 Coats' : '1 Coat'})`,
         `Supplies: ${paintSupply === 'contractor_supplies' ? 'Sea of Blue Supplies' : 'Customer Supplies'}`,
         result.breakdown.length > 0
@@ -163,7 +165,9 @@ export function PaintingSection({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          company_name: contact.companyName || null,
           customer_name: contact.customerName,
+          contact_title: contact.contactTitle || null,
           customer_phone: contact.customerPhone,
           customer_email: contact.customerEmail,
           address: contact.address,
@@ -196,7 +200,7 @@ export function PaintingSection({
       {/* ── LEFT: Form ── */}
       <div className="w-full md:w-[60%] overflow-y-auto p-5 space-y-6">
         {/* Contact Information */}
-        <LeadContactFields contact={contact} onChange={onContactChange} />
+        <LeadContactFields contact={contact} onChange={onContactChange} isCommercial={true} />
 
         <hr className="border-muted" />
 

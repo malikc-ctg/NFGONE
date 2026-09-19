@@ -20,7 +20,9 @@ export async function POST(request: NextRequest) {
       .from('leads')
       .insert({
         source: body.source ?? 'lsa',
+        company_name: body.company_name || null,
         customer_name: body.customer_name,
+        contact_title: body.contact_title || null,
         customer_phone: body.customer_phone,
         customer_email: body.customer_email,
         city: body.city,

@@ -4,7 +4,9 @@ import { z } from 'zod';
 
 const schema = z.object({
   // Contact info
-  customer_name: z.string().min(1, 'Customer name is required'),
+  customer_name: z.string().min(1, 'Customer / contact name is required'),
+  company_name: z.string().optional().nullable(),
+  contact_title: z.string().optional().nullable(),
   customer_phone: z.string().optional().nullable(),
   customer_email: z.string().optional().nullable(),
   address: z.string().optional().nullable(),
@@ -55,14 +57,16 @@ export async function POST(req: Request) {
     const supabase = await createServiceClient();
 
     const serviceType = data.service_type || data.package_name;
-    const defaultNotes = `Quote: ${data.package_name}${data.property_type ? ` — ${data.property_type}` : ''}${data.sqft ? ` ${data.sqft} sqft` : ''}${data.bedrooms ? `, ${data.bedrooms} Bed` : ''}${data.bathrooms ? ` / ${data.bathrooms} Bath` : ''}.${data.selected_add_ons && data.selected_add_ons.length > 0 ? ` Add-ons: ${data.selected_add_ons.join(', ')}` : ''}`;
+    const defaultNotes = `Quote: ${data.package_name}${data.company_name ? ` — Company: ${data.company_name}` : ''}${data.property_type ? ` — ${data.property_type}` : ''}${data.sqft ? ` ${data.sqft} sqft` : ''}${data.bedrooms ? `, ${data.bedrooms} Bed` : ''}${data.bathrooms ? ` / ${data.bathrooms} Bath` : ''}.${data.selected_add_ons && data.selected_add_ons.length > 0 ? ` Add-ons: ${data.selected_add_ons.join(', ')}` : ''}`;
     const leadNotes = data.notes || data.scope_of_work_text || defaultNotes;
 
     // 1. Create Lead
     const { data: lead, error: leadError } = await supabase
       .from('leads')
       .insert({
+        company_name: data.company_name || null,
         customer_name: data.customer_name,
+        contact_title: data.contact_title || null,
         customer_phone: data.customer_phone || null,
         customer_email: data.customer_email || null,
         city: data.address || null,

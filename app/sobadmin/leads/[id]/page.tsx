@@ -146,17 +146,31 @@ export default function LeadDetailPage() {
     <div className="space-y-6">
       <div className="flex items-center gap-4">
         <Link href="/sobadmin/leads"><Button variant="ghost" size="sm"><ArrowLeft className="h-4 w-4 mr-1" />Back</Button></Link>
-        <h1 className="text-2xl font-bold">Lead: {lead.customer_name ?? 'Unknown'}</h1>
+        <h1 className="text-2xl font-bold">
+          Lead: {lead.company_name ? `${lead.company_name} (Attn: ${lead.customer_name ?? 'Main Contact'})` : (lead.customer_name ?? 'Unknown')}
+        </h1>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <CardHeader><CardTitle>Contact Info</CardTitle></CardHeader>
           <CardContent className="space-y-3">
-            <div className="flex justify-between"><span className="text-muted-foreground">Name</span><span>{lead.customer_name}</span></div>
+            {lead.company_name && (
+              <div className="flex justify-between border-b pb-2">
+                <span className="text-muted-foreground">Company / Business</span>
+                <span className="font-semibold text-primary">{lead.company_name}</span>
+              </div>
+            )}
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">{lead.company_name ? 'Main Contact' : 'Name'}</span>
+              <span className="font-medium">
+                {lead.customer_name}
+                {lead.contact_title ? ` (${lead.contact_title})` : ''}
+              </span>
+            </div>
             <div className="flex justify-between"><span className="text-muted-foreground">Phone</span><span>{lead.customer_phone}</span></div>
             <div className="flex justify-between"><span className="text-muted-foreground">Email</span><span>{lead.customer_email}</span></div>
-            <div className="flex justify-between"><span className="text-muted-foreground">City</span><span>{lead.city}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Address / City</span><span>{lead.city}</span></div>
             <div className="flex justify-between"><span className="text-muted-foreground">Source</span><span className="capitalize">{lead.source}</span></div>
           </CardContent>
         </Card>
@@ -213,10 +227,12 @@ export default function LeadDetailPage() {
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
-              <div><Label>Customer Name</Label><Input value={editForm.customer_name || ''} onChange={e => setEditForm({ ...editForm, customer_name: e.target.value })} /></div>
+              <div><Label>Company / Business Name</Label><Input value={editForm.company_name || ''} onChange={e => setEditForm({ ...editForm, company_name: e.target.value })} placeholder="e.g. John's Roofing" /></div>
+              <div><Label>Main Contact Person</Label><Input value={editForm.customer_name || ''} onChange={e => setEditForm({ ...editForm, customer_name: e.target.value })} placeholder="e.g. Mark" /></div>
+              <div><Label>Contact Title / Role</Label><Input value={editForm.contact_title || ''} onChange={e => setEditForm({ ...editForm, contact_title: e.target.value })} placeholder="e.g. Site Supervisor, PM, Owner" /></div>
               <div><Label>Phone</Label><Input value={editForm.customer_phone || ''} onChange={e => setEditForm({ ...editForm, customer_phone: e.target.value })} /></div>
               <div><Label>Email</Label><Input value={editForm.customer_email || ''} onChange={e => setEditForm({ ...editForm, customer_email: e.target.value })} /></div>
-              <div><Label>City</Label><Input value={editForm.city || ''} onChange={e => setEditForm({ ...editForm, city: e.target.value })} /></div>
+              <div><Label>City / Address</Label><Input value={editForm.city || ''} onChange={e => setEditForm({ ...editForm, city: e.target.value })} /></div>
               <div>
                 <Label>Service Type</Label>
                 <Select value={editForm.service_type || ''} onValueChange={v => setEditForm({ ...editForm, service_type: v as any })}>

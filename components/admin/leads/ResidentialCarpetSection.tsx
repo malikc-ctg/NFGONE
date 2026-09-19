@@ -182,6 +182,8 @@ export function ResidentialCarpetSection({
         : (result.total as number);
 
       const notes = [
+        contact.companyName ? `Company: ${contact.companyName}` : null,
+        contact.companyName ? `Main Contact: ${contact.customerName}${contact.contactTitle ? ` (${contact.contactTitle})` : ''}` : null,
         `Residential Carpet Cleaning (${tier === 'standard' ? 'Standard' : 'Premium'})`,
         `Rooms: ${[
           bedrooms ? `${bedrooms} Bed` : null,
@@ -201,7 +203,9 @@ export function ResidentialCarpetSection({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          company_name: contact.companyName || null,
           customer_name: contact.customerName,
+          contact_title: contact.contactTitle || null,
           customer_phone: contact.customerPhone,
           customer_email: contact.customerEmail,
           address: contact.address,

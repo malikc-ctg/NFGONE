@@ -165,6 +165,7 @@ export interface Zone {
 export interface Customer {
   id: string;
   profile_id: string | null;
+  company_name?: string | null;
   full_name: string;
   email: string;
   phone: string;
@@ -245,7 +246,9 @@ export interface EmployeeAvailabilityOverride {
 export interface Lead {
   id: string;
   source: LeadSource;
+  company_name?: string | null;
   customer_name: string | null;
+  contact_title?: string | null;
   customer_phone: string | null;
   customer_email: string | null;
   city: string | null;

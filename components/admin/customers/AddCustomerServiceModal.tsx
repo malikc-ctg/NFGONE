@@ -35,6 +35,7 @@ import {
 import { toast } from 'sonner';
 import type { Customer, Zone, Employee, ServiceType, RecurringFrequency, AddOn } from '@/types';
 import { SERVICE_TYPE_LABELS, DEFAULT_PRICING } from '@/types';
+import { AddressAutocomplete } from '@/components/ui/address-autocomplete';
 import { TIME_OPTIONS, DURATION_OPTIONS, inferTimeWindow } from '@/lib/time-utils';
 import { calculateMonthlyMRR } from '@/lib/recurring-utils';
 
@@ -121,6 +122,28 @@ export function AddCustomerServiceModal({
   const [addressLine1, setAddressLine1] = useState('');
   const [city, setCity] = useState('Toronto');
   const [postalCode, setPostalCode] = useState('');
+
+  const handleAddressSelect = (addr: {
+    address_line1: string;
+    city: string;
+    state: string;
+    postal_code: string;
+  }) => {
+    setAddressLine1(addr.address_line1);
+    if (addr.city) setCity(addr.city);
+    if (addr.postal_code) setPostalCode(addr.postal_code);
+
+    if (addr.city && zones.length > 0) {
+      const cityLower = addr.city.toLowerCase();
+      const matched = zones.find(
+        (z) => z.city?.toLowerCase() === cityLower || z.name?.toLowerCase().includes(cityLower)
+      );
+      if (matched) {
+        setOneZoneId(matched.id);
+        setRecZoneId(matched.id);
+      }
+    }
+  };
 
   // Sync initial customer details when opened
   useEffect(() => {
@@ -522,20 +545,35 @@ export function AddCustomerServiceModal({
 
             {/* Address Review */}
             <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 space-y-2 text-xs">
-              <div className="flex items-center gap-1 font-semibold text-slate-700">
-                <MapPin className="h-3.5 w-3.5 text-blue-600" />
-                <span>Service Location</span>
+              <div className="flex items-center justify-between font-semibold text-slate-700">
+                <div className="flex items-center gap-1">
+                  <MapPin className="h-3.5 w-3.5 text-blue-600" />
+                  <span>Service Location</span>
+                </div>
+                <span className="text-[10px] font-normal text-slate-500">Address autofill active</span>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                <div className="sm:col-span-2">
-                  <Input
-                    placeholder="Address Line 1"
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
+                <div className="sm:col-span-2 space-y-1">
+                  <Label className="text-xs text-slate-600">Address Line 1</Label>
+                  <AddressAutocomplete
+                    placeholder="Start typing service address..."
                     value={addressLine1}
                     onChange={(e) => setAddressLine1(e.target.value)}
+                    onAddressSelect={handleAddressSelect}
                     className="h-8 text-xs bg-white"
                   />
                 </div>
-                <div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-slate-600">City</Label>
+                  <Input
+                    placeholder="City"
+                    value={city}
+                    onChange={(e) => setCity(e.target.value)}
+                    className="h-8 text-xs bg-white"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-slate-600">Postal Code</Label>
                   <Input
                     placeholder="Postal Code"
                     value={postalCode}
@@ -737,21 +775,33 @@ export function AddCustomerServiceModal({
             </div>
 
             {/* Address */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 text-xs">
               <div className="sm:col-span-2 space-y-1">
                 <Label className="text-xs">Address Line 1</Label>
-                <Input
+                <AddressAutocomplete
+                  placeholder="Start typing address..."
                   value={addressLine1}
                   onChange={(e) => setAddressLine1(e.target.value)}
-                  className="h-8 text-xs"
+                  onAddressSelect={handleAddressSelect}
+                  className="h-8 text-xs bg-white"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">City</Label>
+                <Input
+                  placeholder="City"
+                  value={city}
+                  onChange={(e) => setCity(e.target.value)}
+                  className="h-8 text-xs bg-white"
                 />
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">Postal Code</Label>
                 <Input
+                  placeholder="Postal Code"
                   value={postalCode}
                   onChange={(e) => setPostalCode(e.target.value)}
-                  className="h-8 text-xs"
+                  className="h-8 text-xs bg-white"
                 />
               </div>
             </div>

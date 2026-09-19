@@ -123,17 +123,21 @@ export function CommercialCarpetSection({
     setLoading(true);
     try {
       const notes = [
+        contact.companyName ? `Company: ${contact.companyName}` : null,
+        `Main Contact: ${contact.customerName}${contact.contactTitle ? ` (${contact.contactTitle})` : ''}`,
         `Commercial Carpet Extraction (${tier === 'standard' ? 'Standard' : 'Premium'})`,
         `Square footage: ${sqft.toLocaleString()} sqft`,
         `Rate: $${result.rate.toFixed(2)}/sqft`,
         `TOTAL: ${fmt(result.total)}`,
-      ].join(' | ');
+      ].filter(Boolean).join(' | ');
 
       const res = await fetch('/api/pricing-quotes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          company_name: contact.companyName || null,
           customer_name: contact.customerName,
+          contact_title: contact.contactTitle || null,
           customer_phone: contact.customerPhone,
           customer_email: contact.customerEmail,
           address: contact.address,
@@ -168,7 +172,7 @@ export function CommercialCarpetSection({
       <div className="w-full md:w-[60%] overflow-y-auto">
         <div className="p-5 space-y-5">
           {/* Contact Information */}
-          <LeadContactFields contact={contact} onChange={onContactChange} />
+          <LeadContactFields contact={contact} onChange={onContactChange} isCommercial={true} />
 
           <hr className="border-muted" />
 

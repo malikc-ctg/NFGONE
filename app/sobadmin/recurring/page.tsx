@@ -22,6 +22,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import { AddressAutocomplete } from '@/components/ui/address-autocomplete';
 import {
   Repeat,
   Calendar,
@@ -463,15 +464,29 @@ export default function RecurringPage() {
                 </div>
 
                 {/* Location Fields */}
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-4 gap-2">
                   <div className="col-span-2 space-y-1">
                     <Label className="text-xs">Street Address</Label>
-                    <Input
+                    <AddressAutocomplete
                       value={formAddress}
                       onChange={(e) => setFormAddress(e.target.value)}
-                      className="text-xs h-9"
-                      placeholder="123 Queen St W"
+                      onAddressSelect={(addr) => {
+                        setFormAddress(addr.address_line1);
+                        if (addr.city) setFormCity(addr.city);
+                        if (addr.postal_code) setFormPostal(addr.postal_code);
+                      }}
+                      className="text-xs h-9 bg-white"
+                      placeholder="Start typing address..."
                       required
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">City</Label>
+                    <Input
+                      value={formCity}
+                      onChange={(e) => setFormCity(e.target.value)}
+                      className="text-xs h-9"
+                      placeholder="Toronto"
                     />
                   </div>
                   <div className="space-y-1">

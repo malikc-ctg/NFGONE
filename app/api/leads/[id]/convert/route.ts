@@ -85,6 +85,7 @@ export async function POST(
         .from('customers')
         .insert({
           full_name: lead.customer_name ?? 'Unnamed Customer',
+          company_name: lead.company_name || null,
           email: targetEmail,
           phone: lead.customer_phone ?? '—',
           city: lead.city,
