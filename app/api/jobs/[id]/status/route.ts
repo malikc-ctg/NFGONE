@@ -1,4 +1,4 @@
-import { createServiceClient, createClient } from '@/lib/supabase/server';
+import { createServiceClient } from '@/lib/supabase/server';
 import { isValidTransition } from '@/lib/job-state-machine';
 import { NextRequest, NextResponse } from 'next/server';
 import type { JobStatus } from '@/types';
@@ -20,25 +20,28 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
-  // Auth check
-  const auth = await requireAuth();
-  if (auth instanceof NextResponse) return auth;
-
-    const supabaseClient = await createClient();
-    const { data: { user } } = await supabaseClient.auth.getUser();
-    
-    // Get user role
-    const { data: profile } = await supabaseClient
-      .from('profiles')
-      .select('role')
-      .eq('id', user?.id)
-      .single();
-    
-    const isAdmin = profile?.role === 'admin';
+    // Auth check
+    const auth = await requireAuth();
+    if (auth instanceof NextResponse) return auth;
 
     const supabase = await createServiceClient();
     const { id } = params;
     const { status: newStatus, ...extraFields } = await request.json();
+
+    // Check if admin: either auth.role is 'admin' (from requireAuth), or check profiles via service client, or admin email
+    let isAdmin = auth.role === 'admin';
+    if (!isAdmin && auth.id) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', auth.id)
+        .maybeSingle();
+      isAdmin = profile?.role === 'admin';
+    }
+
+    if (!isAdmin && auth.email && (auth.email === 'admin@seaofblue.app' || auth.email.endsWith('@seaofblue.app'))) {
+      isAdmin = true;
+    }
 
     // Get current job
     const { data: job, error: fetchError } = await supabase
@@ -52,18 +55,36 @@ export async function PATCH(
     }
 
     let employeeId = null;
-    if (user && !isAdmin) {
+    if (!isAdmin && auth.id) {
       const { data: employee } = await supabase
         .from('employees')
         .select('id')
-        .eq('profile_id', user.id)
-        .single();
+        .eq('profile_id', auth.id)
+        .maybeSingle();
       employeeId = employee?.id;
     }
 
     // Security Check: Only admin or the assigned employee can update this job
-    if (!isAdmin && job.assigned_employee_id !== employeeId) {
-      return NextResponse.json({ error: 'Unauthorized to update this job' }, { status: 403 });
+    if (!isAdmin) {
+      const isDirectlyAssigned = job.assigned_employee_id === employeeId;
+      const isAssignedArray = Array.isArray(job.assigned_employee_ids) && job.assigned_employee_ids.includes(employeeId);
+      
+      let isMultiCleanerAssigned = false;
+      if (!isDirectlyAssigned && !isAssignedArray && employeeId) {
+        try {
+          const { data: cleanerRow } = await supabase
+            .from('job_cleaners')
+            .select('id')
+            .eq('job_id', id)
+            .eq('employee_id', employeeId)
+            .maybeSingle();
+          isMultiCleanerAssigned = !!cleanerRow;
+        } catch {}
+      }
+
+      if (!isDirectlyAssigned && !isAssignedArray && !isMultiCleanerAssigned) {
+        return NextResponse.json({ error: 'Unauthorized to update this job' }, { status: 403 });
+      }
     }
 
     // Validate transition
