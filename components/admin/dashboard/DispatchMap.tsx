@@ -620,7 +620,7 @@ export default function DispatchMap({ onBack }: Props) {
   });
 
   const supabase = createClient();
-  const [selectedDate, setSelectedDate] = useState<string>(() => new Date().toISOString().split('T')[0]);
+  const [selectedDate, setSelectedDate] = useState<string>('all');
 
   // ── Fetch Weather ────────────────────────────────────────────────────────────
   const fetchWeather = useCallback(async () => {
@@ -851,6 +851,45 @@ export default function DispatchMap({ onBack }: Props) {
     window.addEventListener('zone-map-click', h);
     return () => window.removeEventListener('zone-map-click', h);
   }, []);
+
+  // ── Highlight Zone Outline on Selection ──────────────────────────────────────
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapLoaded) return;
+    if (map.getLayer('zones-outline') && map.getLayer('zones-fill')) {
+      if (selectedZoneName) {
+        map.setPaintProperty('zones-outline', 'line-color', [
+          'case',
+          ['==', ['get', 'name'], selectedZoneName],
+          '#60a5fa',
+          '#3b82f6',
+        ]);
+        map.setPaintProperty('zones-outline', 'line-width', [
+          'case',
+          ['==', ['get', 'name'], selectedZoneName],
+          3.5,
+          1.5,
+        ]);
+        map.setPaintProperty('zones-outline', 'line-opacity', [
+          'case',
+          ['==', ['get', 'name'], selectedZoneName],
+          0.95,
+          0.4,
+        ]);
+        map.setPaintProperty('zones-fill', 'fill-opacity', [
+          'case',
+          ['==', ['get', 'name'], selectedZoneName],
+          0.22,
+          0.06,
+        ]);
+      } else {
+        map.setPaintProperty('zones-outline', 'line-color', '#3b82f6');
+        map.setPaintProperty('zones-outline', 'line-width', 1.5);
+        map.setPaintProperty('zones-outline', 'line-opacity', 0.5);
+        map.setPaintProperty('zones-fill', 'fill-opacity', 0.08);
+      }
+    }
+  }, [selectedZoneName, mapLoaded]);
 
   // ── Fly to zone when selected ────────────────────────────────────────────────
   const handleSelectZone = useCallback((name: string) => {
@@ -1219,13 +1258,42 @@ export default function DispatchMap({ onBack }: Props) {
 
         <div className="w-px h-5 bg-white/10 shrink-0" />
 
-        {/* Date Selector */}
-        <input
-          type="date"
-          value={selectedDate}
-          onChange={(e) => setSelectedDate(e.target.value)}
-          className="bg-white/6 border border-white/10 rounded-lg text-xs text-white px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500/50 [color-scheme:dark]"
-        />
+        {/* Date Scope Controls: All Active Jobs vs Single Date */}
+        <div className="flex items-center gap-1 bg-white/5 border border-white/10 rounded-lg p-0.5 shrink-0">
+          <button
+            onClick={() => setSelectedDate('all')}
+            className={`px-2.5 py-1 rounded-md text-[10px] font-bold transition-all ${
+              selectedDate === 'all'
+                ? 'bg-blue-600 text-white shadow-sm'
+                : 'text-white/40 hover:text-white/70'
+            }`}
+          >
+            All Footprint ({mapData.jobs.length})
+          </button>
+          <button
+            onClick={() => {
+              if (selectedDate === 'all') {
+                setSelectedDate(new Date().toISOString().split('T')[0]);
+              }
+            }}
+            className={`px-2.5 py-1 rounded-md text-[10px] font-bold transition-all ${
+              selectedDate !== 'all'
+                ? 'bg-blue-600 text-white shadow-sm'
+                : 'text-white/40 hover:text-white/70'
+            }`}
+          >
+            By Date
+          </button>
+        </div>
+
+        {selectedDate !== 'all' && (
+          <input
+            type="date"
+            value={selectedDate}
+            onChange={(e) => setSelectedDate(e.target.value)}
+            className="bg-white/6 border border-white/10 rounded-lg text-xs text-white px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500/50 [color-scheme:dark]"
+          />
+        )}
 
         {/* Shift Time Scrubber */}
         <div className="flex items-center gap-0.5 bg-white/5 border border-white/10 rounded-lg p-0.5 shrink-0">

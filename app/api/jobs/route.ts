@@ -1,6 +1,6 @@
 import { createServiceClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
-import { geocodeAddress } from '@/lib/geocode';
+import { resolveOrCreateZone } from '@/lib/zone-matcher';
 import { requireRole, requireAuth } from '@/lib/api-auth';
 import { rateLimit } from '@/lib/rate-limit';
 
@@ -29,7 +29,20 @@ export async function POST(request: NextRequest) {
     const finalCity = (city || '').trim() || 'Toronto';
     const finalPostalCode = (postal_code || '').trim() || 'M5V 2T6';
 
-    if (!customer_id || !zone_id || !service_type || !scheduled_date ||
+    // Intelligent Zone resolution & Geocoding
+    const resolved = await resolveOrCreateZone({
+      address_line1,
+      city: finalCity,
+      postal_code: finalPostalCode,
+    });
+
+    const finalZoneId = zone_id || resolved.zoneId;
+    const finalLat = resolved.latitude;
+    const finalLon = resolved.longitude;
+    const resolvedCity = resolved.cleanCity || finalCity;
+    const resolvedPostal = resolved.cleanPostalCode || finalPostalCode;
+
+    if (!customer_id || !finalZoneId || !service_type || !scheduled_date ||
         !address_line1 || quoted_price === undefined) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
@@ -37,15 +50,27 @@ export async function POST(request: NextRequest) {
     const { data, error } = await supabase
       .from('jobs')
       .insert({
-        customer_id, zone_id, service_type, scheduled_date,
+        customer_id,
+        zone_id: finalZoneId,
+        service_type,
+        scheduled_date,
         scheduled_window: scheduled_window || 'afternoon',
         scheduled_start_time: scheduled_start_time || '15:00',
-        address_line1, address_line2, city: finalCity,
-        postal_code: finalPostalCode, quoted_price, access_instructions,
-        home_bedrooms, home_bathrooms, home_size_sqft,
+        address_line1,
+        address_line2,
+        city: resolvedCity,
+        postal_code: resolvedPostal,
+        latitude: finalLat,
+        longitude: finalLon,
+        quoted_price,
+        access_instructions,
+        home_bedrooms,
+        home_bathrooms,
+        home_size_sqft,
         has_pets: has_pets ?? false,
         add_ons: add_ons ?? [],
-        scope_notes, lead_id,
+        scope_notes,
+        lead_id,
         estimated_duration_minutes: estimated_duration_minutes ?? 360,
         deposit_amount: deposit_amount ?? Math.round(quoted_price * 0.3 * 100) / 100,
         status: 'lead_received',
@@ -54,18 +79,6 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) throw error;
-
-    // Geocode the address and update the job (non-blocking)
-    geocodeAddress(address_line1, finalCity, finalPostalCode)
-      .then(async (coords) => {
-        if (coords) {
-          await supabase
-            .from('jobs')
-            .update({ latitude: coords.latitude, longitude: coords.longitude })
-            .eq('id', data.id);
-        }
-      })
-      .catch((err) => console.error('Geocoding failed for job:', data.id, err));
 
     // Auto-dispatch: create job_offers for all active employees across company (non-blocking)
     supabase

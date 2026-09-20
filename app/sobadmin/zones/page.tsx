@@ -7,13 +7,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Plus, Trash2, Edit2, Globe, Save, X } from 'lucide-react';
+import { Plus, Trash2, Edit2, Globe, Save, X, RefreshCw } from 'lucide-react';
 import type { Zone } from '@/types';
 import { AddressAutocomplete } from '@/components/ui/address-autocomplete';
 
 export default function AdminZonesPage() {
   const [zones, setZones] = useState<Zone[]>([]);
   const [loading, setLoading] = useState(true);
+  const [scanning, setScanning] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [newZoneMode, setNewZoneMode] = useState(false);
 
@@ -35,6 +36,22 @@ export default function AdminZonesPage() {
       toast.error('Failed to fetch zones');
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleScanAllAddresses() {
+    setScanning(true);
+    toast.info('Scanning all current addresses and reconciling zone coverage...');
+    try {
+      const res = await fetch('/api/zones/scan', { method: 'POST' });
+      if (!res.ok) throw new Error('Failed to scan addresses');
+      const data = await res.json();
+      toast.success(`Scanned ${data.totalJobsScanned} addresses: updated ${data.updatedJobsCount} jobs, created ${data.newlyCreatedZonesCount} new zones.`);
+      fetchZones();
+    } catch (err: any) {
+      toast.error(err.message || 'Scan failed');
+    } finally {
+      setScanning(false);
     }
   }
 
@@ -124,9 +141,20 @@ export default function AdminZonesPage() {
           <p className="text-muted-foreground text-sm">Manage service areas and neighborhood dispersal groups.</p>
         </div>
         {!newZoneMode && !editingId && (
-          <Button onClick={() => { setNewZoneMode(true); resetForm(); }} className="gap-2">
-            <Plus className="h-4 w-4" /> Add New Zone
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              onClick={handleScanAllAddresses}
+              disabled={scanning}
+              className="gap-2"
+            >
+              <RefreshCw className={`h-4 w-4 ${scanning ? 'animate-spin text-blue-600' : ''}`} />
+              {scanning ? 'Scanning Addresses...' : 'Scan & Auto-Sync Zones'}
+            </Button>
+            <Button onClick={() => { setNewZoneMode(true); resetForm(); }} className="gap-2">
+              <Plus className="h-4 w-4" /> Add New Zone
+            </Button>
+          </div>
         )}
       </div>
 

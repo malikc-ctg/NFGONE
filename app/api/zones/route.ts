@@ -58,7 +58,14 @@ async function fetchZoneGeometry(name: string, city: string) {
     const feature = data.features[0];
     if (!['Polygon', 'MultiPolygon'].includes(feature.geometry?.type)) return null;
 
-    return feature.geometry;
+    let centerLat: number | null = null;
+    let centerLon: number | null = null;
+    if (feature.bbox && feature.bbox.length === 4) {
+      centerLon = (feature.bbox[0] + feature.bbox[2]) / 2;
+      centerLat = (feature.bbox[1] + feature.bbox[3]) / 2;
+    }
+
+    return { geometry: feature.geometry, centerLat, centerLon };
   } catch {
     return null; // Fail silently, zone will just be missing polygon
   }
@@ -73,8 +80,8 @@ export async function POST(request: NextRequest) {
     const supabase = await createServiceClient();
     const body = await request.json();
 
-    // Auto-fetch geometry for map
-    const geometry = await fetchZoneGeometry(body.name, body.city);
+    // Auto-fetch geometry & center for map
+    const geomResult = await fetchZoneGeometry(body.name, body.city);
 
     const { data, error } = await supabase
       .from('zones')
@@ -83,7 +90,10 @@ export async function POST(request: NextRequest) {
         city: body.city, 
         areas: body.areas || [],
         notes: body.notes,
-        geojson_polygon: geometry 
+        latitude: geomResult?.centerLat || body.latitude || null,
+        longitude: geomResult?.centerLon || body.longitude || null,
+        geojson_polygon: geomResult?.geometry || null,
+        is_active: true
       })
       .select()
       .single();
@@ -118,9 +128,13 @@ export async function PATCH(request: NextRequest) {
         }
       }
       
-      const geometry = await fetchZoneGeometry(searchName, searchCity);
-      if (geometry) {
-        updates.geojson_polygon = geometry;
+      const geomResult = await fetchZoneGeometry(searchName, searchCity);
+      if (geomResult?.geometry) {
+        updates.geojson_polygon = geomResult.geometry;
+        if (geomResult.centerLat && geomResult.centerLon) {
+          updates.latitude = geomResult.centerLat;
+          updates.longitude = geomResult.centerLon;
+        }
       }
     }
 

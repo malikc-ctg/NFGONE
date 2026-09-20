@@ -2,6 +2,7 @@ import { createServiceClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { requireRole } from '@/lib/api-auth';
 import { logAudit } from '@/lib/audit';
+import { resolveOrCreateZone } from '@/lib/zone-matcher';
 
 export async function POST(
   request: NextRequest,
@@ -101,21 +102,40 @@ export async function POST(
     const startTime = body.scheduled_start_time || lead.preferred_start_time || '15:00';
     const duration = body.estimated_duration_minutes ? parseInt(body.estimated_duration_minutes, 10) : 360;
 
-    // Create job from lead
+    const rawAddress = body.address_line1 || lead.address || lead.address_line1 || 'TBD';
+    const rawCity = body.city || lead.city || 'Toronto';
+    const rawPostal = body.postal_code || lead.postal_code || '';
+
+    // Automatically resolve or dynamically create zone coverage & geocode
+    const resolved = await resolveOrCreateZone({
+      address_line1: rawAddress,
+      city: rawCity,
+      postal_code: rawPostal,
+    });
+
+    const finalZoneId = body.zone_id || resolved.zoneId;
+    const finalCity = resolved.cleanCity || rawCity;
+    const finalPostal = resolved.cleanPostalCode || rawPostal;
+    const finalLat = resolved.latitude;
+    const finalLon = resolved.longitude;
+
+    // Create job from lead with accurate geocoding and zone coverage
     const { data: job, error: jobError } = await supabase
       .from('jobs')
       .insert({
         lead_id: id,
         customer_id: customerId,
-        zone_id: body.zone_id,
+        zone_id: finalZoneId,
         service_type: lead.service_type ?? body.service_type,
         scheduled_date: body.scheduled_date ?? lead.preferred_date,
         scheduled_window: body.scheduled_window ?? lead.preferred_window ?? 'afternoon',
         scheduled_start_time: startTime,
         estimated_duration_minutes: duration,
-        address_line1: body.address_line1 || 'TBD',
-        city: lead.city ?? body.city ?? 'TBD',
-        postal_code: body.postal_code || 'TBD',
+        address_line1: rawAddress,
+        city: finalCity,
+        postal_code: finalPostal,
+        latitude: finalLat,
+        longitude: finalLon,
         quoted_price: body.quoted_price ?? lead.quoted_price ?? 0,
         home_bedrooms: lead.home_bedrooms,
         home_bathrooms: lead.home_bathrooms,

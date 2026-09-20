@@ -14,16 +14,31 @@ export async function GET(request: NextRequest) {
     
     // Parse date from query string, default to today
     const { searchParams } = new URL(request.url);
-    const targetDate = searchParams.get('date') || format(new Date(), 'yyyy-MM-dd');
+    const rawDate = searchParams.get('date');
+    const showAll = rawDate === 'all';
+    const targetDate = showAll ? null : (rawDate || format(new Date(), 'yyyy-MM-dd'));
+
+    let jobsQuery = supabase
+      .from('jobs')
+      .select('id, job_number, status, service_type, scheduled_date, scheduled_window, address_line1, city, postal_code, quoted_price, final_price, add_ons, latitude, longitude, zone_id, customer:customers(full_name, phone), employee:employees(id, full_name, phone, tier)')
+      .not('latitude', 'is', null)
+      .not('longitude', 'is', null);
+
+    if (targetDate) {
+      jobsQuery = jobsQuery.eq('scheduled_date', targetDate);
+    }
+
+    let allJobsStatsQuery = supabase
+      .from('jobs')
+      .select('id, status, quoted_price, final_price, city, latitude, longitude, employee_id, zone_id');
+
+    if (targetDate) {
+      allJobsStatsQuery = allJobsStatsQuery.eq('scheduled_date', targetDate);
+    }
 
     const [jobsRes, employeeLocsRes, zonesRes, activeEmployeesRes, allTodayJobsRes] = await Promise.all([
       // Jobs with geo coords for map pins
-      supabase
-        .from('jobs')
-        .select('id, job_number, status, service_type, scheduled_date, scheduled_window, address_line1, city, postal_code, quoted_price, final_price, add_ons, latitude, longitude, customer:customers(full_name, phone), employee:employees(id, full_name, phone, tier)')
-        .eq('scheduled_date', targetDate)
-        .not('latitude', 'is', null)
-        .not('longitude', 'is', null),
+      jobsQuery,
 
       // Live employee GPS pings
       supabase
@@ -34,7 +49,7 @@ export async function GET(request: NextRequest) {
       // All active zones with their zone_id for relational lookups
       supabase
         .from('zones')
-        .select('id, name, city, is_active, areas, latitude, longitude')
+        .select('id, name, city, is_active, areas, latitude, longitude, geojson_polygon')
         .eq('is_active', true),
 
       // All active employees (for HQ pins + zone assignment stats + in-house vs employee dominance)
@@ -43,11 +58,8 @@ export async function GET(request: NextRequest) {
         .select('id, full_name, phone, tier, status, notes, zone_id')
         .eq('status', 'active'),
 
-      // All today's jobs (including those without coords) for zone revenue/demand stats
-      supabase
-        .from('jobs')
-        .select('id, status, quoted_price, final_price, city, latitude, longitude, employee_id, zone_id')
-        .eq('scheduled_date', targetDate),
+      // Today or filtered jobs for zone revenue/demand stats
+      allJobsStatsQuery,
     ]);
 
     if (jobsRes.error) throw jobsRes.error;
