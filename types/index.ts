@@ -165,7 +165,9 @@ export interface Zone {
 export interface Customer {
   id: string;
   profile_id: string | null;
+  customer_type?: 'residential' | 'commercial';
   company_name?: string | null;
+  commercial_facility_type?: string | null;
   full_name: string;
   email: string;
   phone: string;
@@ -176,17 +178,42 @@ export interface Customer {
   postal_code: string | null;
   zone_id: string | null;
   stripe_customer_id: string | null;
+  qbo_customer_id?: string | null;
   notes: string | null;
   is_active: boolean;
   latitude: number | null;
   longitude: number | null;
   created_at: string;
   updated_at: string;
-  // joined
+  // Commercial & Facility Specs
+  square_footage?: number | null;
+  accounts_payable_name?: string | null;
+  accounts_payable_email?: string | null;
+  accounts_payable_phone?: string | null;
+  billing_terms?: 'due_on_receipt' | 'net_15' | 'net_30' | 'prepaid' | null;
+  tax_id?: string | null;
+  tax_exempt?: boolean;
+  // Access & Security
+  access_code?: string | null;
+  alarm_instructions?: string | null;
+  parking_instructions?: string | null;
+  // Residential Specs
+  home_bedrooms?: number | null;
+  home_bathrooms?: number | null;
+  pet_details?: string | null;
+  special_instructions?: string | null;
+  // Loyalty & Credit
+  referral_code?: string | null;
+  credit_balance?: number;
+  customer_score?: number;
+  // joined & computed
   zone?: Zone;
   jobs_count?: number;
   last_clean_date?: string | null;
   has_recurring?: boolean;
+  lifetime_spend?: number;
+  open_balance?: number;
+  mrr_amount?: number;
 }
 
 export interface Employee {
