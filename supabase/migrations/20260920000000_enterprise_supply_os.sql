@@ -66,7 +66,7 @@ CREATE TABLE IF NOT EXISTS equipment_assets (
   serial_number TEXT UNIQUE,
   asset_tag TEXT UNIQUE NOT NULL, -- Barcode / QR tag (e.g. 'EQ-VAC-001')
   zone_id UUID REFERENCES zones(id) ON DELETE SET NULL,
-  current_holder_id UUID REFERENCES contractors(id) ON DELETE SET NULL,
+  current_holder_id UUID REFERENCES employees(id) ON DELETE SET NULL,
   status TEXT NOT NULL DEFAULT 'available', -- 'available', 'checked_out', 'in_maintenance', 'damaged', 'retired'
   condition TEXT NOT NULL DEFAULT 'good', -- 'pristine', 'good', 'worn', 'maintenance_needed', 'damaged'
   total_runtime_hours NUMERIC(6,1) DEFAULT 0,
@@ -81,7 +81,7 @@ CREATE TABLE IF NOT EXISTS equipment_assets (
 CREATE TABLE IF NOT EXISTS equipment_custody_logs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   asset_id UUID NOT NULL REFERENCES equipment_assets(id) ON DELETE CASCADE,
-  contractor_id UUID NOT NULL REFERENCES contractors(id) ON DELETE CASCADE,
+  contractor_id UUID NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
   job_id UUID REFERENCES jobs(id) ON DELETE SET NULL,
   action TEXT NOT NULL, -- 'checkout', 'checkin', 'maintenance_transfer'
   condition_reported TEXT DEFAULT 'good',
