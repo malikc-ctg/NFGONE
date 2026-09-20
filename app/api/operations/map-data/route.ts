@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireRole } from '@/lib/api-auth';
 import { format } from 'date-fns';
 
-const ACTIVE_STATUSES = ['confirmed', 'offered', 'assigned', 'on_the_way', 'in_progress'];
+const ACTIVE_STATUSES = ['lead_received', 'confirmed', 'offered', 'assigned', 'on_the_way', 'in_progress'];
 
 export async function GET(request: NextRequest) {
   try {
@@ -11,16 +11,36 @@ export async function GET(request: NextRequest) {
     if (auth instanceof NextResponse) return auth;
 
     const supabase = await createServiceClient();
-    
-    // Parse date from query string, default to today
+
+    // Parse date from query string. If 'all', return all historical/upcoming jobs
     const { searchParams } = new URL(request.url);
     const rawDate = searchParams.get('date');
-    const showAll = rawDate === 'all';
+    const showAll = !rawDate || rawDate === 'all';
     const targetDate = showAll ? null : (rawDate || format(new Date(), 'yyyy-MM-dd'));
 
     let jobsQuery = supabase
       .from('jobs')
-      .select('id, job_number, status, service_type, scheduled_date, scheduled_window, address_line1, city, postal_code, quoted_price, final_price, add_ons, latitude, longitude, zone_id, customer:customers(full_name, phone), employee:employees(id, full_name, phone, tier)')
+      .select(`
+        id,
+        job_number,
+        status,
+        service_type,
+        scheduled_date,
+        scheduled_window,
+        scheduled_start_time,
+        address_line1,
+        city,
+        postal_code,
+        quoted_price,
+        final_price,
+        add_ons,
+        latitude,
+        longitude,
+        zone_id,
+        assigned_employee_id,
+        customer:customers(full_name, phone),
+        assigned_employee:employees(id, full_name, phone, tier)
+      `)
       .not('latitude', 'is', null)
       .not('longitude', 'is', null);
 
@@ -30,60 +50,83 @@ export async function GET(request: NextRequest) {
 
     let allJobsStatsQuery = supabase
       .from('jobs')
-      .select('id, status, quoted_price, final_price, city, latitude, longitude, employee_id, zone_id');
+      .select('id, job_number, service_type, address_line1, status, quoted_price, final_price, city, latitude, longitude, assigned_employee_id, zone_id');
 
     if (targetDate) {
       allJobsStatsQuery = allJobsStatsQuery.eq('scheduled_date', targetDate);
     }
 
-    const [jobsRes, employeeLocsRes, zonesRes, activeEmployeesRes, allTodayJobsRes] = await Promise.all([
-      // Jobs with geo coords for map pins
+    // Attempt to query contractor_locations for live GPS telemetry (table exists in schema)
+    const locsQuery = supabase
+      .from('contractor_locations')
+      .select('id, contractor_id, latitude, longitude, accuracy, heading, speed, is_active, last_updated')
+      .eq('is_active', true);
+
+    const [jobsRes, locsRes, zonesRes, activeEmployeesRes, allJobsStatsRes] = await Promise.all([
       jobsQuery,
-
-      // Live employee GPS pings
-      supabase
-        .from('employee_locations')
-        .select('*, employee:employees(id, full_name, phone, tier, status, zone_id)')
-        .eq('is_active', true),
-
-      // All active zones with their zone_id for relational lookups
+      locsQuery,
       supabase
         .from('zones')
         .select('id, name, city, is_active, areas, latitude, longitude, geojson_polygon')
-        .eq('is_active', true),
-
-      // All active employees (for HQ pins + zone assignment stats + in-house vs employee dominance)
+        .eq('is_active', true)
+        .order('name'),
       supabase
         .from('employees')
         .select('id, full_name, phone, tier, status, notes, zone_id')
         .eq('status', 'active'),
-
-      // Today or filtered jobs for zone revenue/demand stats
       allJobsStatsQuery,
     ]);
 
-    if (jobsRes.error) throw jobsRes.error;
-    if (employeeLocsRes.error) throw employeeLocsRes.error;
-    if (zonesRes.error) throw zonesRes.error;
-    if (activeEmployeesRes.error) throw activeEmployeesRes.error;
+    if (jobsRes.error) {
+      console.error('Error fetching jobs for map-data:', jobsRes.error);
+      throw jobsRes.error;
+    }
+    if (zonesRes.error) {
+      console.error('Error fetching zones for map-data:', zonesRes.error);
+      throw zonesRes.error;
+    }
 
-    const employees = activeEmployeesRes.data ?? [];
-    const allTodayJobs = allTodayJobsRes.data ?? [];
+    const rawJobs = jobsRes.data ?? [];
     const zones = zonesRes.data ?? [];
+    const employees = activeEmployeesRes.data ?? [];
+    const allScopedJobs = allJobsStatsRes.data ?? [];
+    const rawLocs = locsRes.data ?? [];
 
-    // --- Employee HQ pins ---
+    // Normalize employee association on jobs
+    const jobs = rawJobs.map((j: any) => ({
+      ...j,
+      employee: j.assigned_employee || null,
+    }));
+
+    // Normalize contractor_locations to employeeLocations
+    const employeeLocations = rawLocs.map((loc: any) => {
+      const emp = employees.find((e) => e.id === loc.contractor_id);
+      return {
+        id: loc.id,
+        latitude: loc.latitude,
+        longitude: loc.longitude,
+        heading: loc.heading,
+        speed: loc.speed,
+        accuracy: loc.accuracy,
+        last_updated: loc.last_updated,
+        employee_id: loc.contractor_id,
+        employee: emp || null,
+      };
+    });
+
+    // Build Employee HQs from notes or default coordinates
     const employeeHQs = employees
-      .map(employee => {
+      .map((employee) => {
         let hq_coords = null;
         try {
           if (employee.notes) {
             const notesObj = JSON.parse(employee.notes);
-            if (notesObj.hq_coords && typeof notesObj.hq_coords.lat === 'number' && typeof notesObj.hq_coords.lng === 'number') {
+            if (notesObj.hq_coords && typeof notesObj.hq_coords.lat === 'number') {
               hq_coords = notesObj.hq_coords;
             }
           }
         } catch {
-          // ignore parse errors
+          // ignore
         }
         return {
           id: employee.id,
@@ -96,55 +139,57 @@ export async function GET(request: NextRequest) {
           longitude: hq_coords?.lng || null,
         };
       })
-      .filter(hq => hq.latitude !== null && hq.longitude !== null);
+      .filter((hq) => hq.latitude !== null && hq.longitude !== null);
 
-    // --- Build zone metrics ---
-    // We calculate demand/supply/revenue per zone using zone_id foreign key on jobs + employees.
-    // If a job has a lat/lng, it will also appear on the map. Zone metrics use zone_id for precision.
-    const onlineEmployeeIds = new Set(
-      (employeeLocsRes.data ?? []).map(loc => (loc as any).employee?.id)
-    );
+    const onlineEmployeeIds = new Set(employeeLocations.map((l) => l.employee_id).filter(Boolean));
 
-    const zoneMetrics = zones.map(zone => {
-      const zoneJobs = allTodayJobs.filter(j => j.zone_id === zone.id);
-      const activeJobs = zoneJobs.filter(j => ACTIVE_STATUSES.includes(j.status));
-      const completedJobs = zoneJobs.filter(j => j.status === 'completed');
+    // Calculate rich Zone Intelligence Metrics
+    const zoneMetrics = zones.map((zone) => {
+      const zoneJobs = allScopedJobs.filter((j) => j.zone_id === zone.id);
+      const activeJobs = zoneJobs.filter((j) => ACTIVE_STATUSES.includes(j.status));
+      const completedJobs = zoneJobs.filter((j) => j.status === 'completed');
 
-      const totalRevenue = zoneJobs.reduce((sum, j) => sum + (j.final_price ?? j.quoted_price ?? 0), 0);
-      const activeRevenue = activeJobs.reduce((sum, j) => sum + (j.quoted_price ?? 0), 0);
+      const totalRevenue = zoneJobs.reduce(
+        (sum, j) => sum + (Number(j.final_price) || Number(j.quoted_price) || 0),
+        0
+      );
+      const activeRevenue = activeJobs.reduce(
+        (sum, j) => sum + (Number(j.quoted_price) || 0),
+        0
+      );
 
-      const zoneEmployees = employees.filter(c => c.zone_id === zone.id);
-      const onlineInZone = zoneEmployees.filter(c => onlineEmployeeIds.has(c.id)).length;
-      const assignedInZone = activeJobs.filter(j => j.employee_id).length;
+      const zoneEmployees = employees.filter((c) => c.zone_id === zone.id);
+      const onlineInZone = zoneEmployees.filter((c) => onlineEmployeeIds.has(c.id)).length;
+      const assignedInZone = activeJobs.filter((j) => j.assigned_employee_id).length;
 
-      // Coverage ratio: ratio of online employees to active demand (higher = better covered)
+      // Coverage ratio & status
       const demand = activeJobs.length;
       let coverageStatus: 'high' | 'medium' | 'low' | 'idle' = 'idle';
       if (demand === 0 && onlineInZone === 0) {
         coverageStatus = 'idle';
       } else if (onlineInZone === 0 && demand > 0) {
-        coverageStatus = 'low'; // No employees, has demand
+        coverageStatus = 'low'; // High demand, no staff online
       } else if (onlineInZone >= demand) {
-        coverageStatus = 'high';
-      } else if (onlineInZone < demand) {
+        coverageStatus = 'high'; // Fully covered
+      } else {
         coverageStatus = demand - onlineInZone >= 2 ? 'low' : 'medium';
       }
 
-      // ── In-house vs employee dominance ──────────────────────────────
-      // "team" tier = Sea of Blue in-house staff
-      // "basic" / "pro" tiers = independent employees
+      // Dominance (in-house vs contractor)
       const IN_HOUSE_TIERS = ['team'];
-      const inHouseInZone = zoneEmployees.filter(c => IN_HOUSE_TIERS.includes(c.tier)).length;
+      const inHouseInZone = zoneEmployees.filter((c) => IN_HOUSE_TIERS.includes(c.tier)).length;
       const independentInZone = zoneEmployees.length - inHouseInZone;
 
-      // Jobs served by in-house vs employee this zone today
       const inHouseEmployeeIds = new Set(
-        zoneEmployees.filter(c => IN_HOUSE_TIERS.includes(c.tier)).map(c => c.id)
+        zoneEmployees.filter((c) => IN_HOUSE_TIERS.includes(c.tier)).map((c) => c.id)
       );
-      const inHouseJobsToday = zoneJobs.filter(j => j.employee_id && inHouseEmployeeIds.has(j.employee_id)).length;
-      const employeeJobsToday = zoneJobs.filter(j => j.employee_id && !inHouseEmployeeIds.has(j.employee_id)).length;
+      const inHouseJobsToday = zoneJobs.filter(
+        (j) => j.assigned_employee_id && inHouseEmployeeIds.has(j.assigned_employee_id)
+      ).length;
+      const employeeJobsToday = zoneJobs.filter(
+        (j) => j.assigned_employee_id && !inHouseEmployeeIds.has(j.assigned_employee_id)
+      ).length;
 
-      // Dominance mode
       let dominanceMode: 'in_house' | 'employee' | 'mixed' | 'none' = 'none';
       if (inHouseInZone > 0 || independentInZone > 0) {
         const inHousePct = zoneEmployees.length > 0 ? inHouseInZone / zoneEmployees.length : 0;
@@ -162,33 +207,41 @@ export async function GET(request: NextRequest) {
         completed_jobs: completedJobs.length,
         total_revenue: totalRevenue,
         active_revenue: activeRevenue,
+        avg_ticket: zoneJobs.length > 0 ? Math.round(totalRevenue / zoneJobs.length) : 0,
         total_employees: zoneEmployees.length,
         online_employees: onlineInZone,
         assigned_jobs: assignedInZone,
         coverage_status: coverageStatus,
-        // Dominance data
         in_house_employees: inHouseInZone,
         independent_employees: independentInZone,
         in_house_jobs_today: inHouseJobsToday,
         employee_jobs_today: employeeJobsToday,
         dominance_mode: dominanceMode,
+        // Jobs preview for zone detail expansion
+        jobs_preview: zoneJobs.slice(0, 5).map((j) => ({
+          id: j.id,
+          job_number: j.job_number,
+          service_type: j.service_type,
+          status: j.status,
+          address_line1: j.address_line1,
+          price: j.final_price || j.quoted_price || 0,
+        })),
       };
     });
 
-    // --- Assignment routing lines ---
-    // For each active/en-route job with a employee, build a [lng, lat] pair
-    // connecting the employee's live location (or HQ) to the job site.
+    // Assignment routing lines
     const liveLocMap = new Map(
-      (employeeLocsRes.data ?? []).map(loc => [loc.employee?.id, { lng: loc.longitude, lat: loc.latitude }])
+      employeeLocations.map((loc) => [loc.employee_id, { lng: loc.longitude, lat: loc.latitude }])
     );
-    const hqMap = new Map(
-      employeeHQs.map(hq => [hq.id, { lng: hq.longitude, lat: hq.latitude }])
-    );
+    const hqMap = new Map(employeeHQs.map((hq) => [hq.id, { lng: hq.longitude, lat: hq.latitude }]));
 
-    const assignmentLines = ((jobsRes.data ?? []) as any[])
-      .filter((job: any) => ['assigned', 'on_the_way', 'in_progress'].includes(job.status) && job.employee?.id)
+    const assignmentLines = jobs
+      .filter(
+        (job: any) =>
+          ['assigned', 'on_the_way', 'in_progress'].includes(job.status) && job.assigned_employee_id
+      )
       .map((job: any) => {
-        const cid = job.employee?.id;
+        const cid = job.assigned_employee_id;
         const from = liveLocMap.get(cid) || hqMap.get(cid);
         if (!from || !job.longitude || !job.latitude) return null;
         return {
@@ -202,9 +255,9 @@ export async function GET(request: NextRequest) {
       .filter(Boolean);
 
     return NextResponse.json({
-      jobs: jobsRes.data ?? [],
-      employeeLocations: employeeLocsRes.data ?? [],
-      zones: zonesRes.data ?? [],
+      jobs,
+      employeeLocations,
+      zones,
       employeeHQs,
       zoneMetrics,
       assignmentLines,

@@ -8,9 +8,10 @@ import {
   Search, RefreshCw, Radio, Briefcase,
   DollarSign, Zap, AlertTriangle, CheckCircle,
   Users, Home, GitBranch, Map, List,
-  TrendingUp, TrendingDown, Minus, ChevronRight, ChevronLeft,
+  TrendingUp, TrendingDown, Minus, ChevronRight, ChevronLeft, ChevronDown,
   Flame, Layers, Clock, Cloud, CloudRain, CloudSnow,
   CloudLightning, Sun, Wind, X, Navigation, UserCheck, Car, Sparkles, Phone,
+  MapPin, ExternalLink,
 } from 'lucide-react';
 
 // ─── Color Config ──────────────────────────────────────────────────────────────
@@ -49,6 +50,7 @@ interface ZoneMetric {
   completed_jobs: number;
   total_revenue: number;
   active_revenue: number;
+  avg_ticket?: number;
   total_employees: number;
   online_employees: number;
   assigned_jobs: number;
@@ -58,6 +60,14 @@ interface ZoneMetric {
   in_house_jobs_today: number;
   employee_jobs_today: number;
   dominance_mode: 'in_house' | 'employee' | 'mixed' | 'none';
+  jobs_preview?: {
+    id: string;
+    job_number: string;
+    service_type: string;
+    status: string;
+    address_line1: string;
+    price: number;
+  }[];
 }
 
 interface FilterState {
@@ -418,160 +428,312 @@ function ZoneSidebar({
   zones,
   selectedZoneName,
   onSelectZone,
+  onSelectJob,
   collapsed,
   onToggleCollapse,
 }: {
   zones: ZoneMetric[];
   selectedZoneName: string | null;
   onSelectZone: (name: string) => void;
+  onSelectJob?: (job: any) => void;
   collapsed: boolean;
   onToggleCollapse: () => void;
 }) {
-  const sorted = [...zones].sort((a, b) => {
-    const order = { low: 0, medium: 1, high: 2, idle: 3 };
-    return order[a.coverage_status] - order[b.coverage_status];
-  });
+  const [showIdleZones, setShowIdleZones] = useState(false);
+  const [expandedZoneId, setExpandedZoneId] = useState<string | null>(null);
+
+  // Active zones (has jobs or online crew or alerts), ranked by revenue descending, then jobs descending
+  const activeZones = useMemo(() => {
+    return zones
+      .filter(z => z.total_jobs_today > 0 || z.online_employees > 0 || z.coverage_status !== 'idle')
+      .sort((a, b) => b.total_revenue - a.total_revenue || b.total_jobs_today - a.total_jobs_today);
+  }, [zones]);
+
+  // Standby zones (0 jobs today)
+  const idleZones = useMemo(() => {
+    return zones
+      .filter(z => z.total_jobs_today === 0 && z.online_employees === 0 && z.coverage_status === 'idle')
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [zones]);
 
   const totalRevenue = zones.reduce((s, z) => s + z.total_revenue, 0);
-  const totalActiveJobs = zones.reduce((s, z) => s + z.active_jobs, 0);
-  const lowCoverage = zones.filter(z => z.coverage_status === 'low').length;
+  const totalJobs = zones.reduce((s, z) => s + z.total_jobs_today, 0);
+  const lowCoverage = zones.filter(z => z.coverage_status === 'low' && z.active_jobs > 0).length;
 
   return (
     <div
-      className="absolute top-0 right-0 z-20 h-full flex flex-col bg-black/90 backdrop-blur-xl border-l border-white/10 transition-all duration-300"
-      style={{ width: collapsed ? '44px' : '280px' }}
+      className="absolute top-0 right-0 z-20 h-full flex flex-col bg-black/95 backdrop-blur-2xl border-l border-white/10 transition-all duration-300 shadow-2xl"
+      style={{ width: collapsed ? '44px' : '320px' }}
     >
       {/* Collapse toggle */}
       <button
         onClick={onToggleCollapse}
-        className="absolute -left-3.5 top-16 z-30 w-7 h-7 bg-black/90 border border-white/15 rounded-full flex items-center justify-center text-white/50 hover:text-white transition-colors"
+        className="absolute -left-3.5 top-16 z-30 w-7 h-7 bg-black/90 border border-white/15 rounded-full flex items-center justify-center text-white/50 hover:text-white transition-colors shadow-md"
+        title={collapsed ? 'Expand Zone Intel' : 'Collapse Sidebar'}
       >
         {collapsed ? <ChevronLeft className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
       </button>
 
       {collapsed ? (
-        <div className="flex-1 flex items-center justify-center">
-          <span className="text-white/30 text-[10px] font-black uppercase tracking-widest" style={{ writingMode: 'vertical-lr', transform: 'rotate(180deg)' }}>
-            Zone Intel
+        <div className="flex-1 flex flex-col items-center justify-center gap-6 cursor-pointer" onClick={onToggleCollapse}>
+          <span className="text-white/40 hover:text-white text-[10px] font-black uppercase tracking-widest transition-colors" style={{ writingMode: 'vertical-lr', transform: 'rotate(180deg)' }}>
+            Zone Intelligence
           </span>
+          <div className="flex flex-col items-center gap-1">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="text-[9px] font-mono text-white/40">{activeZones.length}z</span>
+          </div>
         </div>
       ) : (
         <>
           {/* Header */}
-          <div className="px-4 py-3 border-b border-white/10 shrink-0 flex items-center justify-between">
+          <div className="px-3.5 py-3 border-b border-white/10 shrink-0 flex items-center justify-between bg-white/[0.02]">
             <div>
-              <p className="text-white font-black text-sm">Zone Intelligence</p>
-              <p className="text-white/35 text-[10px] mt-0.5">Click a zone to fly there</p>
+              <div className="flex items-center gap-1.5">
+                <MapPin className="h-3.5 w-3.5 text-blue-400" />
+                <p className="text-white font-black text-sm tracking-tight">Zone Intelligence</p>
+              </div>
+              <p className="text-white/40 text-[10px] mt-0.5">Live regional revenue & dispatch capacity</p>
             </div>
-            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-white/5 text-emerald-400 font-bold">
-              LIVE
-            </span>
+            <div className="flex items-center gap-1 bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 rounded text-[10px] font-mono text-emerald-400 font-bold">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span>LIVE</span>
+            </div>
           </div>
 
-          {/* Summary row */}
-          <div className="grid grid-cols-3 border-b border-white/10 shrink-0">
+          {/* KPI Summary Banner */}
+          <div className="grid grid-cols-3 border-b border-white/10 shrink-0 bg-white/[0.01]">
             {[
-              { label: 'Revenue', value: `$${totalRevenue.toFixed(0)}`, color: 'text-green-400' },
-              { label: 'Active', value: totalActiveJobs, color: 'text-purple-400' },
+              { label: 'Tracked Rev', value: `$${totalRevenue.toFixed(0)}`, color: 'text-green-400' },
+              { label: 'Total Jobs', value: totalJobs, color: 'text-blue-400' },
               { label: 'Alerts', value: lowCoverage, color: lowCoverage > 0 ? 'text-red-400' : 'text-slate-500' },
             ].map(s => (
-              <div key={s.label} className="py-2 px-2 text-center border-r border-white/10 last:border-0">
-                <p className={`font-black text-sm ${s.color}`}>{s.value}</p>
-                <p className="text-white/30 text-[9px] uppercase tracking-wider">{s.label}</p>
+              <div key={s.label} className="py-2.5 px-2 text-center border-r border-white/10 last:border-0">
+                <p className={`font-black text-sm tracking-tight ${s.color}`}>{s.value}</p>
+                <p className="text-white/35 text-[9px] uppercase font-bold tracking-wider mt-0.5">{s.label}</p>
               </div>
             ))}
           </div>
 
-          {/* Zone list */}
-          <div className="flex-1 overflow-y-auto scrollbar-none">
-            {sorted.map(zone => {
-              const isSelected = selectedZoneName === zone.name;
-              const cc = COVERAGE_COLORS[zone.coverage_status];
-              const CoverageIcon = zone.coverage_status === 'high' ? TrendingUp
-                : zone.coverage_status === 'low' ? TrendingDown
-                : zone.coverage_status === 'medium' ? Minus : Minus;
+          {/* Zone list container */}
+          <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 hover:scrollbar-thumb-white/20">
+            {/* Section Header: Active Hubs */}
+            <div className="px-3 py-2 bg-white/[0.03] border-b border-white/5 flex items-center justify-between">
+              <span className="text-[10px] font-black uppercase tracking-wider text-white/50">
+                Active Operations Hubs ({activeZones.length})
+              </span>
+              <span className="text-[9px] text-white/30">Ranked by Revenue</span>
+            </div>
 
-              return (
-                <button
-                  key={zone.zone_id}
-                  onClick={() => onSelectZone(zone.name)}
-                  className={`w-full text-left px-3 py-2.5 border-b border-white/5 transition-colors hover:bg-white/5 ${isSelected ? 'bg-white/10' : ''}`}
-                >
-                  <div className="flex items-center justify-between mb-1">
-                    <p className="text-white text-xs font-bold leading-tight truncate pr-2 flex-1">{zone.name}</p>
-                    <div className="flex items-center gap-1 shrink-0" style={{ color: cc }}>
-                      <CoverageIcon className="h-2.5 w-2.5" />
-                      <span className="text-[9px] font-black uppercase">{zone.coverage_status}</span>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-4 gap-1 mt-1.5">
-                    {[
-                      { label: 'Jobs', value: zone.total_jobs_today, color: 'text-blue-400' },
-                      { label: 'Active', value: zone.active_jobs, color: 'text-purple-400' },
-                      { label: 'Online', value: zone.online_employees, color: 'text-emerald-400' },
-                      { label: 'Rev', value: `$${zone.total_revenue >= 1000 ? (zone.total_revenue / 1000).toFixed(1) + 'k' : zone.total_revenue.toFixed(0)}`, color: 'text-green-400' },
-                    ].map(m => (
-                      <div key={m.label} className="bg-white/5 rounded p-1 text-center">
-                        <p className={`text-[10px] font-black leading-none ${m.color}`}>{m.value}</p>
-                        <p className="text-white/25 text-[8px] uppercase leading-none mt-0.5">{m.label}</p>
+            {activeZones.length === 0 ? (
+              <div className="p-6 text-center text-white/40 text-xs">
+                No active jobs in the selected timeframe.
+              </div>
+            ) : (
+              activeZones.map(zone => {
+                const isSelected = selectedZoneName === zone.name;
+                const isExpanded = expandedZoneId === zone.zone_id;
+                const cc = COVERAGE_COLORS[zone.coverage_status];
+                const CoverageIcon = zone.coverage_status === 'high' ? TrendingUp
+                  : zone.coverage_status === 'low' ? TrendingDown
+                  : zone.coverage_status === 'medium' ? Minus : Minus;
+
+                return (
+                  <div
+                    key={zone.zone_id}
+                    className={`border-b border-white/5 transition-all ${isSelected ? 'bg-blue-950/30 border-blue-500/30' : 'hover:bg-white/[0.03]'}`}
+                  >
+                    {/* Zone Header Button */}
+                    <button
+                      onClick={() => {
+                        onSelectZone(zone.name);
+                        setExpandedZoneId(prev => prev === zone.zone_id ? null : zone.zone_id);
+                      }}
+                      className="w-full text-left p-3 flex flex-col gap-2"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5">
+                            <p className="text-white text-xs font-bold leading-tight truncate">{zone.name}</p>
+                            {zone.city && (
+                              <span className="text-[9px] px-1.5 py-0.2 rounded bg-white/5 text-white/40 font-mono">
+                                {zone.city}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Coverage Status Badge */}
+                        <div className="flex items-center gap-1 shrink-0 px-1.5 py-0.5 rounded bg-white/5" style={{ color: cc }}>
+                          <CoverageIcon className="h-2.5 w-2.5" />
+                          <span className="text-[8px] font-black uppercase tracking-wider">{zone.coverage_status}</span>
+                        </div>
                       </div>
+
+                      {/* Key stats row */}
+                      <div className="grid grid-cols-4 gap-1">
+                        <div className="bg-white/5 rounded px-1.5 py-1 text-center">
+                          <p className="text-xs font-black text-blue-400">{zone.total_jobs_today}</p>
+                          <p className="text-white/30 text-[8px] uppercase font-bold">Jobs</p>
+                        </div>
+                        <div className="bg-white/5 rounded px-1.5 py-1 text-center">
+                          <p className="text-xs font-black text-green-400">
+                            ${zone.total_revenue >= 1000 ? (zone.total_revenue / 1000).toFixed(1) + 'k' : zone.total_revenue.toFixed(0)}
+                          </p>
+                          <p className="text-white/30 text-[8px] uppercase font-bold">Revenue</p>
+                        </div>
+                        <div className="bg-white/5 rounded px-1.5 py-1 text-center">
+                          <p className="text-xs font-black text-purple-400">{zone.active_jobs}</p>
+                          <p className="text-white/30 text-[8px] uppercase font-bold">En Route</p>
+                        </div>
+                        <div className="bg-white/5 rounded px-1.5 py-1 text-center">
+                          <p className="text-xs font-black text-emerald-400">{zone.online_employees}</p>
+                          <p className="text-white/30 text-[8px] uppercase font-bold">Online</p>
+                        </div>
+                      </div>
+
+                      {/* Dominance indicator tag */}
+                      {zone.dominance_mode !== 'none' && (
+                        <div className="flex items-center justify-between pt-0.5">
+                          {zone.dominance_mode === 'in_house' && (
+                            <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-blue-500/10 border border-blue-500/25 text-[8px] font-bold text-blue-300">
+                              <span className="w-1.5 h-1.5 rounded-full bg-blue-400" />
+                              <span>SOB In-House Team ({zone.in_house_employees})</span>
+                            </div>
+                          )}
+                          {zone.dominance_mode === 'employee' && (
+                            <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-500/10 border border-amber-500/25 text-[8px] font-bold text-amber-300">
+                              <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                              <span>Contractor Network ({zone.independent_employees})</span>
+                            </div>
+                          )}
+                          {zone.dominance_mode === 'mixed' && (
+                            <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-purple-500/10 border border-purple-500/25 text-[8px] font-bold text-purple-300">
+                              <span className="w-1.5 h-1.5 rounded-full bg-purple-400" />
+                              <span>Mixed Staff ({zone.in_house_employees} Staff / {zone.independent_employees} Cont)</span>
+                            </div>
+                          )}
+
+                          <span className="text-[9px] text-white/30 flex items-center gap-0.5 font-bold">
+                            {isExpanded ? 'Hide Intel' : 'View Jobs'}
+                            <ChevronDown className={`h-3 w-3 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                          </span>
+                        </div>
+                      )}
+
+                      {zone.coverage_status === 'low' && zone.active_jobs > 0 && (
+                        <div className="flex items-center gap-1 px-2 py-1 rounded bg-red-500/15 border border-red-500/30 text-red-300 text-[9px] font-medium">
+                          <AlertTriangle className="h-2.5 w-2.5 text-red-400 shrink-0" />
+                          <span>Dispatch Alert: {zone.active_jobs} jobs pending with {zone.online_employees} online technician{zone.online_employees === 1 ? '' : 's'}.</span>
+                        </div>
+                      )}
+                    </button>
+
+                    {/* Expanded Detail Tray with Real Job Previews */}
+                    {isExpanded && (
+                      <div className="px-3 pb-3 pt-1 bg-black/40 border-t border-white/5 space-y-2">
+                        <div className="flex items-center justify-between text-[9px] text-white/40 pb-1">
+                          <span>Avg Ticket: <strong className="text-white">${zone.avg_ticket || 0} CAD</strong></span>
+                          <span>Assigned: <strong className="text-white">{zone.assigned_jobs}/{zone.total_jobs_today}</strong></span>
+                        </div>
+
+                        {zone.jobs_preview && zone.jobs_preview.length > 0 ? (
+                          <div className="space-y-1.5">
+                            <p className="text-[8px] font-black uppercase tracking-wider text-white/40">Zone Job Queue</p>
+                            {zone.jobs_preview.map((pj) => {
+                              const stColor = STATUS_COLORS[pj.status] || '#94a3b8';
+                              return (
+                                <div
+                                  key={pj.id}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (onSelectJob) onSelectJob(pj);
+                                  }}
+                                  className="flex items-center justify-between p-2 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] border border-white/5 cursor-pointer transition-colors"
+                                >
+                                  <div className="min-w-0 flex-1 pr-2">
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="text-[10px] font-bold text-blue-400">#{pj.job_number}</span>
+                                      <span
+                                        className="text-[8px] font-bold px-1.5 py-0.2 rounded uppercase"
+                                        style={{ background: `${stColor}20`, color: stColor, border: `1px solid ${stColor}40` }}
+                                      >
+                                        {(pj.status || '').replace(/_/g, ' ')}
+                                      </span>
+                                    </div>
+                                    <p className="text-[10px] text-white/70 truncate mt-0.5">{pj.address_line1 || 'Address'}</p>
+                                  </div>
+                                  <div className="text-right shrink-0">
+                                    <span className="text-xs font-black text-green-400">
+                                      ${Number(pj.price || 0).toFixed(0)}
+                                    </span>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <p className="text-[10px] text-white/30 italic py-1">No active job preview records.</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })
+            )}
+
+            {/* Section Header: Standby / Idle Zones */}
+            {idleZones.length > 0 && (
+              <div className="border-t border-white/10 mt-1">
+                <button
+                  onClick={() => setShowIdleZones(p => !p)}
+                  className="w-full px-3 py-2 bg-white/[0.02] hover:bg-white/[0.05] flex items-center justify-between text-left transition-colors"
+                >
+                  <span className="text-[10px] font-black uppercase tracking-wider text-white/40">
+                    Standby Coverage Footprint ({idleZones.length})
+                  </span>
+                  <ChevronDown className={`h-3 w-3 text-white/40 transition-transform ${showIdleZones ? 'rotate-180' : ''}`} />
+                </button>
+
+                {showIdleZones && (
+                  <div className="divide-y divide-white/5 bg-black/20">
+                    {idleZones.map(iz => (
+                      <button
+                        key={iz.zone_id}
+                        onClick={() => onSelectZone(iz.name)}
+                        className="w-full text-left px-3 py-2 flex items-center justify-between hover:bg-white/5 transition-colors"
+                      >
+                        <div>
+                          <p className="text-white/70 text-xs font-medium">{iz.name}</p>
+                          <p className="text-white/25 text-[9px]">{iz.city || 'GTA'}</p>
+                        </div>
+                        <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-white/5 text-white/30">
+                          Standby
+                        </span>
+                      </button>
                     ))}
                   </div>
-
-                  {/* Dominance indicator */}
-                  {zone.dominance_mode !== 'none' && (
-                    <div className="flex items-center gap-1.5 mt-1.5">
-                      {zone.dominance_mode === 'in_house' && (
-                        <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-blue-500/15 border border-blue-500/30">
-                          <div className="w-1.5 h-1.5 rounded-full bg-blue-400" />
-                          <span className="text-blue-300 text-[8px] font-black uppercase">SOB Staff</span>
-                          <span className="text-blue-400/60 text-[8px]">{zone.in_house_employees}↑</span>
-                        </div>
-                      )}
-                      {zone.dominance_mode === 'employee' && (
-                        <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-orange-500/15 border border-orange-500/30">
-                          <div className="w-1.5 h-1.5 rounded-full bg-orange-400" />
-                          <span className="text-orange-300 text-[8px] font-black uppercase">Contractor</span>
-                          <span className="text-orange-400/60 text-[8px]">{zone.independent_employees}↑</span>
-                        </div>
-                      )}
-                      {zone.dominance_mode === 'mixed' && (
-                        <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-purple-500/15 border border-purple-500/30">
-                          <div className="w-1.5 h-1.5 rounded-full bg-purple-400" />
-                          <span className="text-purple-300 text-[8px] font-black uppercase">Mixed</span>
-                          <span className="text-purple-400/60 text-[8px]">{zone.in_house_employees}+{zone.independent_employees}</span>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {zone.coverage_status === 'low' && zone.active_jobs > 0 && (
-                    <div className="flex items-center gap-1 mt-1">
-                      <AlertTriangle className="h-2.5 w-2.5 text-red-400 shrink-0" />
-                      <p className="text-red-400 text-[9px] font-medium">
-                        {zone.active_jobs} job{zone.active_jobs > 1 ? 's' : ''}, {zone.online_employees} online
-                      </p>
-                    </div>
-                  )}
-                </button>
-              );
-            })}
+                )}
+              </div>
+            )}
           </div>
 
           {/* Legend */}
-          <div className="px-3 py-3 border-t border-white/10 shrink-0 space-y-1.5">
-            <p className="text-[9px] text-white/30 font-black uppercase tracking-widest mb-2">Coverage Scale</p>
-            {[
-              { color: COVERAGE_COLORS.high, label: 'High — Well covered' },
-              { color: COVERAGE_COLORS.medium, label: 'Medium — Borderline' },
-              { color: COVERAGE_COLORS.low, label: 'Low — Alert!' },
-              { color: COVERAGE_COLORS.idle, label: 'Idle — No demand' },
-            ].map(l => (
-              <div key={l.label} className="flex items-center gap-2">
-                <div style={{ width: 20, height: 5, background: l.color + '33', border: `1px solid ${l.color}`, borderRadius: 2, flexShrink: 0 }} />
-                <span className="text-white/40 text-[9px]">{l.label}</span>
-              </div>
-            ))}
+          <div className="px-3 py-2.5 border-t border-white/10 shrink-0 space-y-1.5 bg-white/[0.01]">
+            <p className="text-[9px] text-white/30 font-black uppercase tracking-widest">Coverage Health Indicator</p>
+            <div className="grid grid-cols-2 gap-1.5">
+              {[
+                { color: COVERAGE_COLORS.high, label: 'High — Covered' },
+                { color: COVERAGE_COLORS.medium, label: 'Med — Adequate' },
+                { color: COVERAGE_COLORS.low, label: 'Low — Understaffed' },
+                { color: COVERAGE_COLORS.idle, label: 'Idle — Standby' },
+              ].map(l => (
+                <div key={l.label} className="flex items-center gap-1.5">
+                  <div style={{ width: 10, height: 10, background: l.color, borderRadius: 2, flexShrink: 0 }} />
+                  <span className="text-white/40 text-[9px] truncate">{l.label}</span>
+                </div>
+              ))}
+            </div>
           </div>
         </>
       )}
@@ -689,21 +851,21 @@ export default function DispatchMap({ onBack }: Props) {
       });
       map.addLayer({
         id: 'zones-outline', type: 'line', source: 'zones-source',
-        paint: { 'line-color': '#3b82f6', 'line-width': 1.5, 'line-opacity': 0.5 }
+        paint: { 'line-color': '#3b82f6', 'line-width': 1.8, 'line-opacity': 0.65 }
       });
       map.addLayer({
         id: 'zones-labels', type: 'symbol', source: 'zones-source',
         layout: {
           'text-field': ['get', 'name'],
-          'text-size': 10,
+          'text-size': 11,
           'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Regular'],
-          'text-max-width': 8,
+          'text-max-width': 10,
           'text-anchor': 'center'
         },
         paint: {
-          'text-color': 'rgba(148,163,184,0.7)',
-          'text-halo-color': 'rgba(0,0,0,0.8)',
-          'text-halo-width': 1
+          'text-color': '#f8fafc',
+          'text-halo-color': '#020617',
+          'text-halo-width': 2.5
         },
       });
 
@@ -1104,9 +1266,40 @@ export default function DispatchMap({ onBack }: Props) {
 
         if (!jobMarkersRef.current[job.id]) {
           const el = mkJobMarker(job, isAtRisk, () => setSelectedJob(job));
-          jobMarkersRef.current[job.id] = new mapboxgl.Marker({ element: el })
-            .setLngLat([job.longitude, job.latitude])
-            .addTo(map);
+          const marker = new mapboxgl.Marker({ element: el })
+            .setLngLat([job.longitude, job.latitude]);
+
+          const statusColor = STATUS_COLORS[job.status] || '#3b82f6';
+          const price = Number(job.final_price) || Number(job.quoted_price) || 0;
+          const statusLabel = STATUS_LABELS[job.status] || job.status || 'Job';
+
+          const popupHtml = `
+            <div style="font-family:system-ui,sans-serif;padding:6px;min-width:210px;background:#090d16;color:#fff;border-radius:8px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                <span style="font-size:11px;font-weight:800;color:#60a5fa;letter-spacing:0.5px;">#${job.job_number || 'JOB'}</span>
+                <span style="font-size:9px;font-weight:800;padding:2px 6px;border-radius:4px;background:${statusColor}25;border:1px solid ${statusColor}60;color:${statusColor};text-transform:uppercase;">${statusLabel}</span>
+              </div>
+              <p style="font-weight:700;font-size:13px;margin:0 0 2px;color:#f8fafc;line-height:1.2;">${job.address_line1 || 'Address'}</p>
+              <p style="font-size:10px;color:#94a3b8;margin:0 0 6px;">${job.city || ''} ${job.postal_code || ''}</p>
+              <div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid rgba(255,255,255,0.1);padding-top:6px;margin-top:4px;">
+                <span style="font-size:12px;font-weight:800;color:#22c55e;">$${price.toFixed(2)} CAD</span>
+                <span style="font-size:10px;color:#cbd5e1;font-weight:600;">${job.customer?.full_name || 'Customer'}</span>
+              </div>
+              ${job.employee ? `<p style="font-size:10px;color:#38bdf8;margin:6px 0 0;font-weight:600;">👤 Assigned: ${job.employee.full_name}</p>` : '<p style="font-size:9px;color:#f59e0b;margin:4px 0 0;font-weight:700;">⚠ Unassigned</p>'}
+            </div>
+          `;
+
+          const popup = new mapboxgl.Popup({ offset: 14, closeButton: false, maxWidth: '260px' }).setHTML(popupHtml);
+          el.addEventListener('mouseenter', () => {
+            marker.setPopup(popup);
+            if (!popup.isOpen()) marker.togglePopup();
+          });
+          el.addEventListener('mouseleave', () => {
+            if (popup.isOpen()) marker.togglePopup();
+          });
+
+          marker.addTo(map);
+          jobMarkersRef.current[job.id] = marker;
         } else {
           jobMarkersRef.current[job.id].setLngLat([job.longitude, job.latitude]);
         }
@@ -1197,7 +1390,7 @@ export default function DispatchMap({ onBack }: Props) {
   // ── Derived Metrics ──────────────────────────────────────────────────────────
   const metrics = {
     jobsToday: filteredJobs.length,
-    revenueToday: filteredJobs.reduce((s, j) => s + (j.quoted_price || 0), 0),
+    revenueToday: filteredJobs.reduce((s, j) => s + (Number(j.final_price) || Number(j.quoted_price) || 0), 0),
     employeesOnline: mapData.employeeLocations.length,
     active: filteredJobs.filter(j => ['on_the_way', 'in_progress'].includes(j.status)).length,
     completed: filteredJobs.filter(j => j.status === 'completed').length,
@@ -1229,7 +1422,7 @@ export default function DispatchMap({ onBack }: Props) {
     { key: 'showZones' as const, label: 'Zones', icon: Map },
   ];
 
-  const sidebarWidth = sidebarCollapsed ? 44 : 280;
+  const sidebarWidth = sidebarCollapsed ? 44 : 320;
 
   return (
     <div className="relative w-full h-[calc(100vh-64px)] bg-black overflow-hidden font-sans select-none">
@@ -1242,157 +1435,159 @@ export default function DispatchMap({ onBack }: Props) {
         style={{ right: `${sidebarWidth}px` }}
       />
 
-      {/* ── Top Unified Command HUD ─────────────────────────────────────────── */}
+      {/* ── Top Unified Command HUD (Structured 2-Row Clean Layout) ───────────── */}
       <div
-        className="absolute top-0 left-0 z-20 flex flex-wrap items-center gap-2 px-3 py-2 bg-black/90 backdrop-blur-xl border-b border-white/10 transition-all duration-300"
+        className="absolute top-0 left-0 z-20 flex flex-col gap-2 p-2.5 bg-black/95 backdrop-blur-2xl border-b border-white/10 transition-all duration-300 shadow-xl"
         style={{ right: `${sidebarWidth}px` }}
       >
-        {/* Dashboard Back */}
-        <button
-          onClick={onBack}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-white/8 border border-white/10 rounded-lg text-white/70 hover:text-white text-[11px] font-bold transition-colors shrink-0 shadow-sm"
-        >
-          <List className="h-3.5 w-3.5" />
-          <span>Dashboard</span>
-        </button>
-
-        <div className="w-px h-5 bg-white/10 shrink-0" />
-
-        {/* Date Scope Controls: All Active Jobs vs Single Date */}
-        <div className="flex items-center gap-1 bg-white/5 border border-white/10 rounded-lg p-0.5 shrink-0">
-          <button
-            onClick={() => setSelectedDate('all')}
-            className={`px-2.5 py-1 rounded-md text-[10px] font-bold transition-all ${
-              selectedDate === 'all'
-                ? 'bg-blue-600 text-white shadow-sm'
-                : 'text-white/40 hover:text-white/70'
-            }`}
-          >
-            All Footprint ({mapData.jobs.length})
-          </button>
-          <button
-            onClick={() => {
-              if (selectedDate === 'all') {
-                setSelectedDate(new Date().toISOString().split('T')[0]);
-              }
-            }}
-            className={`px-2.5 py-1 rounded-md text-[10px] font-bold transition-all ${
-              selectedDate !== 'all'
-                ? 'bg-blue-600 text-white shadow-sm'
-                : 'text-white/40 hover:text-white/70'
-            }`}
-          >
-            By Date
-          </button>
-        </div>
-
-        {selectedDate !== 'all' && (
-          <input
-            type="date"
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
-            className="bg-white/6 border border-white/10 rounded-lg text-xs text-white px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500/50 [color-scheme:dark]"
-          />
-        )}
-
-        {/* Shift Time Scrubber */}
-        <div className="flex items-center gap-0.5 bg-white/5 border border-white/10 rounded-lg p-0.5 shrink-0">
-          <Clock className="h-3 w-3 text-white/35 ml-1.5 mr-0.5" />
-          {shiftGroups.map(sg => (
+        {/* Row 1: Nav, Scope, Weather Pill, Layer Controls */}
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Dashboard Back */}
             <button
-              key={sg.key}
-              onClick={() => setFilters(f => ({ ...f, shift: sg.key }))}
-              className={`px-2 py-1 rounded-md text-[10px] font-bold transition-all ${filters.shift === sg.key ? 'bg-blue-600 text-white shadow-sm' : 'text-white/40 hover:text-white/70'}`}
+              onClick={onBack}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-white/8 hover:bg-white/15 border border-white/10 rounded-lg text-white/80 hover:text-white text-[11px] font-bold transition-all shrink-0 shadow-sm"
             >
-              {sg.label}
+              <List className="h-3.5 w-3.5 text-blue-400" />
+              <span>Dashboard</span>
             </button>
-          ))}
-        </div>
 
-        {/* Search Input */}
-        <div className="relative min-w-[150px] flex-1 max-w-xs">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-white/35 pointer-events-none" />
-          <input
-            type="text"
-            placeholder="Search jobs, customers, crew..."
-            value={filters.search}
-            onChange={e => setFilters(f => ({ ...f, search: e.target.value }))}
-            className="w-full pl-8 pr-3 py-1.5 bg-white/6 border border-white/10 rounded-lg text-xs text-white placeholder:text-white/25 focus:outline-none focus:ring-1 focus:ring-blue-500/50"
-          />
-        </div>
+            <div className="w-px h-5 bg-white/10 shrink-0" />
 
-        {/* Status Filters */}
-        <div className="flex items-center gap-0.5 bg-white/5 border border-white/10 rounded-lg px-1 py-1 shrink-0">
-          {statusGroups.map(sg => (
-            <button
-              key={sg.key}
-              onClick={() => setFilters(f => ({ ...f, status: sg.key }))}
-              className={`px-2 py-0.5 rounded-md text-[10px] font-black transition-all ${filters.status === sg.key ? 'text-white' : 'text-white/30 hover:text-white/60'}`}
-              style={filters.status === sg.key ? { background: sg.color } : {}}
-            >
-              {sg.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Layer & Mode Toggles */}
-        <div className="flex items-center gap-0.5 bg-white/5 border border-white/10 rounded-lg px-1 py-1 shrink-0">
-          {layerToggles.map(lt => (
-            <button
-              key={lt.key}
-              onClick={() => setFilters(f => ({ ...f, [lt.key]: !f[lt.key] }))}
-              title={lt.label}
-              className={`flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold transition-all ${filters[lt.key] ? (lt.key === 'showHeatmap' ? 'bg-orange-600 text-white' : 'bg-blue-600/85 text-white') : 'text-white/35 hover:text-white/60'}`}
-            >
-              <lt.icon className="h-3 w-3" />
-              <span>{lt.label}</span>
-            </button>
-          ))}
-        </div>
-
-        {/* Dark / Satellite Switcher */}
-        <button
-          onClick={handleToggleStyle}
-          className="flex items-center gap-1 px-2 py-1 bg-white/5 border border-white/10 rounded-lg text-white/60 hover:text-white text-[10px] font-bold transition-colors shrink-0"
-          title="Toggle Satellite Imagery"
-        >
-          <Layers className="h-3 w-3" />
-          <span className="uppercase">{currentStyle === 'dark' ? 'Sat' : 'Dark'}</span>
-        </button>
-
-        {/* Refresh */}
-        <button
-          onClick={() => { setLoading(true); fetchData(); fetchWeather(); }}
-          className="p-1.5 bg-white/5 border border-white/10 rounded-lg text-white/40 hover:text-white transition-colors shrink-0"
-          title="Refresh All Telemetry"
-        >
-          <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
-        </button>
-      </div>
-
-      {/* ── Weather Telemetry Widget (Floating Glass HUD) ────────────────────── */}
-      {weather && (
-        <div className="absolute top-16 left-3 z-20 flex items-center gap-2 bg-black/80 backdrop-blur-xl border border-white/10 rounded-xl px-3 py-1.5 text-white text-xs shadow-xl">
-          <WeatherIcon icon={weather.condition.icon} className="h-4 w-4 shrink-0" />
-          <div>
-            <div className="flex items-center gap-1.5 leading-none">
-              <span className="font-black text-sm">{weather.temperature}°C</span>
-              <span className="text-white/40 text-[10px]">· {weather.condition.label}</span>
+            {/* Date Scope Controls: All Active Jobs vs Single Date */}
+            <div className="flex items-center gap-1 bg-white/5 border border-white/10 rounded-lg p-0.5 shrink-0">
+              <button
+                onClick={() => setSelectedDate('all')}
+                className={`px-2.5 py-1 rounded-md text-[10px] font-bold transition-all ${
+                  selectedDate === 'all'
+                    ? 'bg-blue-600 text-white shadow-sm'
+                    : 'text-white/40 hover:text-white/70'
+                }`}
+              >
+                All Footprint ({mapData.jobs.length})
+              </button>
+              <button
+                onClick={() => {
+                  if (selectedDate === 'all') {
+                    setSelectedDate(new Date().toISOString().split('T')[0]);
+                  }
+                }}
+                className={`px-2.5 py-1 rounded-md text-[10px] font-bold transition-all ${
+                  selectedDate !== 'all'
+                    ? 'bg-blue-600 text-white shadow-sm'
+                    : 'text-white/40 hover:text-white/70'
+                }`}
+              >
+                By Date
+              </button>
             </div>
-            <div className="flex items-center gap-2 text-[9px] text-white/30 mt-0.5">
-              <span>Wind {weather.windSpeed} km/h</span>
-              <span>•</span>
-              <span>Humidity {weather.humidity}%</span>
-            </div>
+
+            {selectedDate !== 'all' && (
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="bg-white/6 border border-white/10 rounded-lg text-xs text-white px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500/50 [color-scheme:dark]"
+              />
+            )}
+
+            {/* Weather Telemetry Pill (Integrated directly into HUD, no overlaps) */}
+            {weather && (
+              <div className="flex items-center gap-2 px-2.5 py-1 bg-white/5 border border-white/10 rounded-lg text-xs text-white shrink-0">
+                <WeatherIcon icon={weather.condition.icon} className="h-3.5 w-3.5 shrink-0" />
+                <span className="font-bold text-xs">{weather.temperature}°C</span>
+                <span className="text-white/40 text-[10px] hidden sm:inline">· {weather.condition.label}</span>
+                <span className="text-white/30 text-[9px] hidden md:inline">Wind {weather.windSpeed} km/h</span>
+                {weather.condition.impact !== 'normal' && (
+                  <span className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 text-[9px] font-bold flex items-center gap-1">
+                    <AlertTriangle className="h-2.5 w-2.5" /> Delay Caution
+                  </span>
+                )}
+              </div>
+            )}
           </div>
-          {weather.condition.impact !== 'normal' && (
-            <div className="ml-1 px-2 py-0.5 rounded-md bg-amber-500/20 border border-amber-500/40 text-amber-300 text-[9px] font-bold flex items-center gap-1">
-              <AlertTriangle className="h-2.5 w-2.5" />
-              <span>Delay Caution</span>
+
+          {/* Right Tools: Layers, Sat/Dark, Refresh */}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {/* Layer & Mode Toggles */}
+            <div className="flex items-center gap-0.5 bg-white/5 border border-white/10 rounded-lg px-1 py-0.5 shrink-0">
+              {layerToggles.map(lt => (
+                <button
+                  key={lt.key}
+                  onClick={() => setFilters(f => ({ ...f, [lt.key]: !f[lt.key] }))}
+                  title={lt.label}
+                  className={`flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold transition-all ${filters[lt.key] ? (lt.key === 'showHeatmap' ? 'bg-orange-600 text-white' : 'bg-blue-600/85 text-white') : 'text-white/35 hover:text-white/60'}`}
+                >
+                  <lt.icon className="h-3 w-3" />
+                  <span className="hidden lg:inline">{lt.label}</span>
+                </button>
+              ))}
             </div>
-          )}
+
+            {/* Dark / Satellite Switcher */}
+            <button
+              onClick={handleToggleStyle}
+              className="flex items-center gap-1 px-2 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-white/60 hover:text-white text-[10px] font-bold transition-colors shrink-0"
+              title="Toggle Satellite Imagery"
+            >
+              <Layers className="h-3 w-3" />
+              <span className="uppercase">{currentStyle === 'dark' ? 'Sat' : 'Dark'}</span>
+            </button>
+
+            {/* Refresh */}
+            <button
+              onClick={() => { setLoading(true); fetchData(); fetchWeather(); }}
+              className="p-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-white/40 hover:text-white transition-colors shrink-0"
+              title="Refresh All Telemetry"
+            >
+              <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
+            </button>
+          </div>
         </div>
-      )}
+
+        {/* Row 2: Search, Status Filter Pills, Shift Scrubber */}
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Search Input */}
+          <div className="relative min-w-[160px] flex-1 max-w-sm">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-white/35 pointer-events-none" />
+            <input
+              type="text"
+              placeholder="Search jobs, customers, crew, addresses..."
+              value={filters.search}
+              onChange={e => setFilters(f => ({ ...f, search: e.target.value }))}
+              className="w-full pl-8 pr-3 py-1 bg-white/6 border border-white/10 rounded-lg text-xs text-white placeholder:text-white/25 focus:outline-none focus:ring-1 focus:ring-blue-500/50"
+            />
+          </div>
+
+          {/* Status Filters */}
+          <div className="flex items-center gap-0.5 bg-white/5 border border-white/10 rounded-lg px-1 py-0.5 shrink-0 overflow-x-auto">
+            {statusGroups.map(sg => (
+              <button
+                key={sg.key}
+                onClick={() => setFilters(f => ({ ...f, status: sg.key }))}
+                className={`px-2 py-0.5 rounded-md text-[10px] font-black transition-all ${filters.status === sg.key ? 'text-white' : 'text-white/30 hover:text-white/60'}`}
+                style={filters.status === sg.key ? { background: sg.color } : {}}
+              >
+                {sg.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Shift Time Scrubber */}
+          <div className="flex items-center gap-0.5 bg-white/5 border border-white/10 rounded-lg p-0.5 shrink-0">
+            <Clock className="h-3 w-3 text-white/35 ml-1 mr-0.5" />
+            {shiftGroups.map(sg => (
+              <button
+                key={sg.key}
+                onClick={() => setFilters(f => ({ ...f, shift: sg.key }))}
+                className={`px-1.5 py-0.5 rounded-md text-[10px] font-bold transition-all ${filters.shift === sg.key ? 'bg-blue-600 text-white shadow-sm' : 'text-white/40 hover:text-white/70'}`}
+              >
+                {sg.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
 
       {/* ── Quick Assign Slide-Over Drawer ───────────────────────────────────── */}
       <QuickAssignDrawer
@@ -1446,6 +1641,7 @@ export default function DispatchMap({ onBack }: Props) {
         zones={mapData.zoneMetrics}
         selectedZoneName={selectedZoneName}
         onSelectZone={handleSelectZone}
+        onSelectJob={setSelectedJob}
         collapsed={sidebarCollapsed}
         onToggleCollapse={() => setSidebarCollapsed(p => !p)}
       />
