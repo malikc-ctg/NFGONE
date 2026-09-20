@@ -872,9 +872,18 @@ export default function DispatchMap({ onBack }: Props) {
         },
       });
 
-      map.on('click', 'zones-fill', (e) => {
+      // Double-click on zone polygon triggers Zone Focus & reveals activity dots
+      map.on('dblclick', 'zones-fill', (e) => {
+        e.preventDefault();
         const name = e.features?.[0]?.properties?.name;
-        if (name) window.dispatchEvent(new CustomEvent('zone-map-click', { detail: { name } }));
+        if (name) window.dispatchEvent(new CustomEvent('zone-map-dblclick', { detail: { name } }));
+      });
+      // Clicking empty canvas outside zones clears zone focus
+      map.on('click', (e) => {
+        const features = map.queryRenderedFeatures(e.point, { layers: ['zones-fill', 'jobs-circle'] });
+        if (!features.length) {
+          window.dispatchEvent(new CustomEvent('zone-map-clear'));
+        }
       });
       map.on('mouseenter', 'zones-fill', () => { map.getCanvas().style.cursor = 'pointer'; });
       map.on('mouseleave', 'zones-fill', () => { map.getCanvas().style.cursor = ''; });
@@ -1064,6 +1073,7 @@ export default function DispatchMap({ onBack }: Props) {
       style: MAP_STYLES[currentStyle],
       center: [-79.3832, 43.6532],
       zoom: 9.5,
+      doubleClickZoom: false,
     });
 
     map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), 'bottom-right');
@@ -1104,52 +1114,6 @@ export default function DispatchMap({ onBack }: Props) {
     map.setStyle(MAP_STYLES[nextStyle]);
   };
 
-  // ── Zone map-click handler ───────────────────────────────────────────────────
-  useEffect(() => {
-    const h = (e: Event) => setSelectedZoneName((e as CustomEvent).detail?.name ?? null);
-    window.addEventListener('zone-map-click', h);
-    return () => window.removeEventListener('zone-map-click', h);
-  }, []);
-
-  // ── Highlight Zone Outline on Selection ──────────────────────────────────────
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map || !mapLoaded) return;
-    if (map.getLayer('zones-outline') && map.getLayer('zones-fill')) {
-      if (selectedZoneName) {
-        map.setPaintProperty('zones-outline', 'line-color', [
-          'case',
-          ['==', ['get', 'name'], selectedZoneName],
-          '#60a5fa',
-          '#3b82f6',
-        ]);
-        map.setPaintProperty('zones-outline', 'line-width', [
-          'case',
-          ['==', ['get', 'name'], selectedZoneName],
-          3.5,
-          1.5,
-        ]);
-        map.setPaintProperty('zones-outline', 'line-opacity', [
-          'case',
-          ['==', ['get', 'name'], selectedZoneName],
-          0.95,
-          0.4,
-        ]);
-        map.setPaintProperty('zones-fill', 'fill-opacity', [
-          'case',
-          ['==', ['get', 'name'], selectedZoneName],
-          0.22,
-          0.06,
-        ]);
-      } else {
-        map.setPaintProperty('zones-outline', 'line-color', '#3b82f6');
-        map.setPaintProperty('zones-outline', 'line-width', 1.5);
-        map.setPaintProperty('zones-outline', 'line-opacity', 0.5);
-        map.setPaintProperty('zones-fill', 'fill-opacity', 0.08);
-      }
-    }
-  }, [selectedZoneName, mapLoaded]);
-
   // ── Fly to zone when selected ────────────────────────────────────────────────
   const handleSelectZone = useCallback((name: string) => {
     setSelectedZoneName(prev => prev === name ? null : name);
@@ -1172,6 +1136,71 @@ export default function DispatchMap({ onBack }: Props) {
       }
     }
   }, [mapLoaded, sidebarCollapsed]);
+
+  // ── Zone map double-click & clear handlers ──────────────────────────────────
+  useEffect(() => {
+    const handleDblClick = (e: Event) => {
+      const name = (e as CustomEvent).detail?.name;
+      if (name) handleSelectZone(name);
+    };
+    const handleClear = () => {
+      setSelectedZoneName(null);
+    };
+    window.addEventListener('zone-map-dblclick', handleDblClick);
+    window.addEventListener('zone-map-clear', handleClear);
+    return () => {
+      window.removeEventListener('zone-map-dblclick', handleDblClick);
+      window.removeEventListener('zone-map-clear', handleClear);
+    };
+  }, [handleSelectZone]);
+
+  // Escape key deselects zone focus
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setSelectedZoneName(null);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, []);
+
+  // ── Highlight Zone Outline on Selection ──────────────────────────────────────
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapLoaded) return;
+    if (map.getLayer('zones-outline') && map.getLayer('zones-fill')) {
+      if (selectedZoneName) {
+        map.setPaintProperty('zones-outline', 'line-color', [
+          'case',
+          ['==', ['get', 'name'], selectedZoneName],
+          '#38bdf8', // electric cyan glow for active zone
+          '#1e3a8a', // dim dark navy for other zones
+        ]);
+        map.setPaintProperty('zones-outline', 'line-width', [
+          'case',
+          ['==', ['get', 'name'], selectedZoneName],
+          4, // thick glowing boundary
+          1,
+        ]);
+        map.setPaintProperty('zones-outline', 'line-opacity', [
+          'case',
+          ['==', ['get', 'name'], selectedZoneName],
+          1.0,
+          0.18, // dim other zones
+        ]);
+        map.setPaintProperty('zones-fill', 'fill-opacity', [
+          'case',
+          ['==', ['get', 'name'], selectedZoneName],
+          0.26, // illuminated active zone
+          0.02, // dim other zones
+        ]);
+      } else {
+        map.setPaintProperty('zones-outline', 'line-color', '#3b82f6');
+        map.setPaintProperty('zones-outline', 'line-width', 1.8);
+        map.setPaintProperty('zones-outline', 'line-opacity', 0.65);
+        map.setPaintProperty('zones-fill', 'fill-opacity', 0.08);
+      }
+    }
+  }, [selectedZoneName, mapLoaded]);
 
   // ── Shift Matcher ────────────────────────────────────────────────────────────
   const matchesShift = useCallback((job: any, shift: string) => {
@@ -1204,7 +1233,19 @@ export default function DispatchMap({ onBack }: Props) {
     );
   }, [mapData.employeeLocations, filters.search]);
 
-  // ── Update Heatmap Source ────────────────────────────────────────────────────
+  // ── Active Zone Jobs (Only populated when a zone is double-clicked / selected) ─
+  const activeZoneJobs = useMemo(() => {
+    if (!selectedZoneName) return [];
+    const selectedZone = mapData.zoneMetrics.find(z => z.name === selectedZoneName);
+    const selectedZoneId = selectedZone?.zone_id;
+    return filteredJobs.filter(j => {
+      if (selectedZoneId && j.zone_id === selectedZoneId) return true;
+      if (selectedZone && j.city?.toLowerCase() === selectedZone.city?.toLowerCase()) return true;
+      return false;
+    });
+  }, [filteredJobs, selectedZoneName, mapData.zoneMetrics]);
+
+  // ── Update Heatmap Source (Only active for focused zone) ─────────────────────
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapLoaded) return;
@@ -1212,12 +1253,15 @@ export default function DispatchMap({ onBack }: Props) {
     if (!src) return;
 
     if (map.getLayer('jobs-heat')) {
-      map.setLayoutProperty('jobs-heat', 'visibility', filters.showHeatmap ? 'visible' : 'none');
+      map.setLayoutProperty('jobs-heat', 'visibility', filters.showHeatmap && selectedZoneName ? 'visible' : 'none');
     }
 
-    if (!filters.showHeatmap) return;
+    if (!filters.showHeatmap || !selectedZoneName) {
+      src.setData({ type: 'FeatureCollection', features: [] });
+      return;
+    }
 
-    const features = filteredJobs
+    const features = activeZoneJobs
       .filter(j => j.latitude && j.longitude)
       .map(j => ({
         type: 'Feature' as const,
@@ -1226,21 +1270,22 @@ export default function DispatchMap({ onBack }: Props) {
       }));
 
     src.setData({ type: 'FeatureCollection', features });
-  }, [mapLoaded, filteredJobs, filters.showHeatmap]);
+  }, [mapLoaded, activeZoneJobs, filters.showHeatmap, selectedZoneName]);
 
-  // ── Sync Jobs to Mapbox WebGL GeoJSON Layer ──────────────────────────────────
+  // ── Sync Jobs to Mapbox WebGL GeoJSON Layer (Revealed ONLY on Zone Focus) ────
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapLoaded) return;
     const src = map.getSource('jobs-source') as mapboxgl.GeoJSONSource;
     if (!src) return;
 
-    if (!filters.showJobs) {
+    // Do NOT display any dots until a zone is selected / double-clicked
+    if (!filters.showJobs || !selectedZoneName) {
       src.setData({ type: 'FeatureCollection', features: [] });
       return;
     }
 
-    const features = filteredJobs
+    const features = activeZoneJobs
       .filter(j => j.latitude && j.longitude)
       .map(j => ({
         type: 'Feature' as const,
@@ -1266,7 +1311,7 @@ export default function DispatchMap({ onBack }: Props) {
       }));
 
     src.setData({ type: 'FeatureCollection', features });
-  }, [mapLoaded, filteredJobs, filters.showJobs]);
+  }, [mapLoaded, activeZoneJobs, filters.showJobs, selectedZoneName]);
 
   // ── Listen for Job Click from Mapbox WebGL Layer ─────────────────────────────
   useEffect(() => {
@@ -1290,7 +1335,7 @@ export default function DispatchMap({ onBack }: Props) {
     if (map.getLayer('assignment-lines-base')) map.setLayoutProperty('assignment-lines-base', 'visibility', vis);
     if (map.getLayer('assignment-lines-flow')) map.setLayoutProperty('assignment-lines-flow', 'visibility', vis);
 
-    if (!filters.showLines || mapData.assignmentLines.length === 0) {
+    if (!filters.showLines || !selectedZoneName || mapData.assignmentLines.length === 0) {
       src.setData({ type: 'FeatureCollection', features: [] });
       return;
     }
@@ -1365,17 +1410,27 @@ export default function DispatchMap({ onBack }: Props) {
     if (!map || !mapLoaded) return;
     const { employeeHQs } = mapData;
 
-    // Employees (Live GPS Units)
-    const locIds = new Set((filteredEmployees || []).map((l: any) => l?.id).filter(Boolean));
-    Object.keys(locMarkersRef.current).forEach(id => {
-      if (!locIds.has(id) || !filters.showEmployees) {
+    // Employees (Live GPS Units) - only show when zone is focused
+    if (!filters.showEmployees || !selectedZoneName) {
+      Object.keys(locMarkersRef.current).forEach(id => {
         locMarkersRef.current[id].remove();
         delete locMarkersRef.current[id];
-      }
-    });
+      });
+    } else {
+      const selectedZone = mapData.zoneMetrics.find(z => z.name === selectedZoneName);
+      const zoneEmployees = (filteredEmployees || []).filter((loc: any) => {
+        if (!selectedZone) return true;
+        return loc.employee?.zone_id === selectedZone.zone_id || !loc.employee?.zone_id;
+      });
+      const locIds = new Set(zoneEmployees.map((l: any) => l?.id).filter(Boolean));
+      Object.keys(locMarkersRef.current).forEach(id => {
+        if (!locIds.has(id)) {
+          locMarkersRef.current[id].remove();
+          delete locMarkersRef.current[id];
+        }
+      });
 
-    if (filters.showEmployees) {
-      (filteredEmployees || []).forEach((loc: any) => {
+      zoneEmployees.forEach((loc: any) => {
         if (!loc || !loc.id || !loc.longitude || !loc.latitude) return;
         const c = loc.employee;
         const popupHtml = `<div style="font-family:system-ui,sans-serif;padding:6px;min-width:200px;">
@@ -1400,17 +1455,27 @@ export default function DispatchMap({ onBack }: Props) {
       });
     }
 
-    // HQs (Base Stations)
-    const hqIds = new Set((employeeHQs || []).map((h: any) => h?.id).filter(Boolean));
-    Object.keys(hqMarkersRef.current).forEach(id => {
-      if (!hqIds.has(id) || !filters.showHQs) {
+    // HQs (Base Stations) - only show when zone is focused
+    if (!filters.showHQs || !selectedZoneName) {
+      Object.keys(hqMarkersRef.current).forEach(id => {
         hqMarkersRef.current[id].remove();
         delete hqMarkersRef.current[id];
-      }
-    });
+      });
+    } else {
+      const selectedZone = mapData.zoneMetrics.find(z => z.name === selectedZoneName);
+      const zoneHQs = (employeeHQs || []).filter((h: any) => {
+        if (!selectedZone) return true;
+        return h.zone_id === selectedZone.zone_id;
+      });
+      const hqIds = new Set(zoneHQs.map((h: any) => h?.id).filter(Boolean));
+      Object.keys(hqMarkersRef.current).forEach(id => {
+        if (!hqIds.has(id)) {
+          hqMarkersRef.current[id].remove();
+          delete hqMarkersRef.current[id];
+        }
+      });
 
-    if (filters.showHQs) {
-      (employeeHQs || []).forEach((hq: any) => {
+      zoneHQs.forEach((hq: any) => {
         if (!hq || !hq.id || !hq.longitude || !hq.latitude) return;
         const popupHtml = `<div style="font-family:system-ui,sans-serif;padding:6px;min-width:200px;">
           <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
@@ -1562,6 +1627,28 @@ export default function DispatchMap({ onBack }: Props) {
                     <AlertTriangle className="h-2.5 w-2.5" /> Delay Caution
                   </span>
                 )}
+              </div>
+            )}
+
+            {/* Zone Focus Status Chip */}
+            {selectedZoneName ? (
+              <div className="flex items-center gap-2 px-2.5 py-1 bg-blue-500/20 border border-blue-400/40 rounded-lg text-xs text-blue-200 font-bold shrink-0 shadow-md animate-in fade-in zoom-in-95 duration-150">
+                <div className="w-2 h-2 rounded-full bg-blue-400 animate-ping shrink-0" />
+                <span>Zone: <strong className="text-white font-extrabold">{selectedZoneName}</strong> ({activeZoneJobs.length} active)</span>
+                <button
+                  onClick={() => setSelectedZoneName(null)}
+                  className="ml-1 px-1.5 py-0.5 rounded bg-white/10 hover:bg-white/20 text-white text-[9px] font-black uppercase transition-colors flex items-center gap-1"
+                  title="Exit zone focus (Esc)"
+                >
+                  <X className="h-3 w-3" />
+                  <span>Exit</span>
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5 px-2.5 py-1 bg-white/5 border border-white/10 rounded-lg text-white/40 text-[10px] font-medium shrink-0">
+                <Sparkles className="h-3 w-3 text-blue-400/80 shrink-0" />
+                <span className="hidden sm:inline">Double-click any zone to highlight & reveal activity</span>
+                <span className="sm:hidden">Double-click zone</span>
               </div>
             )}
           </div>
