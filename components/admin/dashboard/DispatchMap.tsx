@@ -80,7 +80,6 @@ interface FilterState {
   showZones: boolean;
   showLines: boolean;
   showHeatmap: boolean;
-  showActivityDots: boolean;
 }
 
 interface MapData {
@@ -107,8 +106,29 @@ interface WeatherData {
 
 interface Props { onBack: () => void; }
 
-// ─── Keyframes Injection ───────────────────────────────────────────────────────
+// ─── Keyframes & Mapbox Overrides ──────────────────────────────────────────────
 const STYLES_INJECTION = `
+.mapboxgl-marker {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  will-change: transform !important;
+}
+.mapboxgl-popup {
+  z-index: 50 !important;
+}
+.mapboxgl-popup-content {
+  background: #090d16 !important;
+  color: #fff !important;
+  border: 1px solid rgba(255,255,255,0.15) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.8) !important;
+  padding: 0 !important;
+}
+.mapboxgl-popup-tip {
+  border-top-color: #090d16 !important;
+  border-bottom-color: #090d16 !important;
+}
 @keyframes sonarWave {
   0% { transform: scale(0.85); opacity: 0.8; }
   50% { transform: scale(1.6); opacity: 0.3; }
@@ -124,72 +144,46 @@ const STYLES_INJECTION = `
 }
 `;
 
-// ─── Marker Factories ──────────────────────────────────────────────────────────
-function mkJobMarker(job: any, isAtRisk: boolean, onSelect: () => void) {
-  const el = document.createElement('div');
-  el.style.cssText = 'position:relative;width:24px;height:24px;cursor:pointer;display:flex;align-items:center;justify-content:center;';
-
-  const status = job.status;
-  const isEnRoute = status === 'on_the_way';
-  const c = STATUS_COLORS[status] ?? STATUS_COLORS.default;
-
-  // Radar ripple if en-route or at-risk
-  if (isAtRisk) {
-    const alertRing = document.createElement('div');
-    alertRing.style.cssText = 'position:absolute;inset:-6px;border-radius:50%;border:2px solid #ef4444;opacity:0.8;animation:sonarWave 1.8s cubic-bezier(0,0.2,0.8,1) infinite;pointer-events:none;';
-    el.appendChild(alertRing);
-  } else if (isEnRoute) {
-    const enRouteRing = document.createElement('div');
-    enRouteRing.style.cssText = 'position:absolute;inset:-6px;border-radius:50%;border:1.5px solid #8b5cf6;opacity:0.75;animation:sonarWave 2.2s cubic-bezier(0,0.2,0.8,1) infinite;pointer-events:none;';
-    el.appendChild(enRouteRing);
-  }
-
-  const inner = document.createElement('div');
-  inner.style.cssText = `position:relative;z-index:2;width:18px;height:18px;background:${c};border:2px solid rgba(255,255,255,0.95);border-radius:50%;box-shadow:0 2px 10px rgba(0,0,0,0.6);transition:transform .15s ease;`;
-  el.appendChild(inner);
-
-  el.addEventListener('mouseenter', () => { inner.style.transform = 'scale(1.35)'; });
-  el.addEventListener('mouseleave', () => { inner.style.transform = 'scale(1)'; });
-  el.addEventListener('click', (e) => {
-    e.stopPropagation();
-    onSelect();
-  });
-  return el;
-}
-
+// ─── Marker Factories (Properly Anchored for Mapbox) ───────────────────────────
 function mkEmployeeMarker(cleaner: any) {
-  const el = document.createElement('div');
-  el.style.cssText = 'position:relative;width:34px;height:34px;cursor:pointer;display:flex;align-items:center;justify-content:center;';
+  const root = document.createElement('div');
+  root.style.cssText = 'pointer-events:auto;cursor:pointer;display:flex;align-items:center;justify-content:center;';
+
+  const container = document.createElement('div');
+  container.style.cssText = 'position:relative;width:34px;height:34px;display:flex;align-items:center;justify-content:center;';
 
   // Double concentric radar ripples for that alive command center feel
   const ring1 = document.createElement('div');
   ring1.style.cssText = 'position:absolute;inset:-6px;border-radius:50%;border:1.5px solid #22c55e;opacity:0.6;animation:sonarWave 2.4s cubic-bezier(0,0.2,0.8,1) infinite;pointer-events:none;';
-  el.appendChild(ring1);
+  container.appendChild(ring1);
 
   const ring2 = document.createElement('div');
   ring2.style.cssText = 'position:absolute;inset:-6px;border-radius:50%;border:1px solid #10b981;opacity:0.35;animation:sonarWave 2.4s cubic-bezier(0,0.2,0.8,1) 1.2s infinite;pointer-events:none;';
-  el.appendChild(ring2);
+  container.appendChild(ring2);
 
   const inner = document.createElement('div');
   inner.style.cssText = 'position:relative;z-index:2;width:28px;height:28px;background:#09090b;border:2.5px solid #22c55e;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 0 12px rgba(34,197,94,0.6);transition:transform .15s ease;font-size:12px;';
   inner.innerText = '👤';
-  el.appendChild(inner);
+  container.appendChild(inner);
 
-  el.addEventListener('mouseenter', () => { inner.style.transform = 'scale(1.25)'; });
-  el.addEventListener('mouseleave', () => { inner.style.transform = 'scale(1)'; });
-  return el;
+  root.appendChild(container);
+  root.addEventListener('mouseenter', () => { inner.style.transform = 'scale(1.25)'; });
+  root.addEventListener('mouseleave', () => { inner.style.transform = 'scale(1)'; });
+  return root;
 }
 
 function mkHQMarker() {
-  const el = document.createElement('div');
-  el.style.cssText = 'width:30px;height:30px;cursor:pointer;display:flex;align-items:center;justify-content:center;';
+  const root = document.createElement('div');
+  root.style.cssText = 'pointer-events:auto;cursor:pointer;display:flex;align-items:center;justify-content:center;';
+
   const inner = document.createElement('div');
-  inner.style.cssText = 'width:100%;height:100%;background:#1e3a8a;border:2.5px solid rgba(255,255,255,.95);border-radius:8px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 12px rgba(0,0,0,.7);transition:transform .15s ease;font-size:14px;';
+  inner.style.cssText = 'width:30px;height:30px;background:#1e3a8a;border:2.5px solid rgba(255,255,255,.95);border-radius:8px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 12px rgba(0,0,0,.7);transition:transform .15s ease;font-size:14px;';
   inner.innerText = '🏠';
-  el.appendChild(inner);
-  el.addEventListener('mouseenter', () => { inner.style.transform = 'scale(1.25)'; });
-  el.addEventListener('mouseleave', () => { inner.style.transform = 'scale(1)'; });
-  return el;
+  root.appendChild(inner);
+
+  root.addEventListener('mouseenter', () => { inner.style.transform = 'scale(1.25)'; });
+  root.addEventListener('mouseleave', () => { inner.style.transform = 'scale(1)'; });
+  return root;
 }
 
 // ─── Weather Icon Helper ───────────────────────────────────────────────────────
@@ -747,7 +741,7 @@ export default function DispatchMap({ onBack }: Props) {
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const initialFrameDone = useRef(false);
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
-  const jobMarkersRef = useRef<{ [key: string]: mapboxgl.Marker }>({});
+  const hoverPopupRef = useRef<mapboxgl.Popup | null>(null);
   const locMarkersRef = useRef<{ [key: string]: mapboxgl.Marker }>({});
   const hqMarkersRef = useRef<{ [key: string]: mapboxgl.Marker }>({});
   const directionsCacheRef = useRef<{ [key: string]: number[][] }>({});
@@ -778,7 +772,6 @@ export default function DispatchMap({ onBack }: Props) {
     showZones: true,
     showLines: true,
     showHeatmap: false,
-    showActivityDots: true,
   });
 
   const supabase = createClient();
@@ -908,26 +901,7 @@ export default function DispatchMap({ onBack }: Props) {
       });
     }
 
-    // 3. Activity Dots Layer (Micro-telemetry pings)
-    if (!map.getSource('activity-dots')) {
-      map.addSource('activity-dots', {
-        type: 'geojson',
-        data: { type: 'FeatureCollection', features: [] }
-      });
-      map.addLayer({
-        id: 'activity-dots-layer',
-        type: 'circle',
-        source: 'activity-dots',
-        paint: {
-          'circle-radius': ['get', 'radius'],
-          'circle-color': ['get', 'color'],
-          'circle-opacity': 0.7,
-          'circle-blur': 0.4,
-        }
-      });
-    }
-
-    // 4. Assignment Lines (Road Navigation Paths)
+    // 3. Assignment Lines (Road Navigation Paths)
     if (!map.getSource('assignment-lines')) {
       map.addSource('assignment-lines', {
         type: 'geojson',
@@ -953,6 +927,119 @@ export default function DispatchMap({ onBack }: Props) {
           'line-dasharray': [2, 4],
           'line-opacity': 0.9,
         },
+      });
+    }
+
+    // 4. Jobs Hardware-Accelerated WebGL Layer (Rock-Solid Geographic Anchor)
+    if (!map.getSource('jobs-source')) {
+      map.addSource('jobs-source', {
+        type: 'geojson',
+        data: { type: 'FeatureCollection', features: [] }
+      });
+
+      // Outer glow for en-route and at-risk jobs
+      map.addLayer({
+        id: 'jobs-radar-glow',
+        type: 'circle',
+        source: 'jobs-source',
+        filter: ['any', ['==', ['get', 'isAtRisk'], true], ['==', ['get', 'isEnRoute'], true]],
+        paint: {
+          'circle-radius': ['interpolate', ['linear'], ['zoom'], 6, 8, 10, 13, 14, 18, 18, 24],
+          'circle-color': [
+            'case',
+            ['==', ['get', 'isAtRisk'], true], '#ef4444',
+            '#8b5cf6'
+          ],
+          'circle-opacity': 0.45,
+          'circle-blur': 0.45,
+        }
+      });
+
+      // Primary Job Circle Marker (Locked to GPS coords via WebGL)
+      map.addLayer({
+        id: 'jobs-circle',
+        type: 'circle',
+        source: 'jobs-source',
+        paint: {
+          'circle-radius': ['interpolate', ['linear'], ['zoom'], 6, 4.5, 10, 7, 14, 9.5, 18, 14],
+          'circle-color': ['get', 'color'],
+          'circle-stroke-width': [
+            'case',
+            ['==', ['get', 'isAtRisk'], true], 2.5,
+            1.5
+          ],
+          'circle-stroke-color': [
+            'case',
+            ['==', ['get', 'isAtRisk'], true], '#fca5a5',
+            '#ffffff'
+          ],
+          'circle-opacity': 0.98,
+        }
+      });
+
+      // Job number labels at closer zoom
+      map.addLayer({
+        id: 'jobs-labels',
+        type: 'symbol',
+        source: 'jobs-source',
+        minzoom: 13.5,
+        layout: {
+          'text-field': ['get', 'job_number'],
+          'text-size': 10,
+          'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Regular'],
+          'text-offset': [0, 1.4],
+          'text-anchor': 'top',
+        },
+        paint: {
+          'text-color': '#f8fafc',
+          'text-halo-color': '#020617',
+          'text-halo-width': 2,
+        }
+      });
+
+      // Hover popup logic for jobs
+      map.on('mouseenter', 'jobs-circle', (e) => {
+        map.getCanvas().style.cursor = 'pointer';
+        const feat = e.features?.[0];
+        if (!feat) return;
+        const p = feat.properties as any;
+        const coordinates = (feat.geometry as any).coordinates.slice();
+
+        const popupHtml = `
+          <div style="font-family:system-ui,sans-serif;padding:6px;min-width:210px;background:#090d16;color:#fff;border-radius:8px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+              <span style="font-size:11px;font-weight:800;color:#60a5fa;letter-spacing:0.5px;">#${p.job_number}</span>
+              <span style="font-size:9px;font-weight:800;padding:2px 6px;border-radius:4px;background:${p.color}25;border:1px solid ${p.color}60;color:${p.color};text-transform:uppercase;">${p.status_label}</span>
+            </div>
+            <p style="font-weight:700;font-size:13px;margin:0 0 2px;color:#f8fafc;line-height:1.2;">${p.address_line1 || 'Address'}</p>
+            <p style="font-size:10px;color:#94a3b8;margin:0 0 6px;">${p.city || ''} ${p.postal_code || ''}</p>
+            <div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid rgba(255,255,255,0.1);padding-top:6px;margin-top:4px;">
+              <span style="font-size:12px;font-weight:800;color:#22c55e;">$${Number(p.price).toFixed(2)} CAD</span>
+              <span style="font-size:10px;color:#cbd5e1;font-weight:600;">${p.customer_name || 'Customer'}</span>
+            </div>
+            ${p.employee_name ? `<p style="font-size:10px;color:#38bdf8;margin:6px 0 0;font-weight:600;">👤 Assigned: ${p.employee_name}</p>` : '<p style="font-size:9px;color:#f59e0b;margin:4px 0 0;font-weight:700;">⚠ Unassigned</p>'}
+          </div>
+        `;
+
+        if (!hoverPopupRef.current) {
+          hoverPopupRef.current = new mapboxgl.Popup({ offset: 12, closeButton: false, maxWidth: '280px' });
+        }
+        hoverPopupRef.current
+          .setLngLat(coordinates as [number, number])
+          .setHTML(popupHtml)
+          .addTo(map);
+      });
+
+      map.on('mouseleave', 'jobs-circle', () => {
+        map.getCanvas().style.cursor = '';
+        if (hoverPopupRef.current) hoverPopupRef.current.remove();
+      });
+
+      map.on('click', 'jobs-circle', (e) => {
+        const feat = e.features?.[0];
+        if (!feat) return;
+        const id = feat.properties?.id;
+        window.dispatchEvent(new CustomEvent('job-map-select', { detail: { id } }));
       });
     }
   }, []);
@@ -1131,38 +1218,56 @@ export default function DispatchMap({ onBack }: Props) {
     src.setData({ type: 'FeatureCollection', features });
   }, [mapLoaded, filteredJobs, filters.showHeatmap]);
 
-  // ── Update Activity Dots Source (Alive Field Telemetry) ───────────────────────
+  // ── Sync Jobs to Mapbox WebGL GeoJSON Layer ──────────────────────────────────
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapLoaded) return;
-    const src = map.getSource('activity-dots') as mapboxgl.GeoJSONSource;
+    const src = map.getSource('jobs-source') as mapboxgl.GeoJSONSource;
     if (!src) return;
 
-    if (map.getLayer('activity-dots-layer')) {
-      map.setLayoutProperty('activity-dots-layer', 'visibility', filters.showActivityDots ? 'visible' : 'none');
+    if (!filters.showJobs) {
+      src.setData({ type: 'FeatureCollection', features: [] });
+      return;
     }
 
-    if (!filters.showActivityDots) return;
-
-    // Generate telemetry micro-dots around active jobs and zones
-    const dots: any[] = [];
-    filteredJobs.slice(0, 40).forEach((j, i) => {
-      if (!j.latitude || !j.longitude) return;
-      // Scatter subtle activity dots
-      const offsetLng = (Math.sin(i * 1.7) * 0.006);
-      const offsetLat = (Math.cos(i * 1.7) * 0.006);
-      dots.push({
-        type: 'Feature',
-        geometry: { type: 'Point', coordinates: [j.longitude + offsetLng, j.latitude + offsetLat] },
-        properties: {
-          color: i % 2 === 0 ? '#38bdf8' : '#34d399',
-          radius: 3 + (i % 3),
+    const features = filteredJobs
+      .filter(j => j.latitude && j.longitude)
+      .map(j => ({
+        type: 'Feature' as const,
+        geometry: {
+          type: 'Point' as const,
+          coordinates: [j.longitude, j.latitude]
         },
-      });
-    });
+        properties: {
+          id: j.id,
+          job_number: j.job_number || 'JOB',
+          status: j.status || 'default',
+          color: STATUS_COLORS[j.status] || '#94a3b8',
+          status_label: STATUS_LABELS[j.status] || j.status || 'Job',
+          address_line1: j.address_line1 || '',
+          city: j.city || '',
+          postal_code: j.postal_code || '',
+          customer_name: j.customer?.full_name || '',
+          price: Number(j.final_price) || Number(j.quoted_price) || 0,
+          employee_name: j.employee?.full_name || '',
+          isAtRisk: j.status === 'confirmed' && !j.employee,
+          isEnRoute: j.status === 'on_the_way',
+        }
+      }));
 
-    src.setData({ type: 'FeatureCollection', features: dots });
-  }, [mapLoaded, filteredJobs, filters.showActivityDots]);
+    src.setData({ type: 'FeatureCollection', features });
+  }, [mapLoaded, filteredJobs, filters.showJobs]);
+
+  // ── Listen for Job Click from Mapbox WebGL Layer ─────────────────────────────
+  useEffect(() => {
+    const handleJobSelect = (e: Event) => {
+      const id = (e as CustomEvent).detail?.id;
+      const job = mapData.jobs.find(j => j.id === id);
+      if (job) setSelectedJob(job);
+    };
+    window.addEventListener('job-map-select', handleJobSelect);
+    return () => window.removeEventListener('job-map-select', handleJobSelect);
+  }, [mapData.jobs]);
 
   // ── Road Routing via Directions API ──────────────────────────────────────────
   useEffect(() => {
@@ -1244,69 +1349,13 @@ export default function DispatchMap({ onBack }: Props) {
     map.setPaintProperty('zones-outline', 'line-color', matchExpr as any);
   }, [mapLoaded, mapData.zoneMetrics]);
 
-  // ── Markers ──────────────────────────────────────────────────────────────────
+  // ── Live Technician & HQ Base Station Markers ────────────────────────────────
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapLoaded) return;
     const { employeeHQs } = mapData;
 
-    // Jobs
-    const jobIds = new Set(filteredJobs.map((j: any) => j.id));
-    Object.keys(jobMarkersRef.current).forEach(id => {
-      if (!jobIds.has(id) || !filters.showJobs) {
-        jobMarkersRef.current[id].remove();
-        delete jobMarkersRef.current[id];
-      }
-    });
-
-    if (filters.showJobs) {
-      filteredJobs.forEach((job: any) => {
-        if (!job.longitude || !job.latitude) return;
-        const isAtRisk = job.status === 'confirmed' && !job.employee;
-
-        if (!jobMarkersRef.current[job.id]) {
-          const el = mkJobMarker(job, isAtRisk, () => setSelectedJob(job));
-          const marker = new mapboxgl.Marker({ element: el })
-            .setLngLat([job.longitude, job.latitude]);
-
-          const statusColor = STATUS_COLORS[job.status] || '#3b82f6';
-          const price = Number(job.final_price) || Number(job.quoted_price) || 0;
-          const statusLabel = STATUS_LABELS[job.status] || job.status || 'Job';
-
-          const popupHtml = `
-            <div style="font-family:system-ui,sans-serif;padding:6px;min-width:210px;background:#090d16;color:#fff;border-radius:8px;">
-              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-                <span style="font-size:11px;font-weight:800;color:#60a5fa;letter-spacing:0.5px;">#${job.job_number || 'JOB'}</span>
-                <span style="font-size:9px;font-weight:800;padding:2px 6px;border-radius:4px;background:${statusColor}25;border:1px solid ${statusColor}60;color:${statusColor};text-transform:uppercase;">${statusLabel}</span>
-              </div>
-              <p style="font-weight:700;font-size:13px;margin:0 0 2px;color:#f8fafc;line-height:1.2;">${job.address_line1 || 'Address'}</p>
-              <p style="font-size:10px;color:#94a3b8;margin:0 0 6px;">${job.city || ''} ${job.postal_code || ''}</p>
-              <div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid rgba(255,255,255,0.1);padding-top:6px;margin-top:4px;">
-                <span style="font-size:12px;font-weight:800;color:#22c55e;">$${price.toFixed(2)} CAD</span>
-                <span style="font-size:10px;color:#cbd5e1;font-weight:600;">${job.customer?.full_name || 'Customer'}</span>
-              </div>
-              ${job.employee ? `<p style="font-size:10px;color:#38bdf8;margin:6px 0 0;font-weight:600;">👤 Assigned: ${job.employee.full_name}</p>` : '<p style="font-size:9px;color:#f59e0b;margin:4px 0 0;font-weight:700;">⚠ Unassigned</p>'}
-            </div>
-          `;
-
-          const popup = new mapboxgl.Popup({ offset: 14, closeButton: false, maxWidth: '260px' }).setHTML(popupHtml);
-          el.addEventListener('mouseenter', () => {
-            marker.setPopup(popup);
-            if (!popup.isOpen()) marker.togglePopup();
-          });
-          el.addEventListener('mouseleave', () => {
-            if (popup.isOpen()) marker.togglePopup();
-          });
-
-          marker.addTo(map);
-          jobMarkersRef.current[job.id] = marker;
-        } else {
-          jobMarkersRef.current[job.id].setLngLat([job.longitude, job.latitude]);
-        }
-      });
-    }
-
-    // Employees
+    // Employees (Live GPS Units)
     const locIds = new Set(filteredEmployees.map((l: any) => l.id));
     Object.keys(locMarkersRef.current).forEach(id => {
       if (!locIds.has(id) || !filters.showEmployees) {
@@ -1319,14 +1368,14 @@ export default function DispatchMap({ onBack }: Props) {
       filteredEmployees.forEach((loc: any) => {
         if (!loc.longitude || !loc.latitude) return;
         const c = loc.employee;
-        const popupHtml = `<div style="font-family:system-ui,sans-serif;padding:4px 2px;">
+        const popupHtml = `<div style="font-family:system-ui,sans-serif;padding:6px;min-width:200px;">
           <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
             <div style="width:7px;height:7px;background:#22c55e;border-radius:50%;box-shadow:0 0 6px #22c55e;"></div>
             <span style="font-size:10px;color:#22c55e;font-weight:800;">LIVE TELEMETRY</span>
           </div>
-          <p style="font-weight:800;font-size:14px;margin:0 0 2px;color:#fff;">${c?.full_name ?? 'Technician'}</p>
-          <p style="font-size:10px;color:#999;margin:0 0 6px;text-transform:capitalize;">${c?.tier ?? 'Pro'} Tier</p>
-          ${c?.phone ? `<p style="font-size:10px;color:#bbb;margin:0 0 6px;">📞 <a href="tel:${c.phone}" style="color:#60a5fa">${c.phone}</a></p>` : ''}
+          <p style="font-weight:800;font-size:13px;margin:0 0 2px;color:#fff;">${c?.full_name ?? 'Technician'}</p>
+          <p style="font-size:10px;color:#94a3b8;margin:0 0 6px;text-transform:capitalize;">${c?.tier ?? 'Pro'} Tier</p>
+          ${c?.phone ? `<p style="font-size:10px;color:#cbd5e1;margin:0 0 6px;">📞 <a href="tel:${c.phone}" style="color:#60a5fa">${c.phone}</a></p>` : ''}
           <a href="/sobadmin/employees/${c?.id}" target="_blank" style="display:inline-flex;align-items:center;gap:4px;font-size:11px;color:#60a5fa;text-decoration:none;font-weight:700;">View Profile ↗</a>
         </div>`;
 
@@ -1341,7 +1390,7 @@ export default function DispatchMap({ onBack }: Props) {
       });
     }
 
-    // HQs
+    // HQs (Base Stations)
     const hqIds = new Set(employeeHQs.map((h: any) => h.id));
     Object.keys(hqMarkersRef.current).forEach(id => {
       if (!hqIds.has(id) || !filters.showHQs) {
@@ -1353,12 +1402,12 @@ export default function DispatchMap({ onBack }: Props) {
     if (filters.showHQs) {
       employeeHQs.forEach((hq: any) => {
         if (!hq.longitude || !hq.latitude) return;
-        const popupHtml = `<div style="font-family:system-ui,sans-serif;padding:4px 2px;">
+        const popupHtml = `<div style="font-family:system-ui,sans-serif;padding:6px;min-width:200px;">
           <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
             <div style="width:7px;height:7px;background:#1d4ed8;border-radius:2px;"></div>
             <span style="font-size:10px;color:#93c5fd;font-weight:800;">BASE STATION</span>
           </div>
-          <p style="font-weight:800;font-size:14px;margin:0 0 6px;color:#fff;">${hq.full_name}</p>
+          <p style="font-weight:800;font-size:13px;margin:0 0 6px;color:#fff;">${hq.full_name}</p>
           <a href="/sobadmin/employees/${hq.id}" target="_blank" style="display:inline-flex;align-items:center;gap:4px;font-size:11px;color:#60a5fa;text-decoration:none;font-weight:700;">View Profile ↗</a>
         </div>`;
 
@@ -1385,7 +1434,7 @@ export default function DispatchMap({ onBack }: Props) {
         initialFrameDone.current = true;
       }
     }
-  }, [mapLoaded, filteredJobs, filteredEmployees, mapData.employeeHQs, filters.showJobs, filters.showEmployees, filters.showHQs, sidebarCollapsed]);
+  }, [mapLoaded, filteredJobs, filteredEmployees, mapData.employeeHQs, filters.showEmployees, filters.showHQs, sidebarCollapsed]);
 
   // ── Derived Metrics ──────────────────────────────────────────────────────────
   const metrics = {
@@ -1416,9 +1465,9 @@ export default function DispatchMap({ onBack }: Props) {
   const layerToggles = [
     { key: 'showJobs' as const, label: 'Jobs', icon: Briefcase },
     { key: 'showEmployees' as const, label: 'Live', icon: Radio },
+    { key: 'showHQs' as const, label: 'HQs', icon: Home },
     { key: 'showLines' as const, label: 'Routes', icon: GitBranch },
     { key: 'showHeatmap' as const, label: 'Heatmap', icon: Flame },
-    { key: 'showActivityDots' as const, label: 'Telemetry', icon: Sparkles },
     { key: 'showZones' as const, label: 'Zones', icon: Map },
   ];
 
