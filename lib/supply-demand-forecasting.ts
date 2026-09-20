@@ -135,34 +135,49 @@ export async function calculateSupplyDemand(zoneId?: string): Promise<DemandFore
   for (const [itemId, entry] of Array.from(itemMap.entries())) {
     const item = entry.item;
     const onHand = entry.totalQty;
-    const threshold = item.reorder_threshold || 10;
+    const category = (item.category || '').toLowerCase();
+    const isDurable = category === 'tool' || category === 'equipment';
+    const threshold = item.reorder_threshold ?? 2;
     const cost = item.cost_per_unit || 8.5;
 
-    // Estimate burn based on category / units per kit:
-    let burnPerJob = item.avg_usage_per_job || 0.35;
-    if (item.units_per_kit_deep && item.units_per_kit_deep > 0) {
-      burnPerJob = item.units_per_kit_deep * 0.4 + (item.units_per_kit_standard || 0.2) * 0.6;
-    } else {
-      const lowerName = item.name.toLowerCase();
-      if (lowerName.includes('degreaser')) burnPerJob = 0.4;
-      else if (lowerName.includes('disinfectant') || lowerName.includes('all-purpose')) burnPerJob = 0.5;
-      else if (lowerName.includes('glass')) burnPerJob = 0.25;
-      else if (lowerName.includes('towel') || lowerName.includes('microfiber')) burnPerJob = 0.6;
-      else if (lowerName.includes('glove')) burnPerJob = 1.2;
-      else if (lowerName.includes('liner') || lowerName.includes('trash')) burnPerJob = 1.5;
-    }
-
-    const projectedBurn = Math.ceil(totalStandardEquivalents * burnPerJob);
-    const projectedEnd = onHand - projectedBurn;
-    const dailyBurnRate = projectedBurn / 14;
-    const daysOfSupply =
-      dailyBurnRate > 0 ? Math.round(onHand / dailyBurnRate) : onHand > 0 ? 99 : 0;
-
+    let projectedBurn = 0;
+    let projectedEnd = onHand;
+    let dailyBurnRate = 0;
+    let daysOfSupply = 999;
     let status: 'critical_stockout' | 'low_stock' | 'adequate' = 'adequate';
-    if (projectedEnd <= 0 || onHand <= 2) {
-      status = 'critical_stockout';
-    } else if (onHand <= threshold || projectedEnd <= threshold) {
-      status = 'low_stock';
+
+    if (!isDurable) {
+      // Estimate burn based on category / units per kit for true consumables:
+      let burnPerJob = item.avg_usage_per_job || 0.25;
+      if (item.units_per_kit_deep && item.units_per_kit_deep > 0) {
+        burnPerJob = item.units_per_kit_deep * 0.4 + (item.units_per_kit_standard || 0.15) * 0.6;
+      } else {
+        const lowerName = item.name.toLowerCase();
+        if (lowerName.includes('degreaser')) burnPerJob = 0.3;
+        else if (lowerName.includes('disinfectant') || lowerName.includes('all-purpose')) burnPerJob = 0.35;
+        else if (lowerName.includes('glass')) burnPerJob = 0.2;
+        else if (lowerName.includes('towel') || lowerName.includes('microfiber')) burnPerJob = 0.4;
+        else if (lowerName.includes('glove')) burnPerJob = 0.8;
+        else if (lowerName.includes('liner') || lowerName.includes('trash')) burnPerJob = 1.0;
+      }
+
+      projectedBurn = Math.ceil(totalStandardEquivalents * burnPerJob);
+      projectedEnd = Math.max(0, onHand - projectedBurn);
+      dailyBurnRate = projectedBurn / 14;
+      daysOfSupply =
+        dailyBurnRate > 0 ? Math.round(onHand / dailyBurnRate) : onHand > 0 ? 99 : 0;
+
+      if (onHand <= 0 || projectedEnd <= 0) {
+        status = 'critical_stockout';
+      } else if (onHand <= threshold || projectedEnd <= threshold) {
+        status = 'low_stock';
+      }
+    } else {
+      // Durable tools / machinery: only 1 or 2 needed per crew, zero burn per job
+      projectedBurn = 0;
+      projectedEnd = onHand;
+      daysOfSupply = 999;
+      status = 'adequate';
     }
 
     const preferredStore = (item.preferred_store ||
@@ -186,10 +201,10 @@ export async function calculateSupplyDemand(zoneId?: string): Promise<DemandFore
       preferredStore,
     });
 
-    // If restock is needed, generate shopping recommendation
-    if (status !== 'adequate') {
-      const deficit = Math.max(threshold * 2 - onHand, projectedBurn + threshold - onHand);
-      const recQty = Math.max(5, Math.ceil(deficit / 5) * 5); // Round to neat store batch sizes (multiples of 5)
+    // If restock is needed, generate shopping recommendation (CONSUMABLES ONLY!)
+    if (!isDurable && status !== 'adequate') {
+      const deficit = Math.max(threshold - onHand, projectedBurn + threshold - onHand, 1);
+      const recQty = Math.max(1, Math.min(10, Math.ceil(deficit)));
       const lineCost = recQty * cost;
       totalRestockBudget += lineCost;
 
@@ -206,7 +221,7 @@ export async function calculateSupplyDemand(zoneId?: string): Promise<DemandFore
         totalCost: parseFloat(lineCost.toFixed(2)),
         reason:
           status === 'critical_stockout'
-            ? `Projected stockout in ${daysOfSupply} days (${projectedBurn} units required for ${jobs.length} upcoming jobs)`
+            ? `Stock critically low (${onHand} on hand, ~${projectedBurn} needed for ${jobs.length} jobs)`
             : `Below reorder threshold (${onHand}/${threshold} on hand)`,
         urgency: status === 'critical_stockout' ? 'high' : 'medium',
         storeUrl:

@@ -15,10 +15,15 @@ export async function getInventoryWithAlerts(zoneId?: string) {
   const { data, error } = await query;
   if (error) throw error;
 
-  return (data ?? []).map((row) => ({
-    ...row,
-    is_low_stock: row.quantity_on_hand <= (row.item?.reorder_threshold ?? 20),
-  }));
+  return (data ?? []).map((row) => {
+    const category = (row.item?.category || '').toLowerCase();
+    const isDurable = category === 'tool' || category === 'equipment';
+    const threshold = row.item?.reorder_threshold ?? 2;
+    return {
+      ...row,
+      is_low_stock: !isDurable && row.quantity_on_hand <= threshold,
+    };
+  });
 }
 
 export async function assignSupplyToJob(params: {
@@ -91,7 +96,12 @@ export async function getLowStockAlerts() {
     .from('supply_inventory')
     .select('*, item:supply_items(*), zone:zones(name)')
     .order('quantity_on_hand', { ascending: true });
-  return (data ?? []).filter((row) => row.quantity_on_hand <= (row.item?.reorder_threshold ?? 20));
+  return (data ?? []).filter((row) => {
+    const category = (row.item?.category || '').toLowerCase();
+    const isDurable = category === 'tool' || category === 'equipment';
+    const threshold = row.item?.reorder_threshold ?? 2;
+    return !isDurable && row.quantity_on_hand <= threshold;
+  });
 }
 
 export async function createRestockOrder(params: {

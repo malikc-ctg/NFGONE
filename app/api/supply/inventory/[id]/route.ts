@@ -39,9 +39,13 @@ export async function PATCH(
 
     if (updateErr) throw updateErr;
 
+    const category = (updated.item?.category || '').toLowerCase();
+    const isDurable = category === 'tool' || category === 'equipment';
+    const threshold = updated.item?.reorder_threshold ?? 2;
+
     return NextResponse.json({
       ...updated,
-      is_low_stock: updated.quantity_on_hand <= (updated.item?.reorder_threshold ?? 10),
+      is_low_stock: !isDurable && updated.quantity_on_hand <= threshold,
     });
   } catch (err: unknown) {
     console.error('Error updating inventory:', err);
