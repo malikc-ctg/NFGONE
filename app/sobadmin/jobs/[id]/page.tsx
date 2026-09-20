@@ -335,8 +335,8 @@ export default function JobDetailPage() {
                 <div><Label>Postal Code</Label><Input value={editForm.postal_code || ''} onChange={e => setEditForm({ ...editForm, postal_code: e.target.value })} /></div>
               </div>
               <div className="grid grid-cols-2 gap-2">
-                <div><Label>Bedrooms</Label><Input type="number" value={editForm.home_bedrooms || ''} onChange={e => setEditForm({ ...editForm, home_bedrooms: parseInt(e.target.value) || undefined })} /></div>
-                <div><Label>Bathrooms</Label><Input type="number" value={editForm.home_bathrooms || ''} onChange={e => setEditForm({ ...editForm, home_bathrooms: parseInt(e.target.value) || undefined })} /></div>
+                <div><Label>Bedrooms</Label><Input type="number" min="0" value={editForm.home_bedrooms !== undefined && editForm.home_bedrooms !== null ? editForm.home_bedrooms : ''} onChange={e => setEditForm({ ...editForm, home_bedrooms: e.target.value === '' ? undefined : parseInt(e.target.value) })} /></div>
+                <div><Label>Bathrooms</Label><Input type="number" min="0" value={editForm.home_bathrooms !== undefined && editForm.home_bathrooms !== null ? editForm.home_bathrooms : ''} onChange={e => setEditForm({ ...editForm, home_bathrooms: e.target.value === '' ? undefined : parseInt(e.target.value) })} /></div>
               </div>
               <div><Label>Quoted Price ($)</Label><Input type="number" value={editForm.quoted_price || ''} onChange={e => setEditForm({ ...editForm, quoted_price: parseFloat(e.target.value) || 0 })} /></div>
               <Button onClick={handleEditJob} className="w-full">Save Changes</Button>

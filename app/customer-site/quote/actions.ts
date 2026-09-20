@@ -107,14 +107,17 @@ export async function getLiveQuote(data: {
     const propertyType = (data.property_type as PropertyType) || 'house';
     
     if (propertyType === 'condo') {
-      if (bedrooms <= 1) sqft = 600;
+      if (bedrooms === 0) sqft = 450;
+      else if (bedrooms <= 1) sqft = 600;
       else if (bedrooms === 2) sqft = 1000;
       else sqft = 1250;
     } else if (propertyType === 'basement') {
-      if (bedrooms <= 1) sqft = 600;
+      if (bedrooms === 0) sqft = 450;
+      else if (bedrooms <= 1) sqft = 600;
       else sqft = 800;
     } else if (propertyType === 'house') {
-      if (bedrooms <= 2) sqft = 500;
+      if (bedrooms === 0) sqft = 450;
+      else if (bedrooms <= 2) sqft = 500;
       else if (bedrooms === 3) sqft = 1250;
       else sqft = 2250;
     }

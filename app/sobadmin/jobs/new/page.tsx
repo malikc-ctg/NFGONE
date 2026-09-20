@@ -118,8 +118,8 @@ function NewJobForm() {
   // Auto-compute base price when service or scope changes
   useEffect(() => {
     const base = DEFAULT_PRICING[form.service_type as ServiceType] ?? 180;
-    const beds = parseInt(form.home_bedrooms) || 2;
-    const baths = parseInt(form.home_bathrooms) || 1;
+    const beds = form.home_bedrooms !== '' ? parseInt(form.home_bedrooms) : 2;
+    const baths = form.home_bathrooms !== '' ? parseInt(form.home_bathrooms) : 1;
     const addOnCost = form.add_ons.length * 25;
     const sizeMod = Math.max(0, beds - 2) * 20 + Math.max(0, baths - 1) * 15;
     const petMod = form.has_pets ? 15 : 0;
@@ -373,11 +373,11 @@ function NewJobForm() {
             <div className="grid grid-cols-3 gap-4">
               <div>
                 <Label>Bedrooms</Label>
-                <Input type="number" min="1" max="8" value={form.home_bedrooms} onChange={e => update('home_bedrooms', e.target.value)} />
+                <Input type="number" min="0" max="8" value={form.home_bedrooms} onChange={e => update('home_bedrooms', e.target.value)} />
               </div>
               <div>
                 <Label>Bathrooms</Label>
-                <Input type="number" min="1" max="6" value={form.home_bathrooms} onChange={e => update('home_bathrooms', e.target.value)} />
+                <Input type="number" min="0" max="6" value={form.home_bathrooms} onChange={e => update('home_bathrooms', e.target.value)} />
               </div>
               <div>
                 <Label>Sqft</Label>

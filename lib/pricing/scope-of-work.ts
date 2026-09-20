@@ -259,9 +259,9 @@ export function generateScopeOfWork(input: ScopeOfWorkInput): string {
 
   let propertySummary = `${propertyLabel}, ${sizeBandLabel}`;
   if (bedrooms !== undefined && bathrooms !== undefined) {
-    // For houses, sizeBandLabel is sqft (e.g. "1,000-1,500 sqft"), so explicitly add bed/bath.
-    // For condos/basements, sizeBandLabel is already bed/bath (e.g. "1BR/1BA"), but appending it makes it completely clear.
-    propertySummary = `${propertyLabel} (${bedrooms} Bed / ${bathrooms} Bath), ${sizeBandLabel}`;
+    const bedText = bedrooms === 0 ? 'Studio / 0 Bed' : `${bedrooms} Bed`;
+    const bathText = bathrooms === 0 ? '0 Bath' : `${bathrooms} Bath`;
+    propertySummary = `${propertyLabel} (${bedText} / ${bathText}), ${sizeBandLabel}`;
   }
 
   // Price line

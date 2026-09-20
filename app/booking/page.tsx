@@ -48,14 +48,17 @@ function calcEstimate(
   // Fallback sqft estimation logic from bed/bath
   let sqft = 1000;
   if (propertyType === 'condo') {
-    if (beds <= 1) sqft = 600;
+    if (beds === 0) sqft = 450;
+    else if (beds <= 1) sqft = 600;
     else if (beds === 2) sqft = 1000;
     else sqft = 1250;
   } else if (propertyType === 'basement') {
-    if (beds <= 1) sqft = 600;
+    if (beds === 0) sqft = 450;
+    else if (beds <= 1) sqft = 600;
     else sqft = 800;
   } else if (propertyType === 'house') {
-    if (beds <= 2) sqft = 500;
+    if (beds === 0) sqft = 450;
+    else if (beds <= 2) sqft = 500;
     else if (beds === 3) sqft = 1250;
     else sqft = 2250;
   }
@@ -158,7 +161,7 @@ export default function BookingPage() {
 
   const canProceed = [
     !!form.service_type,
-    form.home_bedrooms >= 1 && form.home_bathrooms >= 1,
+    form.home_bedrooms >= 0 && form.home_bathrooms >= 0,
     !!form.scheduled_date && !!form.scheduled_window,
     !!form.full_name && !!form.email && !!form.phone && !!form.address_line1 && !!form.city && !!form.postal_code,
     true,
@@ -335,9 +338,9 @@ export default function BookingPage() {
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-3">Bedrooms</label>
                 <div className="flex gap-2">
-                  {[1, 2, 3, 4, 5, '6+'].map(n => (
+                  {[0, 1, 2, 3, 4, 5, '6+'].map(n => (
                     <button
-                      key={n}
+                      key={String(n)}
                       onClick={() => update('home_bedrooms', typeof n === 'number' ? n : 6)}
                       className={`flex-1 py-3 rounded-xl border text-sm font-semibold transition-all ${
                         form.home_bedrooms === (typeof n === 'number' ? n : 6)
@@ -345,7 +348,7 @@ export default function BookingPage() {
                           : 'border-gray-100 bg-gray-50 hover:border-blue-200'
                       }`}
                     >
-                      {n}
+                      {n === 0 ? '0' : n}
                     </button>
                   ))}
                 </div>
@@ -353,9 +356,9 @@ export default function BookingPage() {
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-3">Bathrooms</label>
                 <div className="flex gap-2">
-                  {[1, 2, 3, 4, '5+'].map(n => (
+                  {[0, 1, 2, 3, 4, '5+'].map(n => (
                     <button
-                      key={n}
+                      key={String(n)}
                       onClick={() => update('home_bathrooms', typeof n === 'number' ? n : 5)}
                       className={`flex-1 py-3 rounded-xl border text-sm font-semibold transition-all ${
                         form.home_bathrooms === (typeof n === 'number' ? n : 5)
@@ -363,7 +366,7 @@ export default function BookingPage() {
                           : 'border-gray-100 bg-gray-50 hover:border-blue-200'
                       }`}
                     >
-                      {n}
+                      {n === 0 ? '0' : n}
                     </button>
                   ))}
                 </div>

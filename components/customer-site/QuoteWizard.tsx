@@ -36,7 +36,7 @@ function baseFromSqft(s: number): number | null {
 
 const round5 = (n: number) => Math.round(n / 5) * 5;
 const BED_OPTIONS = ['Studio', '1', '2', '3', '4', '5+'];
-const FULL_BATH_OPTIONS = ['1', '2', '3', '4'];
+const FULL_BATH_OPTIONS = ['0', '1', '2', '3', '4'];
 const HALF_BATH_OPTIONS = ['0', '1', '2'];
 
 type Step = 'pkg' | 'sqft' | 'beds' | 'baths' | 'freq' | 'result';
@@ -45,8 +45,8 @@ export function QuoteWizard() {
   const [pkg, setPkg] = useState(0);
   const [sqft, setSqft] = useState(1000);
   const [beds, setBeds] = useState<string | null>(null);
-  const [fullBaths, setFullBaths] = useState(0); // index
-  const [halfBaths, setHalfBaths] = useState(0); // index
+  const [fullBaths, setFullBaths] = useState(1); // count
+  const [halfBaths, setHalfBaths] = useState(0); // count
   const [freq, setFreq] = useState(2);
   const [currentStep, setCurrentStep] = useState<Step>('pkg');
   const [showLeadForm, setShowLeadForm] = useState(false);
@@ -87,7 +87,7 @@ export function QuoteWizard() {
   const price = useMemo(() => {
     const base = baseFromSqft(sqft);
     if (!base) return null;
-    const full = fullBaths + 1; // index 0 = 1 bath
+    const full = fullBaths;
     const half = halfBaths;
     const bathAdj = (full > 2 ? (full - 2) * 20 : 0) + half * 10;
     const raw = (base + bathAdj) * PKGS[pkg].mult;
@@ -110,7 +110,7 @@ export function QuoteWizard() {
           preferred_date: leadDate || null,
           home_size_sqft: sqft,
           home_bedrooms: beds === 'Studio' ? 0 : parseInt(beds || '2'),
-          home_bathrooms: fullBaths + 1,
+          home_bathrooms: fullBaths + (halfBaths * 0.5),
           quoted_price: price,
           source: 'website_quote_wizard',
           notes: `Package: ${PKGS[pkg].name}, Frequency: ${FREQS[freq].name}, Half baths: ${halfBaths}`,
@@ -224,15 +224,18 @@ export function QuoteWizard() {
             <p className="qhint">Bathrooms carry the most detail work, so they adjust the price.</p>
             <div className="baths-lbl">Full baths</div>
             <div className="grid-opts">
-              {FULL_BATH_OPTIONS.map((b, i) => (
-                <button
-                  key={b}
-                  className={`gopt${fullBaths === i ? ' sel' : ''}`}
-                  onClick={() => setFullBaths(i)}
-                >
-                  {b}
-                </button>
-              ))}
+              {FULL_BATH_OPTIONS.map((b) => {
+                const count = parseInt(b);
+                return (
+                  <button
+                    key={b}
+                    className={`gopt${fullBaths === count ? ' sel' : ''}`}
+                    onClick={() => setFullBaths(count)}
+                  >
+                    {b}
+                  </button>
+                );
+              })}
             </div>
             <div className="baths-lbl sub">Half baths (powder rooms)</div>
             <div className="grid-opts">
