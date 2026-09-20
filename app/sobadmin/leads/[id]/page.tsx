@@ -217,35 +217,35 @@ export default function LeadDetailPage() {
             <Button variant="outline"><Pencil className="h-4 w-4 mr-2" /> Edit</Button>
           </DialogTrigger>
           <DialogContent 
-            className="max-h-[90vh] overflow-y-auto"
+            className="max-h-[90vh] overflow-y-auto sm:max-w-lg w-full bg-slate-900 border border-white/10 text-white dark p-6 shadow-2xl rounded-2xl"
             onInteractOutside={(e) => e.preventDefault()}
           >
             <DialogHeader>
-              <DialogTitle>Edit Lead</DialogTitle>
+              <DialogTitle className="text-white text-lg font-bold">Edit Lead</DialogTitle>
               <DialogDescription className="sr-only">
                 Edit the contact information and job details for this lead.
               </DialogDescription>
             </DialogHeader>
-            <div className="space-y-4">
-              <div><Label>Company / Business Name</Label><Input value={editForm.company_name || ''} onChange={e => setEditForm({ ...editForm, company_name: e.target.value })} placeholder="e.g. John's Roofing" /></div>
-              <div><Label>Main Contact Person</Label><Input value={editForm.customer_name || ''} onChange={e => setEditForm({ ...editForm, customer_name: e.target.value })} placeholder="e.g. Mark" /></div>
-              <div><Label>Contact Title / Role</Label><Input value={editForm.contact_title || ''} onChange={e => setEditForm({ ...editForm, contact_title: e.target.value })} placeholder="e.g. Site Supervisor, PM, Owner" /></div>
-              <div><Label>Phone</Label><Input value={editForm.customer_phone || ''} onChange={e => setEditForm({ ...editForm, customer_phone: e.target.value })} /></div>
-              <div><Label>Email</Label><Input value={editForm.customer_email || ''} onChange={e => setEditForm({ ...editForm, customer_email: e.target.value })} /></div>
-              <div><Label>City / Address</Label><Input value={editForm.city || ''} onChange={e => setEditForm({ ...editForm, city: e.target.value })} /></div>
+            <div className="space-y-4 min-w-0">
+              <div><Label className="text-white/80">Company / Business Name</Label><Input className="bg-black/40 border-white/10 text-white" value={editForm.company_name || ''} onChange={e => setEditForm({ ...editForm, company_name: e.target.value })} placeholder="e.g. John's Roofing" /></div>
+              <div><Label className="text-white/80">Main Contact Person</Label><Input className="bg-black/40 border-white/10 text-white" value={editForm.customer_name || ''} onChange={e => setEditForm({ ...editForm, customer_name: e.target.value })} placeholder="e.g. Mark" /></div>
+              <div><Label className="text-white/80">Contact Title / Role</Label><Input className="bg-black/40 border-white/10 text-white" value={editForm.contact_title || ''} onChange={e => setEditForm({ ...editForm, contact_title: e.target.value })} placeholder="e.g. Site Supervisor, PM, Owner" /></div>
+              <div><Label className="text-white/80">Phone</Label><Input className="bg-black/40 border-white/10 text-white" value={editForm.customer_phone || ''} onChange={e => setEditForm({ ...editForm, customer_phone: e.target.value })} /></div>
+              <div><Label className="text-white/80">Email</Label><Input className="bg-black/40 border-white/10 text-white" value={editForm.customer_email || ''} onChange={e => setEditForm({ ...editForm, customer_email: e.target.value })} /></div>
+              <div><Label className="text-white/80">City / Address</Label><Input className="bg-black/40 border-white/10 text-white" value={editForm.city || ''} onChange={e => setEditForm({ ...editForm, city: e.target.value })} /></div>
               <div>
-                <Label>Service Type</Label>
+                <Label className="text-white/80">Service Type</Label>
                 <Select value={editForm.service_type || ''} onValueChange={v => setEditForm({ ...editForm, service_type: v as any })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
+                  <SelectTrigger className="w-full bg-black/40 border-white/10 text-white"><SelectValue /></SelectTrigger>
+                  <SelectContent className="bg-slate-900 border-white/10 text-white">
                     {Object.entries(SERVICE_TYPE_LABELS).map(([val, label]) => (
-                      <SelectItem key={val} value={val}>{label as string}</SelectItem>
+                      <SelectItem key={val} value={val} className="text-white hover:bg-white/10">{label as string}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
-              <div><Label>Quoted Price</Label><Input type="number" value={editForm.quoted_price || ''} onChange={e => setEditForm({ ...editForm, quoted_price: e.target.value ? parseFloat(e.target.value) : undefined })} /></div>
-              <Button onClick={handleEditLead} className="w-full">Save Changes</Button>
+              <div><Label className="text-white/80">Quoted Price</Label><Input className="bg-black/40 border-white/10 text-white" type="number" value={editForm.quoted_price || ''} onChange={e => setEditForm({ ...editForm, quoted_price: e.target.value ? parseFloat(e.target.value) : undefined })} /></div>
+              <Button onClick={handleEditLead} className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold h-11 rounded-xl shadow-lg mt-2">Save Changes</Button>
             </div>
           </DialogContent>
         </Dialog>
@@ -259,56 +259,68 @@ export default function LeadDetailPage() {
             <DialogTrigger asChild>
               <Button><ArrowRight className="h-4 w-4 mr-2" />Convert to Job</Button>
             </DialogTrigger>
-            <DialogContent onInteractOutside={(e) => e.preventDefault()}>
+            <DialogContent 
+              className="sm:max-w-lg w-full bg-slate-900 border border-white/10 text-white dark p-6 shadow-2xl rounded-2xl"
+              onInteractOutside={(e) => e.preventDefault()}
+            >
               <DialogHeader>
-                <DialogTitle>Convert Lead to Job</DialogTitle>
+                <DialogTitle className="text-white text-lg font-bold">Convert Lead to Job</DialogTitle>
                 <DialogDescription className="sr-only">
                   Fill out the details below to convert this lead into a scheduled job.
                 </DialogDescription>
               </DialogHeader>
-              <div className="space-y-4">
-                <div><Label>Zone</Label>
+              <div className="space-y-4 min-w-0">
+                <div><Label className="text-white/80">Zone</Label>
                   <Select value={convertForm.zone_id} onValueChange={(v) => setConvertForm({ ...convertForm, zone_id: v })}>
-                    <SelectTrigger><SelectValue placeholder="Select zone" /></SelectTrigger>
-                    <SelectContent>{zones.map(z => <SelectItem key={z.id} value={z.id}>{z.name} ({z.city})</SelectItem>)}</SelectContent>
+                    <SelectTrigger className="w-full bg-black/40 border-white/10 text-white"><SelectValue placeholder="Select zone" /></SelectTrigger>
+                    <SelectContent className="bg-slate-900 border-white/10 text-white max-w-[calc(100vw-2rem)] sm:max-w-md">{zones.map(z => <SelectItem key={z.id} value={z.id} className="text-white hover:bg-white/10">{z.name} ({z.city})</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
-                <div><Label>Scheduled Date</Label><DatePicker value={convertForm.scheduled_date} onChange={(val) => setConvertForm({ ...convertForm, scheduled_date: val })} /></div>
+                <div><Label className="text-white/80">Scheduled Date</Label><DatePicker value={convertForm.scheduled_date} onChange={(val) => setConvertForm({ ...convertForm, scheduled_date: val })} className="bg-black/40 border-white/10 text-white" /></div>
                 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <Label>Start Time</Label>
+                    <Label className="text-white/80">Start Time</Label>
                     <Select value={convertForm.scheduled_start_time} onValueChange={v => setConvertForm({ ...convertForm, scheduled_start_time: v })}>
-                      <SelectTrigger><SelectValue placeholder="Select start time" /></SelectTrigger>
-                      <SelectContent>
+                      <SelectTrigger className="w-full bg-black/40 border-white/10 text-white"><SelectValue placeholder="Select start time" /></SelectTrigger>
+                      <SelectContent className="bg-slate-900 border-white/10 text-white">
                         {TIME_OPTIONS.map(t => (
-                          <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                          <SelectItem key={t.value} value={t.value} className="text-white hover:bg-white/10">{t.label}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </div>
                   <div>
-                    <Label>Est. Duration</Label>
+                    <Label className="text-white/80">Est. Duration</Label>
                     <Select value={convertForm.estimated_duration_minutes.toString()} onValueChange={v => setConvertForm({ ...convertForm, estimated_duration_minutes: parseInt(v, 10) })}>
-                      <SelectTrigger><SelectValue placeholder="Select duration" /></SelectTrigger>
-                      <SelectContent>
+                      <SelectTrigger className="w-full bg-black/40 border-white/10 text-white"><SelectValue placeholder="Select duration" /></SelectTrigger>
+                      <SelectContent className="bg-slate-900 border-white/10 text-white">
                         {DURATION_OPTIONS.map(d => (
-                          <SelectItem key={d.value} value={d.value.toString()}>{d.label}</SelectItem>
+                          <SelectItem key={d.value} value={d.value.toString()} className="text-white hover:bg-white/10">{d.label}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </div>
                 </div>
 
-                <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm flex items-center justify-between text-blue-900 font-medium">
+                <div className="p-3 bg-blue-500/10 border border-blue-500/25 rounded-xl text-sm flex items-center justify-between text-blue-300 font-medium">
                   <span>Job Schedule Window:</span>
-                  <span className="font-bold">{format12Hour(convertForm.scheduled_start_time)} → {calculatedEndTime}</span>
+                  <span className="font-bold text-white">{format12Hour(convertForm.scheduled_start_time)} → {calculatedEndTime}</span>
                 </div>
 
-                <div><Label>Address</Label><AddressAutocomplete value={convertForm.address_line1} onChange={e => setConvertForm({ ...convertForm, address_line1: e.target.value })} onAddressSelect={addr => setConvertForm(f => ({ ...f, address_line1: addr.address_line1, postal_code: addr.postal_code || f.postal_code }))} /></div>
-                <div><Label>Postal Code</Label><Input value={convertForm.postal_code} onChange={e => setConvertForm({ ...convertForm, postal_code: e.target.value })} /></div>
-                <div><Label>Quoted Price</Label><Input type="number" value={convertForm.quoted_price} onChange={e => setConvertForm({ ...convertForm, quoted_price: e.target.value })} /></div>
-                <Button onClick={handleConvert} className="w-full">Convert & Create Job</Button>
+                <div>
+                  <Label className="text-white/80">Address</Label>
+                  <AddressAutocomplete 
+                    theme="dark"
+                    className="bg-black/40 border-white/10 text-white"
+                    value={convertForm.address_line1} 
+                    onChange={e => setConvertForm({ ...convertForm, address_line1: e.target.value })} 
+                    onAddressSelect={addr => setConvertForm(f => ({ ...f, address_line1: addr.address_line1, postal_code: addr.postal_code || f.postal_code }))} 
+                  />
+                </div>
+                <div><Label className="text-white/80">Postal Code</Label><Input className="bg-black/40 border-white/10 text-white" value={convertForm.postal_code} onChange={e => setConvertForm({ ...convertForm, postal_code: e.target.value })} /></div>
+                <div><Label className="text-white/80">Quoted Price</Label><Input className="bg-black/40 border-white/10 text-white" type="number" value={convertForm.quoted_price} onChange={e => setConvertForm({ ...convertForm, quoted_price: e.target.value })} /></div>
+                <Button onClick={handleConvert} className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold h-11 rounded-xl shadow-lg mt-2">Convert & Create Job</Button>
               </div>
             </DialogContent>
           </Dialog>
