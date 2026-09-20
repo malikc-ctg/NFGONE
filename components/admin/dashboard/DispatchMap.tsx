@@ -228,11 +228,16 @@ function QuickAssignDrawer({
     fetch(`/api/jobs/${job.id}/dispatch`)
       .then(r => r.json())
       .then(d => {
-        if (d.suggestions) setSuggestions(d.suggestions);
+        if (Array.isArray(d?.suggestions)) {
+          setSuggestions(d.suggestions);
+        } else {
+          setSuggestions([]);
+        }
       })
       .catch(err => {
         console.error('Failed to load dispatch suggestions:', err);
         setError('Could not load cleaner suggestions.');
+        setSuggestions([]);
       })
       .finally(() => setLoading(false));
   }, [job]);
@@ -348,21 +353,26 @@ function QuickAssignDrawer({
             No recommended cleaners currently online.
           </div>
         ) : (
-          suggestions.slice(0, 5).map((sugg: any) => {
-            const emp = sugg.employee;
-            const driveMin = sugg.drive_time_minutes ? Math.round(sugg.drive_time_minutes) : null;
-            const isAssigning = assigningId === emp.id;
+          suggestions.slice(0, 5).map((sugg: any, idx: number) => {
+            if (!sugg) return null;
+            const empId = sugg.employee?.id || sugg.employee_id || sugg.id;
+            if (!empId) return null;
+            const empName = sugg.employee?.full_name || sugg.full_name || 'Staff Member';
+            const empTier = sugg.employee?.tier || sugg.tier || (sugg.score ? `${Math.round(sugg.score)} Score` : 'Staff');
+            const empPhone = sugg.employee?.phone || sugg.phone;
+            const driveMin = sugg.drive_minutes ? Math.round(sugg.drive_minutes) : (sugg.drive_time_minutes ? Math.round(sugg.drive_time_minutes) : null);
+            const isAssigning = assigningId === empId;
 
             return (
               <div
-                key={emp.id}
+                key={empId || idx}
                 className="p-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 transition-all flex items-center justify-between gap-2"
               >
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1.5">
-                    <span className="font-bold text-xs text-white truncate">{emp.full_name}</span>
+                    <span className="font-bold text-xs text-white truncate">{empName}</span>
                     <span className="text-[9px] uppercase font-black px-1.5 py-0.2 rounded bg-white/10 text-white/60">
-                      {emp.tier || 'Staff'}
+                      {empTier}
                     </span>
                   </div>
                   <div className="flex items-center gap-2 text-[10px] text-white/40 mt-0.5">
@@ -373,8 +383,8 @@ function QuickAssignDrawer({
                     ) : (
                       <span>In Zone</span>
                     )}
-                    {emp.phone && (
-                      <a href={`tel:${emp.phone}`} className="hover:text-blue-400 flex items-center gap-0.5">
+                    {empPhone && (
+                      <a href={`tel:${empPhone}`} className="hover:text-blue-400 flex items-center gap-0.5">
                         <Phone className="h-2.5 w-2.5" />
                       </a>
                     )}
@@ -383,7 +393,7 @@ function QuickAssignDrawer({
 
                 <button
                   disabled={isAssigning || assignedSuccess}
-                  onClick={() => handleDirectAssign(emp.id)}
+                  onClick={() => handleDirectAssign(empId)}
                   className="px-2.5 py-1 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:bg-white/10 text-white text-[10px] font-black uppercase tracking-wider transition-colors flex items-center gap-1 shrink-0 shadow-md"
                 >
                   {isAssigning ? (
@@ -1356,7 +1366,7 @@ export default function DispatchMap({ onBack }: Props) {
     const { employeeHQs } = mapData;
 
     // Employees (Live GPS Units)
-    const locIds = new Set(filteredEmployees.map((l: any) => l.id));
+    const locIds = new Set((filteredEmployees || []).map((l: any) => l?.id).filter(Boolean));
     Object.keys(locMarkersRef.current).forEach(id => {
       if (!locIds.has(id) || !filters.showEmployees) {
         locMarkersRef.current[id].remove();
@@ -1365,8 +1375,8 @@ export default function DispatchMap({ onBack }: Props) {
     });
 
     if (filters.showEmployees) {
-      filteredEmployees.forEach((loc: any) => {
-        if (!loc.longitude || !loc.latitude) return;
+      (filteredEmployees || []).forEach((loc: any) => {
+        if (!loc || !loc.id || !loc.longitude || !loc.latitude) return;
         const c = loc.employee;
         const popupHtml = `<div style="font-family:system-ui,sans-serif;padding:6px;min-width:200px;">
           <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
@@ -1391,7 +1401,7 @@ export default function DispatchMap({ onBack }: Props) {
     }
 
     // HQs (Base Stations)
-    const hqIds = new Set(employeeHQs.map((h: any) => h.id));
+    const hqIds = new Set((employeeHQs || []).map((h: any) => h?.id).filter(Boolean));
     Object.keys(hqMarkersRef.current).forEach(id => {
       if (!hqIds.has(id) || !filters.showHQs) {
         hqMarkersRef.current[id].remove();
@@ -1400,14 +1410,14 @@ export default function DispatchMap({ onBack }: Props) {
     });
 
     if (filters.showHQs) {
-      employeeHQs.forEach((hq: any) => {
-        if (!hq.longitude || !hq.latitude) return;
+      (employeeHQs || []).forEach((hq: any) => {
+        if (!hq || !hq.id || !hq.longitude || !hq.latitude) return;
         const popupHtml = `<div style="font-family:system-ui,sans-serif;padding:6px;min-width:200px;">
           <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
             <div style="width:7px;height:7px;background:#1d4ed8;border-radius:2px;"></div>
             <span style="font-size:10px;color:#93c5fd;font-weight:800;">BASE STATION</span>
           </div>
-          <p style="font-weight:800;font-size:13px;margin:0 0 6px;color:#fff;">${hq.full_name}</p>
+          <p style="font-weight:800;font-size:13px;margin:0 0 6px;color:#fff;">${hq.full_name || 'Base Station'}</p>
           <a href="/sobadmin/employees/${hq.id}" target="_blank" style="display:inline-flex;align-items:center;gap:4px;font-size:11px;color:#60a5fa;text-decoration:none;font-weight:700;">View Profile ↗</a>
         </div>`;
 
@@ -1425,8 +1435,8 @@ export default function DispatchMap({ onBack }: Props) {
     // Auto-frame initial
     if (!initialFrameDone.current && filteredJobs.length > 0) {
       const allCoords: [number, number][] = [
-        ...filteredJobs.filter((j: any) => j.longitude && j.latitude).map((j: any) => [j.longitude, j.latitude] as [number, number]),
-        ...filteredEmployees.filter((l: any) => l.longitude && l.latitude).map((l: any) => [l.longitude, l.latitude] as [number, number]),
+        ...(filteredJobs || []).filter((j: any) => j && j.longitude && j.latitude).map((j: any) => [j.longitude, j.latitude] as [number, number]),
+        ...(filteredEmployees || []).filter((l: any) => l && l.longitude && l.latitude).map((l: any) => [l.longitude, l.latitude] as [number, number]),
       ];
       if (allCoords.length >= 2) {
         const bounds = allCoords.reduce((b, c) => b.extend(c), new mapboxgl.LngLatBounds(allCoords[0], allCoords[0]));
