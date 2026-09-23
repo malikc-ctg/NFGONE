@@ -142,17 +142,17 @@ export default function AdminLayout({
   return (
     <div className="flex h-screen bg-background text-foreground dark">
       {/* Mobile top bar */}
-      <div className="fixed top-0 left-0 right-0 z-50 flex items-center gap-3 px-4 py-3 border-b border-border bg-card lg:hidden">
+      <div className="fixed top-0 left-0 right-0 z-50 flex items-center gap-3 px-4 h-14 border-b border-border bg-card lg:hidden">
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="p-2 -ml-2 rounded-lg hover:bg-muted transition-colors"
+          className="p-2 -ml-2 rounded-lg hover:bg-muted transition-colors shrink-0"
           aria-label="Toggle menu"
         >
           {sidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </button>
-        <div className="flex items-center gap-2">
-          <img src="/logo.png" alt="Sea of Blue Logo" className="w-40 h-20 object-contain" />
-          <span className="font-bold text-sm">Sea of Blue</span>
+        <div className="flex items-center gap-2 min-w-0">
+          <img src="/logo.png" alt="Sea of Blue Logo" className="w-7 h-7 object-contain shrink-0" />
+          <span className="font-bold text-sm truncate">Sea of Blue Ops</span>
         </div>
       </div>
 
@@ -177,8 +177,8 @@ export default function AdminLayout({
       </aside>
 
       {/* Main content — add top padding on mobile for the top bar */}
-      <main className="flex-1 overflow-auto pt-14 lg:pt-0">
-        <div className={pathname === '/sobadmin' ? '' : 'p-4 md:p-8'}>
+      <main className="flex-1 overflow-auto min-w-0 pt-14 lg:pt-0">
+        <div className={pathname === '/sobadmin' ? '' : 'p-4 md:p-6 lg:p-8 min-w-0'}>
           {children}
         </div>
       </main>

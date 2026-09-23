@@ -98,6 +98,15 @@
   .text-balance {
     text-wrap: balance;
   }
+
+  /* Hide scrollbar while keeping scroll functionality */
+  .scrollbar-none {
+    -ms-overflow-style: none;  /* IE/Edge */
+    scrollbar-width: none;     /* Firefox */
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;             /* Chrome/Safari/WebKit */
+  }
 }
 
 /* ── Mobile Optimizations ── */

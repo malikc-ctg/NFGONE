@@ -65,13 +65,13 @@ export default function EmployeeLayout({
       </header>
 
       {/* Main content */}
-      <main className="flex-1 overflow-auto pb-20 px-4 py-4">
+      <main className="flex-1 overflow-auto px-4 py-4" style={{ paddingBottom: 'max(5rem, calc(4rem + env(safe-area-inset-bottom, 0px)))' }}>
         {children}
       </main>
 
       {/* Bottom nav */}
-      <nav className="fixed bottom-0 left-0 right-0 max-w-lg mx-auto border-t border-border bg-card z-40 safe-bottom">
-        <div className="flex justify-around py-2">
+      <nav className="fixed inset-x-0 bottom-0 max-w-lg mx-auto border-t border-border bg-card z-40 safe-bottom">
+        <div className="flex justify-around py-1">
           {navItems.map((item) => {
             const isActive = item.href === '/employee'
               ? pathname === '/employee'
@@ -80,7 +80,7 @@ export default function EmployeeLayout({
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex flex-col items-center gap-1 py-2 px-4 rounded-lg min-h-[48px] min-w-[48px] justify-center transition-colors ${
+                className={`flex flex-col items-center gap-1 py-2 px-3 rounded-lg min-h-[48px] min-w-[48px] justify-center transition-colors ${
                   isActive ? 'text-primary' : 'text-muted-foreground'
                 }`}
               >

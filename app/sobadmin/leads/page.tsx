@@ -114,24 +114,25 @@ export default function LeadsPage() {
   const filtered = leads;
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-5 min-w-0">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Leads</h1>
-          <p className="text-muted-foreground">Manage incoming leads and quotes</p>
+          <h1 className="text-xl md:text-2xl font-bold tracking-tight">Leads</h1>
+          <p className="text-muted-foreground text-sm">Manage incoming leads and quotes</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           <CRMPricingModal onSuccess={fetchLeads} />
         </div>
       </div>
 
-      {/* Filter chips */}
-      <div className="flex gap-2 flex-wrap">
+      {/* Filter chips — scrollable on mobile */}
+      <div className="flex gap-2 overflow-x-auto scrollbar-none pb-1 -mx-1 px-1">
         {['all', 'new', 'contacted', 'quoted', 'converted', 'lost'].map((s) => (
           <Button
             key={s}
             variant={statusFilter === s ? 'default' : 'outline'}
             size="sm"
+            className="shrink-0"
             onClick={() => setStatusFilter(s)}
           >
             {s === 'all' ? 'All' : s.charAt(0).toUpperCase() + s.slice(1)}
@@ -141,8 +142,8 @@ export default function LeadsPage() {
 
       {/* Table */}
       <Card>
-        <CardContent className="p-0">
-          <Table>
+        <CardContent className="p-0 overflow-x-auto">
+          <Table className="min-w-[600px]">
             <TableHeader>
               <TableRow>
                 <TableHead>Date</TableHead>

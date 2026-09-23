@@ -347,12 +347,12 @@ export default function EmployeeDashboard() {
                 <Card key={offer.id} className="border-2 border-amber-400 bg-amber-50/40 dark:bg-amber-950/20 shadow-sm overflow-hidden">
                   <CardContent className="p-4 space-y-3">
                     <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <div className="flex items-center gap-2">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-bold text-sm text-slate-900 dark:text-white">
                             {SERVICE_TYPE_LABELS[job.service_type as keyof typeof SERVICE_TYPE_LABELS] || job.service_type}
                           </span>
-                          <Badge className="bg-amber-500 text-white hover:bg-amber-600 text-[10px] font-bold">
+                          <Badge className="bg-amber-500 text-white hover:bg-amber-600 text-[10px] font-bold shrink-0">
                             Offer
                           </Badge>
                         </div>
@@ -360,7 +360,7 @@ export default function EmployeeDashboard() {
                           {format(new Date(job.scheduled_date + 'T12:00:00'), 'EEEE, MMM d, yyyy')} · {TIME_WINDOW_LABELS[job.scheduled_window as keyof typeof TIME_WINDOW_LABELS] || job.scheduled_window}
                         </p>
                       </div>
-                      <div className="text-right">
+                      <div className="text-right shrink-0">
                         <span className="text-xs font-bold text-indigo-700 dark:text-indigo-400 block">
                           Est. ${(offer.estimated_pay || (offer.estimated_duration_hours * 25)).toFixed(2)}
                         </span>

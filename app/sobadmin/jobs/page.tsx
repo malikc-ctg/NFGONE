@@ -69,27 +69,28 @@ export default function JobsPage() {
   const filtered = jobs.filter(filter.filterFn);
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+    <div className="space-y-5 min-w-0">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-xl md:text-2xl font-bold tracking-tight">Jobs</h1>
           <p className="text-muted-foreground text-sm">{filtered.length} jobs</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <DatePickerWithRange date={dateRange} onDateChange={setDateRange} />
           <Link href="/sobadmin/jobs/new">
-            <Button><Plus className="h-4 w-4 mr-2" />Create Job</Button>
+            <Button size="sm"><Plus className="h-4 w-4 mr-2" />Create Job</Button>
           </Link>
         </div>
       </div>
 
-      {/* Filter chips */}
-      <div className="flex gap-2 flex-wrap">
+      {/* Filter chips — scrollable on mobile */}
+      <div className="flex gap-2 overflow-x-auto scrollbar-none pb-1 -mx-1 px-1">
         {STATUS_FILTERS.map((f, i) => (
           <Button
             key={f.label}
             variant={activeFilter === i ? 'default' : 'outline'}
             size="sm"
+            className="shrink-0"
             onClick={() => setActiveFilter(i)}
           >
             {f.label}
@@ -99,7 +100,7 @@ export default function JobsPage() {
 
       <Card>
         <CardContent className="p-0 overflow-x-auto">
-          <Table className="min-w-[700px]">
+          <Table className="min-w-[640px]">
             <TableHeader>
               <TableRow>
                 <TableHead>Job #</TableHead>
@@ -138,6 +139,7 @@ export default function JobsPage() {
                     <TableCell className="text-xs max-w-[200px] truncate hidden lg:table-cell">{job.address_line1}, {job.city}</TableCell>
                     <TableCell className="text-xs whitespace-nowrap">{SERVICE_TYPE_LABELS[job.service_type]}</TableCell>
                     <TableCell><StatusBadge status={job.status} /></TableCell>
+                    <TableCell className="text-xs font-semibold">${job.quoted_price?.toFixed(0) ?? '0'}</TableCell>
                     <TableCell className="text-xs hidden md:table-cell">
                       {(job as any).assigned_employee_ids && (job as any).assigned_employee_ids.length > 1 ? (
                         <span className="inline-flex items-center gap-1 font-medium text-indigo-700 bg-indigo-50 dark:bg-indigo-950/40 dark:text-indigo-300 px-1.5 py-0.5 rounded border border-indigo-200" title={`Crew of ${(job as any).assigned_employee_ids.length} cleaners`}>

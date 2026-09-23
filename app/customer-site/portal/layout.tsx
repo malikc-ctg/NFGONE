@@ -30,16 +30,16 @@ export default function CustomerPortalLayout({
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col">
       {/* Top Header */}
       <header className="bg-white border-b border-slate-200 sticky top-0 z-40">
-        <div className="container max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+        <div className="container max-w-6xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
           <Link href="/customer-site/portal" className="flex items-center gap-2">
-            <img src="/logo.png" alt="Sea of Blue" className="h-10 w-auto object-contain" />
-            <span className="font-bold text-[#001a36] hidden sm:block">Customer Portal</span>
+            <img src="/logo.png" alt="Sea of Blue" className="h-8 w-auto object-contain" />
+            <span className="font-bold text-[#001a36] hidden sm:block text-sm">Customer Portal</span>
           </Link>
           
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <Link 
               href="/customer-site/portal/quote" 
-              className="hidden sm:flex items-center gap-1.5 bg-[#001a36] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#022850] transition-colors"
+              className="hidden md:flex items-center gap-1.5 bg-[#001a36] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#022850] transition-colors"
             >
               <Plus className="h-4 w-4" /> Request Quote
             </Link>
@@ -52,13 +52,13 @@ export default function CustomerPortalLayout({
       </header>
 
       {/* Main Content Area */}
-      <main className="flex-1 pb-24 lg:pb-12 lg:pl-64">
+      <main className="flex-1 pb-24 md:pb-8 md:pl-56">
         {children}
       </main>
 
-      {/* Mobile Bottom Navigation */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-40 safe-bottom">
-        <div className="flex justify-around py-2 px-2">
+      {/* Mobile Bottom Navigation — hidden on md+ where sidebar takes over */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-40 safe-bottom">
+        <div className="flex justify-around py-1 px-2">
           {navItems.map((item) => {
             const isActive = item.href === '/customer-site/portal' 
               ? pathname === '/customer-site/portal' 
@@ -67,7 +67,7 @@ export default function CustomerPortalLayout({
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex flex-col items-center gap-1 p-2 rounded-lg min-w-[64px] transition-colors ${
+                className={`flex flex-col items-center gap-1 p-2 rounded-lg min-w-[60px] transition-colors ${
                   isActive ? 'text-[#001a36]' : 'text-slate-400 hover:text-slate-600'
                 }`}
               >
@@ -79,8 +79,8 @@ export default function CustomerPortalLayout({
         </div>
       </nav>
 
-      {/* Desktop Sidebar / Tabs (Optional: we can just use the top nav or add a secondary nav bar) */}
-      <div className="hidden lg:block fixed top-16 left-0 bottom-0 w-64 bg-white border-r border-slate-200 p-4 z-30">
+      {/* Desktop/Tablet Sidebar — visible on md+ */}
+      <div className="hidden md:block fixed top-14 left-0 bottom-0 w-56 bg-white border-r border-slate-200 p-3 z-30 overflow-y-auto">
         <div className="space-y-1">
           {navItems.map((item) => {
             const isActive = item.href === '/customer-site/portal' 
@@ -90,13 +90,13 @@ export default function CustomerPortalLayout({
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors ${
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl font-medium transition-colors text-sm ${
                   isActive 
                     ? 'bg-blue-50 text-[#001a36]' 
                     : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
                 }`}
               >
-                <item.icon className={`h-5 w-5 ${isActive ? 'text-[#001a36]' : 'text-slate-400'}`} />
+                <item.icon className={`h-4 w-4 ${isActive ? 'text-[#001a36]' : 'text-slate-400'}`} />
                 {item.label}
               </Link>
             );

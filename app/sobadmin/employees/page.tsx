@@ -142,15 +142,15 @@ export default function EmployeesPage() {
 
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-5 min-w-0">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Employees</h1>
-          <p className="text-muted-foreground">Manage service providers, log hours, and review timesheets</p>
+          <h1 className="text-xl md:text-2xl font-bold tracking-tight">Employees</h1>
+          <p className="text-muted-foreground text-sm">Manage service providers, log hours, and review timesheets</p>
         </div>
         <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
-          <SheetTrigger asChild><Button><Plus className="h-4 w-4 mr-2" />Add Employee</Button></SheetTrigger>
-          <SheetContent className="w-[420px] overflow-y-auto">
+          <SheetTrigger asChild><Button size="sm"><Plus className="h-4 w-4 mr-2" />Add Employee</Button></SheetTrigger>
+          <SheetContent className="w-full sm:w-[420px] overflow-y-auto">
             <SheetHeader><SheetTitle>New Employee</SheetTitle></SheetHeader>
             <div className="space-y-4 mt-6">
               <div><Label>Full Name</Label><Input value={form.full_name} onChange={e => setForm({ ...form, full_name: e.target.value })} /></div>
@@ -180,18 +180,18 @@ export default function EmployeesPage() {
       </div>
 
       <Tabs defaultValue="active" className="w-full">
-        <TabsList className="mb-4">
-          <TabsTrigger value="active">Active Employees ({employees.length})</TabsTrigger>
-          <TabsTrigger value="timesheets" className="flex items-center gap-1.5">
+        <TabsList className="mb-4 overflow-x-auto w-full justify-start">
+          <TabsTrigger value="active" className="shrink-0">Active ({employees.length})</TabsTrigger>
+          <TabsTrigger value="timesheets" className="flex items-center gap-1.5 shrink-0">
             <Clock className="h-4 w-4" />
-            Time Sheets & Hours
+            Time Sheets
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value="active">
           <Card>
-            <CardContent className="p-0">
-              <Table>
+            <CardContent className="p-0 overflow-x-auto">
+              <Table className="min-w-[700px]">
                 <TableHeader>
                   <TableRow>
                     <TableHead>Name</TableHead>

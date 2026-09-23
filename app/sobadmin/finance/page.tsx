@@ -139,13 +139,13 @@ export default function FinancePage() {
   const avgMargin = totalRevenue > 0 ? totalProfit / totalRevenue : 0;
 
   return (
-    <div className="p-8 space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-5 min-w-0">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Finance</h1>
+          <h1 className="text-xl md:text-2xl font-bold text-foreground">Finance</h1>
           <p className="text-sm text-muted-foreground mt-0.5">Per-zone P&amp;L, forecasting, and expansion readiness</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <DatePickerWithRange date={dateRange} onDateChange={setDateRange} />
           <select
             className="text-sm border border-border rounded-lg px-3 py-2 bg-background"
@@ -165,19 +165,21 @@ export default function FinancePage() {
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex flex-wrap gap-1 bg-muted/50 p-1 rounded-lg w-fit">
-        {FINANCE_TABS.map((t) => (
-          <button
-            key={t.id}
-            onClick={() => setTab(t.id)}
-            className={`px-3.5 py-1.5 rounded-md text-xs sm:text-sm font-medium transition-colors ${
-              tab === t.id ? 'bg-background text-foreground shadow-sm font-semibold' : 'text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            {t.label}
-          </button>
-        ))}
+      {/* Tabs — scrollable on mobile */}
+      <div className="overflow-x-auto scrollbar-none -mx-1 px-1">
+        <div className="flex gap-1 bg-muted/50 p-1 rounded-lg w-max min-w-full">
+          {FINANCE_TABS.map((t) => (
+            <button
+              key={t.id}
+              onClick={() => setTab(t.id)}
+              className={`px-3 py-1.5 rounded-md text-xs font-medium whitespace-nowrap transition-colors shrink-0 ${
+                tab === t.id ? 'bg-background text-foreground shadow-sm font-semibold' : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {tab === 'overview' && (
@@ -189,8 +191,8 @@ export default function FinancePage() {
             </div>
           )}
 
-          {/* Summary cards */}
-          <div className="grid grid-cols-4 gap-4">
+          {/* Summary cards — 2 cols mobile, 4 cols desktop */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
             <StatCard label="Monthly Revenue" value={formatCAD(totalRevenue)} sub={dateRange?.from ? "Custom date range" : "This month across all zones"} />
             <StatCard label="Gross Profit" value={formatCAD(totalProfit)} sub={`${(avgMargin * 100).toFixed(0)}% margin`} />
             <StatCard label="Jobs Completed" value={totalJobs.toString()} sub={dateRange?.from ? "Custom date range" : "This month"} />

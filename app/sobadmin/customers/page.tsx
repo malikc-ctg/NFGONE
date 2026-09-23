@@ -206,22 +206,22 @@ export default function CustomersPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5 min-w-0">
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold tracking-tight">Customer Management</h1>
+          <div className="flex items-center gap-2 flex-wrap">
+            <h1 className="text-xl md:text-2xl font-bold tracking-tight">Customers</h1>
             <Badge variant="outline" className="text-xs font-semibold px-2 py-0.5 border-slate-300">
               Enterprise CRM
             </Badge>
           </div>
           <p className="text-sm text-muted-foreground mt-0.5">
-            {stats.total} total accounts • {stats.residentialCount} Residential • {stats.commercialCount} Commercial
+            {stats.total} total · {stats.residentialCount} Residential · {stats.commercialCount} Commercial
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <Button
             variant="outline"
             size="sm"
@@ -229,7 +229,7 @@ export default function CustomersPage() {
             className="text-blue-700 border-blue-200 hover:bg-blue-50 h-9"
           >
             <Home className="h-4 w-4 mr-1.5" />
-            + Residential Client
+            <span className="hidden sm:inline">+ </span>Residential
           </Button>
 
           <Button
@@ -238,7 +238,7 @@ export default function CustomersPage() {
             className="bg-purple-600 hover:bg-purple-700 text-white shadow-sm h-9"
           >
             <Building2 className="h-4 w-4 mr-1.5" />
-            + Commercial Account
+            <span className="hidden sm:inline">+ </span>Commercial
           </Button>
         </div>
       </div>
@@ -330,7 +330,7 @@ export default function CustomersPage() {
 
       {/* Tabs & Filter Bar */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pt-2">
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
+        <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none pb-1 -mx-1 px-1">
           <Button
             variant={activeTab === 'all' ? 'default' : 'outline'}
             size="sm"
@@ -433,8 +433,8 @@ export default function CustomersPage() {
 
       {/* Main Customers Table */}
       <Card>
-        <CardContent className="p-0">
-          <Table>
+        <CardContent className="p-0 overflow-x-auto">
+          <Table className="min-w-[800px]">
             <TableHeader>
               <TableRow className="bg-slate-50/80">
                 <TableHead className="w-[280px]">Customer / Account</TableHead>

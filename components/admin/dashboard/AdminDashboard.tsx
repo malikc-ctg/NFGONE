@@ -196,7 +196,7 @@ export function AdminDashboard() {
 
   if (loading) {
     return (
-      <div className="p-4 md:p-8 space-y-6 md:space-y-8 max-w-7xl mx-auto w-full">
+      <div className="p-4 md:p-6 lg:p-8 space-y-6 md:space-y-8 max-w-7xl mx-auto w-full">
         {/* Header Skeleton */}
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div className="space-y-2">
@@ -217,20 +217,15 @@ export function AdminDashboard() {
           {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-32 w-full rounded-2xl" />)}
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 space-y-4">
+        <div className="grid grid-cols-1 gap-6">
+          <div className="space-y-4">
             <div className="flex items-center justify-between">
               <Skeleton className="h-6 w-32" />
-              <Skeleton className="h-10 w-64 rounded-xl" />
+              <Skeleton className="h-10 w-48 rounded-xl" />
             </div>
             <div className="space-y-3">
               {[1, 2, 3].map(i => <Skeleton key={i} className="h-32 w-full rounded-2xl" />)}
             </div>
-          </div>
-          
-          <div className="space-y-6">
-            <Skeleton className="h-64 w-full rounded-3xl" />
-            <Skeleton className="h-64 w-full rounded-3xl" />
           </div>
         </div>
       </div>
@@ -246,7 +241,7 @@ export function AdminDashboard() {
   }
 
   return (
-    <div className="p-4 md:p-8 space-y-6 md:space-y-8 max-w-7xl mx-auto">
+    <div className="p-4 md:p-6 lg:p-8 space-y-5 md:space-y-6 lg:space-y-8 max-w-7xl mx-auto min-w-0">
       {/* Header */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -330,28 +325,55 @@ export function AdminDashboard() {
         })}
       </div>
 
+      {/* Mobile Quick-Links Row — shows sidebar content as tappable chips on phones */}
+      <div className="flex gap-2 overflow-x-auto pb-1 lg:hidden -mx-4 px-4 scrollbar-none">
+        <button
+          onClick={() => setView('map')}
+          className="flex items-center gap-1.5 shrink-0 px-3 py-2 rounded-xl bg-card border border-border text-xs font-semibold hover:border-primary/50 transition-colors"
+        >
+          <Map className="h-3.5 w-3.5 text-blue-600" />
+          Live Map
+        </button>
+        <a href="/sobadmin/leads" className="flex items-center gap-1.5 shrink-0 px-3 py-2 rounded-xl bg-card border border-border text-xs font-semibold hover:border-primary/50 transition-colors">
+          <Sparkles className="h-3.5 w-3.5 text-purple-600" />
+          Leads
+        </a>
+        <a href="/sobadmin/employees" className="flex items-center gap-1.5 shrink-0 px-3 py-2 rounded-xl bg-card border border-border text-xs font-semibold hover:border-primary/50 transition-colors">
+          <UserCheck className="h-3.5 w-3.5 text-emerald-600" />
+          Employees
+        </a>
+        <a href="/sobadmin/zones" className="flex items-center gap-1.5 shrink-0 px-3 py-2 rounded-xl bg-card border border-border text-xs font-semibold hover:border-primary/50 transition-colors">
+          <Globe className="h-3.5 w-3.5 text-blue-600" />
+          Zones
+        </a>
+        <a href="/sobadmin/finance" className="flex items-center gap-1.5 shrink-0 px-3 py-2 rounded-xl bg-card border border-border text-xs font-semibold hover:border-primary/50 transition-colors">
+          <TrendingUp className="h-3.5 w-3.5 text-green-600" />
+          Finance
+        </a>
+      </div>
+
       {/* Main Grid: Operational Jobs Feed + Sidebar */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
         {/* Main Job List */}
         <div className="lg:col-span-2 space-y-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            {/* Timeframe Chips */}
-            <div className="flex items-center gap-1.5 p-1 bg-muted/50 rounded-xl border border-border/50 overflow-x-auto">
+            {/* Timeframe Chips — horizontally scrollable on mobile */}
+            <div className="flex items-center gap-1.5 p-1 bg-muted/50 rounded-xl border border-border/50 overflow-x-auto scrollbar-none -mx-1 px-1">
               <button
                 type="button"
                 onClick={() => setTimeframe('all')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all shrink-0 ${
                   timeframe === 'all'
                     ? 'bg-background text-foreground shadow-xs'
                     : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
-                All Jobs ({allJobs.length})
+                All ({allJobs.length})
               </button>
               <button
                 type="button"
                 onClick={() => setTimeframe('today')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all shrink-0 ${
                   timeframe === 'today'
                     ? 'bg-background text-foreground shadow-xs'
                     : 'text-muted-foreground hover:text-foreground'
@@ -362,7 +384,7 @@ export function AdminDashboard() {
               <button
                 type="button"
                 onClick={() => setTimeframe('week')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all shrink-0 ${
                   timeframe === 'week'
                     ? 'bg-background text-foreground shadow-xs'
                     : 'text-muted-foreground hover:text-foreground'
@@ -373,22 +395,22 @@ export function AdminDashboard() {
               <button
                 type="button"
                 onClick={() => setTimeframe('unassigned')}
-                className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
+                className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all shrink-0 ${
                   timeframe === 'unassigned'
                     ? 'bg-amber-500 text-white shadow-xs'
                     : 'text-amber-600 hover:bg-amber-500/10'
                 }`}
               >
-                Needs Dispatch ({unassignedJobs.length})
+                Unassigned ({unassignedJobs.length})
               </button>
             </div>
 
             {/* Search Input */}
-            <div className="relative w-full sm:w-60">
+            <div className="relative w-full sm:w-60 shrink-0">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
               <input 
                 type="text"
-                placeholder="Search customer, address, job #..."
+                placeholder="Search customer, address..."
                 className="w-full pl-8 pr-3 py-1.5 bg-background border border-input rounded-xl text-xs focus:outline-none focus:ring-2 ring-primary/20"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -516,8 +538,8 @@ export function AdminDashboard() {
           </div>
         </div>
 
-        {/* Sidebar: Inbound Leads + Active Cleaners + Zones */}
-        <div className="space-y-6">
+        {/* Sidebar: Inbound Leads + Active Cleaners + Zones — desktop only; mobile uses quick-links row above */}
+        <div className="hidden lg:block space-y-6">
           {/* Recent Inbound Leads Widget */}
           <div className="bg-card border border-border rounded-3xl p-5 shadow-xs space-y-4">
             <div className="flex items-center justify-between">
