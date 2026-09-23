@@ -8,7 +8,7 @@ import {
   Settings, ClipboardList, Waves,
   Package,
   TrendingUp, Globe, Shield,
-  Menu, X, LogOut, Repeat,
+  Menu, X, LogOut,
 } from 'lucide-react';
 
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -18,7 +18,6 @@ const sidebarItems = [
   { href: '/sobadmin', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/sobadmin/leads', label: 'Leads', icon: ClipboardList },
   { href: '/sobadmin/jobs', label: 'Jobs', icon: Briefcase },
-  { href: '/sobadmin/recurring', label: 'Recurring', icon: Repeat },
   { href: '/sobadmin/customers', label: 'Customers', icon: Users },
   { href: '/sobadmin/employees', label: 'Employees', icon: UserCheck },
   { href: '/sobadmin/supply', label: 'Supply', icon: Package },
